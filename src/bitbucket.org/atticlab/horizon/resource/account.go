@@ -51,6 +51,16 @@ func (this *Account) Populate(
 		this.Data[d.Key] = d.Value
 	}
 
+	// populate statistics
+	this.DailyIncome = ha.DailyIncome
+	this.DailyOutcome = ha.DailyOutcome
+	this.WeeklyIncome = ha.WeeklyIncome
+	this.WeeklyOutcome = ha.WeeklyOutcome
+	this.MonthlyIncome = ha.MonthlyIncome
+	this.MonthlyOutcome = ha.MonthlyOutcome
+	this.AnnualIncome = ha.AnnualIncome
+	this.AnnualOutcome = ha.AnnualOutcome
+
 	// populate signers
 	this.Signers = make([]Signer, len(cs)+1)
 	for i, s := range cs {
