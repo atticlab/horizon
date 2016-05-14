@@ -243,9 +243,14 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/stellar/go-stellar-base",
-			"repository": "https://github.com/stellar/go-stellar-base",
-			"revision": "f0dc2e49f67e98296959275764f74c9d9382dec0",
+			"importpath": "bitbucket.org/atticlab/go-smart-base",
+			"repository": "https://bitbucket.org/atticlab/go-smart-base",
+			"revision": "f6729fb3dc1f8345b601c266310531be509dad15",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/joho/godotenv",
+			"repository": "https://github.com/joho/godotenv",
 			"branch": "master"
 		},
 		{
