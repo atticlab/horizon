@@ -3,6 +3,7 @@
 // latest.sql
 // migrations/1_initial_schema.sql
 // migrations/2_index_participants_by_toid.sql
+// migrations/3_aggregate_expenses_for_accounts.sql
 // DO NOT EDIT!
 
 package schema
@@ -85,7 +86,7 @@ func latestSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "latest.sql", size: 11766, mode: os.FileMode(420), modTime: time.Unix(1461171350, 0)}
+	info := bindataFileInfo{name: "latest.sql", size: 11766, mode: os.FileMode(420), modTime: time.Unix(1463228958, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -105,7 +106,7 @@ func migrations1_initial_schemaSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/1_initial_schema.sql", size: 10559, mode: os.FileMode(420), modTime: time.Unix(1460062807, 0)}
+	info := bindataFileInfo{name: "migrations/1_initial_schema.sql", size: 10559, mode: os.FileMode(420), modTime: time.Unix(1463228958, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -125,7 +126,27 @@ func migrations2_index_participants_by_toidSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/2_index_participants_by_toid.sql", size: 277, mode: os.FileMode(420), modTime: time.Unix(1460062807, 0)}
+	info := bindataFileInfo{name: "migrations/2_index_participants_by_toid.sql", size: 277, mode: os.FileMode(420), modTime: time.Unix(1463228958, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _migrations3_aggregate_expenses_for_accountsSql = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xac\x92\x41\x8b\x83\x30\x14\x84\xcf\xc9\xaf\x98\xfb\x52\xd8\xbb\x27\x97\xb8\xa7\xd0\x2e\x45\xcf\xf2\xd0\xb0\x86\x35\x89\xd4\x27\xd2\xfd\xf5\x6b\xa1\x14\x85\x85\x36\x98\xab\x38\x33\x1f\x79\xdf\xe1\x80\x37\x67\xbf\x2f\xc4\x06\xd5\x20\x65\xae\xcb\xe2\x8c\x32\xff\xd0\x05\x3a\x3b\x72\xb8\x5c\x6b\x6a\x9a\x30\x79\x1e\x91\x2b\x85\x96\x6c\x7f\xad\xad\x6f\x82\x33\x10\xa2\x35\x8d\x75\xd4\xe3\x78\x2a\x71\xac\xb4\x86\x2a\x3e\xf3\x4a\x97\x78\xcf\x5e\xed\x0a\x13\xa7\x28\x9b\x8d\xf9\xf9\x87\x4c\xec\x29\xbb\xa3\xed\x24\x73\xc1\x73\xf7\x40\x4b\x54\xf6\x78\xb5\x5d\x6d\xe4\xfd\x44\x7d\x1a\xb2\x7b\x57\x9a\x37\x9b\x86\x76\x51\xb2\xad\x89\x97\x53\xb2\x75\x66\x64\x72\x03\x66\xcb\xdd\x32\x80\xdb\x17\xfc\x06\x6f\x32\x29\xd7\x0a\xab\x30\xfb\x27\x12\xab\xf3\xe9\x4b\xac\x2d\x7e\x42\x73\xfb\x1f\x62\xa3\xea\x4b\x89\x8d\x8f\x31\x89\x98\x91\xad\x5a\x51\x91\x98\x99\x8d\x26\x31\x89\x88\x11\xac\x6e\x9e\xc9\xbf\x00\x00\x00\xff\xff\x90\x27\x70\x64\x98\x04\x00\x00")
+
+func migrations3_aggregate_expenses_for_accountsSqlBytes() ([]byte, error) {
+	return bindataRead(
+		_migrations3_aggregate_expenses_for_accountsSql,
+		"migrations/3_aggregate_expenses_for_accounts.sql",
+	)
+}
+
+func migrations3_aggregate_expenses_for_accountsSql() (*asset, error) {
+	bytes, err := migrations3_aggregate_expenses_for_accountsSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/3_aggregate_expenses_for_accounts.sql", size: 1176, mode: os.FileMode(420), modTime: time.Unix(1463230045, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -185,6 +206,7 @@ var _bindata = map[string]func() (*asset, error){
 	"latest.sql": latestSql,
 	"migrations/1_initial_schema.sql": migrations1_initial_schemaSql,
 	"migrations/2_index_participants_by_toid.sql": migrations2_index_participants_by_toidSql,
+	"migrations/3_aggregate_expenses_for_accounts.sql": migrations3_aggregate_expenses_for_accountsSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -231,6 +253,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 	"migrations": &bintree{nil, map[string]*bintree{
 		"1_initial_schema.sql": &bintree{migrations1_initial_schemaSql, map[string]*bintree{}},
 		"2_index_participants_by_toid.sql": &bintree{migrations2_index_participants_by_toidSql, map[string]*bintree{}},
+		"3_aggregate_expenses_for_accounts.sql": &bintree{migrations3_aggregate_expenses_for_accountsSql, map[string]*bintree{}},
 	}},
 }}
 
