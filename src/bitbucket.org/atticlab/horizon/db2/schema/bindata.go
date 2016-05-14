@@ -4,6 +4,7 @@
 // migrations/1_initial_schema.sql
 // migrations/2_index_participants_by_toid.sql
 // migrations/3_aggregate_expenses_for_accounts.sql
+// migrations/4_default_timestamp_for_accounts.sql
 // DO NOT EDIT!
 
 package schema
@@ -151,6 +152,26 @@ func migrations3_aggregate_expenses_for_accountsSql() (*asset, error) {
 	return a, nil
 }
 
+var _migrations4_default_timestamp_for_accountsSql = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\xd5\x55\xd0\xce\xcd\x4c\x2f\x4a\x2c\x49\x55\x08\x2d\xe0\xe2\x72\xf4\x09\x71\x0d\x52\x08\x71\x74\xf2\x71\x55\xc8\xc8\x2c\x2e\xc9\x2f\xaa\x8c\x4f\x4c\x4e\xce\x2f\xcd\x2b\x29\x56\x80\x48\x3a\xfb\xfb\x84\xfa\xfa\x29\x94\x16\xa4\x00\x35\xa5\xc4\x27\x96\x28\x04\xbb\x86\x28\xb8\xb8\xba\x39\x86\xfa\x84\x28\x68\xe4\xe5\x97\x6b\x68\x2a\x00\x45\x4b\x32\x73\x53\x15\xaa\xf2\xf3\x52\x15\xd4\x4b\x4b\x92\xd5\x35\xad\xb9\xb8\x90\x6d\x73\xc9\x2f\xcf\x23\xd3\x3e\x97\x20\xff\x00\x98\x85\xd6\x5c\x80\x00\x00\x00\xff\xff\x68\x64\x53\x87\xc3\x00\x00\x00")
+
+func migrations4_default_timestamp_for_accountsSqlBytes() ([]byte, error) {
+	return bindataRead(
+		_migrations4_default_timestamp_for_accountsSql,
+		"migrations/4_default_timestamp_for_accounts.sql",
+	)
+}
+
+func migrations4_default_timestamp_for_accountsSql() (*asset, error) {
+	bytes, err := migrations4_default_timestamp_for_accountsSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/4_default_timestamp_for_accounts.sql", size: 195, mode: os.FileMode(420), modTime: time.Unix(1463239174, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -207,6 +228,7 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/1_initial_schema.sql": migrations1_initial_schemaSql,
 	"migrations/2_index_participants_by_toid.sql": migrations2_index_participants_by_toidSql,
 	"migrations/3_aggregate_expenses_for_accounts.sql": migrations3_aggregate_expenses_for_accountsSql,
+	"migrations/4_default_timestamp_for_accounts.sql": migrations4_default_timestamp_for_accountsSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -254,6 +276,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"1_initial_schema.sql": &bintree{migrations1_initial_schemaSql, map[string]*bintree{}},
 		"2_index_participants_by_toid.sql": &bintree{migrations2_index_participants_by_toidSql, map[string]*bintree{}},
 		"3_aggregate_expenses_for_accounts.sql": &bintree{migrations3_aggregate_expenses_for_accountsSql, map[string]*bintree{}},
+		"4_default_timestamp_for_accounts.sql": &bintree{migrations4_default_timestamp_for_accountsSql, map[string]*bintree{}},
 	}},
 }}
 
