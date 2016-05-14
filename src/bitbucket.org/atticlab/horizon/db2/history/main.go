@@ -110,7 +110,7 @@ type Account struct {
 	MonthlyOutcome string `db:"monthly_outcome"`
 	AnnualIncome   string `db:"annual_income"`
 	AnnualOutcome  string `db:"annual_outcome"`
-	UpdatedAt      string `db:"updated_at"`
+	UpdatedAt      time.Time `db:"updated_at"`
 }
 
 // AccountsQ is a helper struct to aid in configuring queries that loads
