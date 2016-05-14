@@ -3,8 +3,8 @@ package horizon
 import (
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/horizon/resource"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/resource"
+	"bitbucket.org/atticlab/horizon/test"
 	"testing"
 )
 

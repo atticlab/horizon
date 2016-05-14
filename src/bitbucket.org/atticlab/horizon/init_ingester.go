@@ -1,7 +1,7 @@
 package horizon
 
 import (
-	"github.com/stellar/horizon/ingest"
+	"bitbucket.org/atticlab/horizon/ingest"
 	"log"
 )
 

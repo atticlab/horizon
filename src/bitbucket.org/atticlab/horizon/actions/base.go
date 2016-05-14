@@ -5,9 +5,9 @@ import (
 
 	gctx "github.com/goji/context"
 
-	"github.com/stellar/horizon/render"
-	"github.com/stellar/horizon/render/problem"
-	"github.com/stellar/horizon/render/sse"
+	"bitbucket.org/atticlab/horizon/render"
+	"bitbucket.org/atticlab/horizon/render/problem"
+	"bitbucket.org/atticlab/horizon/render/sse"
 	"github.com/zenazn/goji/web"
 	"golang.org/x/net/context"
 )

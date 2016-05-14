@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/stellar/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/txsub"
 	"golang.org/x/net/context"
 )
 

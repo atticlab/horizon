@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/stellar/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/db2/history"
 	"golang.org/x/net/context"
 )
 

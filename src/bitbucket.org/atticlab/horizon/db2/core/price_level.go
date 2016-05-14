@@ -1,8 +1,8 @@
 package core
 
 import (
-	"github.com/stellar/go-stellar-base/amount"
-	"github.com/stellar/go-stellar-base/xdr"
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"math/big"
 )
 

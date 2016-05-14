@@ -4,9 +4,9 @@ package core
 
 import (
 	"github.com/guregu/null"
-	"github.com/stellar/go-stellar-base/strkey"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2"
+	"bitbucket.org/atticlab/go-smart-base/strkey"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2"
 )
 
 // Account is a row of data from the `accounts` table
@@ -94,6 +94,7 @@ type Signer struct {
 	Accountid string
 	Publickey string
 	Weight    int32
+	SignerType 	uint32
 }
 
 // Transaction is row of data from the `txhistory` table from stellar-core

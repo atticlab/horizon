@@ -3,7 +3,7 @@ package friendbot
 import (
 	"testing"
 
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 // REGRESSION:  ensure that we can craft a transaction

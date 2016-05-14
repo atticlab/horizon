@@ -3,7 +3,7 @@ package history
 import (
 	"testing"
 
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestOperationQueries(t *testing.T) {

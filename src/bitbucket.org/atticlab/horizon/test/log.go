@@ -2,7 +2,7 @@ package test
 
 import (
 	"github.com/Sirupsen/logrus"
-	"github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/log"
 )
 
 var testLogger *log.Entry

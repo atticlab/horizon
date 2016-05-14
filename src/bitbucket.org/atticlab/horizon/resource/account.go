@@ -3,10 +3,10 @@ package resource
 import (
 	"fmt"
 
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/httpx"
-	"github.com/stellar/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/httpx"
+	"bitbucket.org/atticlab/horizon/render/hal"
 	"golang.org/x/net/context"
 )
 

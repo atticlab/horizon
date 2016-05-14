@@ -1,8 +1,8 @@
 package simplepath
 
 import (
-	"github.com/stellar/go-stellar-base/strkey"
-	"github.com/stellar/go-stellar-base/xdr"
+	"bitbucket.org/atticlab/go-smart-base/strkey"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 )
 
 func makeAsset(typ xdr.AssetType, code string, issuer string) xdr.Asset {

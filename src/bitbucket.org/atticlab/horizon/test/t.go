@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/stellar/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2"
 )
 
 // CoreRepo returns a db2.Repo instance pointing at the stellar core test database

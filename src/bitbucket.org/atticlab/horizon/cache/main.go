@@ -3,7 +3,7 @@ package cache
 
 import (
 	"github.com/golang/groupcache/lru"
-	"github.com/stellar/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2"
 )
 
 // HistoryAccount provides a cached lookup of history_account_id values from

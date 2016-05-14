@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/schema"
-	"github.com/stellar/horizon/ingest"
-	hlog "github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/schema"
+	"bitbucket.org/atticlab/horizon/ingest"
+	hlog "bitbucket.org/atticlab/horizon/log"
 )
 
 var dbCmd = &cobra.Command{

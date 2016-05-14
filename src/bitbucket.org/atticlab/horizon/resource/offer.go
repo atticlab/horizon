@@ -1,11 +1,11 @@
 package resource
 
 import (
-	"github.com/stellar/go-stellar-base/amount"
-	"github.com/stellar/horizon/assets"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/httpx"
-	"github.com/stellar/horizon/render/hal"
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/horizon/assets"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/httpx"
+	"bitbucket.org/atticlab/horizon/render/hal"
 	"golang.org/x/net/context"
 )
 

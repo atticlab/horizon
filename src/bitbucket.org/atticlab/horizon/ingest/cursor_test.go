@@ -3,7 +3,7 @@ package ingest
 import (
 	"testing"
 
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestCursor(t *testing.T) {

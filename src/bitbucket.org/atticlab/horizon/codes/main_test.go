@@ -2,7 +2,7 @@ package codes
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/go-stellar-base/xdr"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"testing"
 )
 

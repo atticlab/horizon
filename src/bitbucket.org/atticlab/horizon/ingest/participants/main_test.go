@@ -3,9 +3,9 @@ package participants
 import (
 	"testing"
 
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestForOperation(t *testing.T) {

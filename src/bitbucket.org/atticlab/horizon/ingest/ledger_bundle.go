@@ -1,8 +1,8 @@
 package ingest
 
 import (
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/core"
 )
 
 // Load runs queries against `core` to fill in the records of the bundle.

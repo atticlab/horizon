@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/stellar/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2"
 )
 
 //go:generate go-bindata -ignore .+\.go$ -pkg schema -o bindata.go ./...

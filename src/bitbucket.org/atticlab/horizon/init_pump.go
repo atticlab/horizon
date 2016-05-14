@@ -3,8 +3,8 @@ package horizon
 import (
 	"time"
 
-	"github.com/stellar/horizon/pump"
-	"github.com/stellar/horizon/pump/db"
+	"bitbucket.org/atticlab/horizon/pump"
+	"bitbucket.org/atticlab/horizon/pump/db"
 )
 
 func initPump(app *App) {

@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestTransactionsQueries(t *testing.T) {

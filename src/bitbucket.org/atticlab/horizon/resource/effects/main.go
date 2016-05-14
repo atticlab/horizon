@@ -1,9 +1,9 @@
 package effects
 
 import (
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/resource/base"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/resource/base"
 	"golang.org/x/net/context"
 )
 
@@ -124,7 +124,7 @@ type Base struct {
 
 type AccountCreated struct {
 	Base
-	StartingBalance string `json:"starting_balance"`
+	AccountType string `json:"account_type"`
 }
 
 type AccountCredited struct {

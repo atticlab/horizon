@@ -3,8 +3,8 @@ package txsub
 import (
 	"errors"
 	"fmt"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/codes"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/codes"
 )
 
 var (

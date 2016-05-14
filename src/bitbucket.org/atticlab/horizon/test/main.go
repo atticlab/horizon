@@ -11,8 +11,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
-	hlog "github.com/stellar/horizon/log"
-	tdb "github.com/stellar/horizon/test/db"
+	hlog "bitbucket.org/atticlab/horizon/log"
+	tdb "bitbucket.org/atticlab/horizon/test/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"

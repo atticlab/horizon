@@ -3,8 +3,8 @@ package core
 import (
 	"testing"
 
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestOffersByAddress(t *testing.T) {

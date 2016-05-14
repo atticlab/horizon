@@ -5,11 +5,11 @@ package resource
 import (
 	"time"
 
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/resource/base"
-	"github.com/stellar/horizon/resource/effects"
-	"github.com/stellar/horizon/resource/operations"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/resource/base"
+	"bitbucket.org/atticlab/horizon/resource/effects"
+	"bitbucket.org/atticlab/horizon/resource/operations"
 	"golang.org/x/net/context"
 )
 
@@ -164,6 +164,7 @@ type Root struct {
 type Signer struct {
 	PublicKey string `json:"public_key"`
 	Weight    int32  `json:"weight"`
+	SignerType 	uint32 `json:"signertype"`
 }
 
 // Trade represents a trade effect

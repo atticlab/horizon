@@ -14,4 +14,5 @@ var selectSigner = sq.Select(
 	"si.accountid",
 	"si.publickey",
 	"si.weight",
+	"si.signertype",
 ).From("signers si")

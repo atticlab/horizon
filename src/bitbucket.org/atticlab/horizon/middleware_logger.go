@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	gctx "github.com/goji/context"
-	"github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/log"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
 	"github.com/zenazn/goji/web/mutil"

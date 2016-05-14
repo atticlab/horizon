@@ -2,7 +2,7 @@ package sequence
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/test"
 	"testing"
 	"time"
 )

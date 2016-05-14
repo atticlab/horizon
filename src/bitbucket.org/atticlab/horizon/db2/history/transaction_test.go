@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestTransactionQueries(t *testing.T) {

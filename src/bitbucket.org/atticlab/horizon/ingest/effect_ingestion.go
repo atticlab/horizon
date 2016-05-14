@@ -1,8 +1,8 @@
 package ingest
 
 import (
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/history"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/history"
 )
 
 // Add writes an effect to the database while automatically tracking the index

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/horizon/resource/operations"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/resource/operations"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestOperationActions(t *testing.T) {

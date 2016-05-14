@@ -1,8 +1,8 @@
 package simplepath
 
 import (
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/paths"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/paths"
 )
 
 // search represents a single query against the simple finder.  It provides

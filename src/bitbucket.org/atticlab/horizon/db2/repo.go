@@ -8,7 +8,7 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/jmoiron/sqlx"
 	sq "github.com/lann/squirrel"
-	"github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/log"
 	"golang.org/x/net/context"
 )
 

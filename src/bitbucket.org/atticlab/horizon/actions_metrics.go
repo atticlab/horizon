@@ -2,7 +2,7 @@ package horizon
 
 import (
 	"github.com/rcrowley/go-metrics"
-	"github.com/stellar/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/render/hal"
 )
 
 // MetricsAction collects and renders a snapshot from the metrics system that

@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"github.com/stellar/go-stellar-base/amount"
-	"github.com/stellar/horizon/paths"
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/horizon/paths"
 	"golang.org/x/net/context"
 )
 

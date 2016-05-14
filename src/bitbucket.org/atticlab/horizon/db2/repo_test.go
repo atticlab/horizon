@@ -3,8 +3,8 @@ package db2
 import (
 	"testing"
 
-	tdb "github.com/stellar/horizon/test/db"
-	"github.com/stellar/horizon/test/scenarios"
+	tdb "bitbucket.org/atticlab/horizon/test/db"
+	"bitbucket.org/atticlab/horizon/test/scenarios"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -3,10 +3,10 @@ package ingest
 import (
 	"time"
 
-	"github.com/stellar/go-stellar-base/meta"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/toid"
+	"bitbucket.org/atticlab/go-smart-base/meta"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/toid"
 )
 
 // BeforeAndAfter loads the ledger entry for `target` before the current

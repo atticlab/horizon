@@ -3,13 +3,13 @@ package horizon
 import (
 	"net/http"
 
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/render/problem"
-	"github.com/stellar/horizon/render/sse"
-	"github.com/stellar/horizon/resource"
-	"github.com/stellar/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/render/problem"
+	"bitbucket.org/atticlab/horizon/render/sse"
+	"bitbucket.org/atticlab/horizon/resource"
+	"bitbucket.org/atticlab/horizon/txsub"
 )
 
 // This file contains the actions:

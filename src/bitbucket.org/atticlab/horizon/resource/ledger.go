@@ -2,11 +2,11 @@ package resource
 
 import (
 	"fmt"
-	"github.com/stellar/go-stellar-base/amount"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/httpx"
-	"github.com/stellar/horizon/render/hal"
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/httpx"
+	"bitbucket.org/atticlab/horizon/render/hal"
 	"golang.org/x/net/context"
 )
 

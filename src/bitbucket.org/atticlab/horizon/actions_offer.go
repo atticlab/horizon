@@ -1,11 +1,11 @@
 package horizon
 
 import (
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/render/sse"
-	"github.com/stellar/horizon/resource"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/render/sse"
+	"bitbucket.org/atticlab/horizon/resource"
 )
 
 // This file contains the actions:

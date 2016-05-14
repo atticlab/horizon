@@ -7,9 +7,9 @@ import (
 	"log"
 
 	"github.com/PuerkitoBio/throttled"
-	hlog "github.com/stellar/horizon/log"
-	"github.com/stellar/horizon/render/problem"
-	"github.com/stellar/horizon/test"
+	hlog "bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/render/problem"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func NewTestApp() *App {

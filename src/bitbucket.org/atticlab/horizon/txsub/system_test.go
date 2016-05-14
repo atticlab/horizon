@@ -6,9 +6,9 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/go-stellar-base/build"
-	"github.com/stellar/horizon/test"
-	"github.com/stellar/horizon/txsub/sequence"
+	"bitbucket.org/atticlab/go-smart-base/build"
+	"bitbucket.org/atticlab/horizon/test"
+	"bitbucket.org/atticlab/horizon/txsub/sequence"
 )
 
 func TestTxsub(t *testing.T) {

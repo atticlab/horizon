@@ -5,7 +5,7 @@ package participants
 import (
 	"fmt"
 
-	"github.com/stellar/go-stellar-base/xdr"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 )
 
 // ForOperation returns all the participating accounts from the

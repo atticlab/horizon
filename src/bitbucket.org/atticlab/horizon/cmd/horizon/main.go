@@ -3,13 +3,14 @@ package main
 import (
 	"log"
 	"runtime"
-
+	
+	"github.com/joho/godotenv"
 	"github.com/PuerkitoBio/throttled"
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stellar/horizon"
-	hlog "github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon"
+	hlog "bitbucket.org/atticlab/horizon/log"
 )
 
 var app *horizon.App
@@ -27,6 +28,7 @@ func main() {
 }
 
 func init() {
+	godotenv.Load()
 	viper.SetDefault("port", 8000)
 	viper.SetDefault("autopump", false)
 
@@ -47,7 +49,9 @@ func init() {
 	viper.BindEnv("tls-key", "TLS_KEY")
 	viper.BindEnv("ingest", "INGEST")
 	viper.BindEnv("network-passphrase", "NETWORK_PASSPHRASE")
-
+	viper.BindEnv("bank-master-key", "BANK_MASTER_KEY")
+	viper.BindEnv("bank-commission-key", "BANK_COMMISSION_KEY")
+	
 	rootCmd = &cobra.Command{
 		Use:   "horizon",
 		Short: "client-facing api server for the stellar network",
@@ -154,6 +158,18 @@ func init() {
 		"Override the network passphrase",
 	)
 
+	rootCmd.Flags().String(
+		"bank-master-key",
+		"",
+		"Bank's master key",
+	)
+	
+	rootCmd.Flags().String(
+		"bank-commission-key",
+		"",
+		"Bank's commission key",
+	)
+
 	rootCmd.AddCommand(dbCmd)
 
 	viper.BindPFlags(rootCmd.Flags())
@@ -199,6 +215,13 @@ func initConfig() {
 	case cert == "" && key != "":
 		log.Fatal("Invalid TLS config: cert not configured")
 	}
+	
+	if viper.GetBool("ingest") && viper.GetString("bank-master-key") == "" {
+		log.Fatal("Invalid config: bank-master-key is blank. Please set the BANK_MASTER_KEY environment variable.")
+	}
+	if viper.GetBool("ingest") && viper.GetString("bank-commission-key") == "" {
+		log.Fatal("Invalid config: bank-commission-key is blank. Please set the BANK_COMMISSION_KEY environment variable.")
+	}
 
 	config = horizon.Config{
 		DatabaseURL:            viper.GetString("db-url"),
@@ -216,5 +239,7 @@ func initConfig() {
 		TLSCert:                cert,
 		TLSKey:                 key,
 		Ingest:                 viper.GetBool("ingest"),
-	}
+		BankMasterKey:			viper.GetString("bank-master-key"),
+		BankCommissionKey:		viper.GetString("bank-commission-key"),
+	}	
 }

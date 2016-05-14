@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/stellar/horizon/actions"
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/httpx"
-	"github.com/stellar/horizon/log"
-	"github.com/stellar/horizon/toid"
+	"bitbucket.org/atticlab/horizon/actions"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/httpx"
+	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/toid"
 	"github.com/zenazn/goji/web"
 )
 

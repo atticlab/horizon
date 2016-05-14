@@ -3,10 +3,10 @@ package ingest
 import (
 	"testing"
 
-	"github.com/stellar/go-stellar-base/keypair"
-	"github.com/stellar/go-stellar-base/network"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/go-smart-base/keypair"
+	"bitbucket.org/atticlab/go-smart-base/network"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestIngest(t *testing.T) {

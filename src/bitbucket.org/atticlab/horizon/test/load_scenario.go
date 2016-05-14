@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/stellar/horizon/test/scenarios"
+	"bitbucket.org/atticlab/horizon/test/scenarios"
 )
 
 func loadScenario(scenarioName string, includeHorizon bool) {

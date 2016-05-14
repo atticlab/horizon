@@ -1,7 +1,7 @@
 package paths
 
 import (
-	"github.com/stellar/go-stellar-base/xdr"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 )
 
 type DummyFinder struct {

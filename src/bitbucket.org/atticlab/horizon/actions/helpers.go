@@ -4,12 +4,12 @@ import (
 	"mime"
 	"strconv"
 
-	"github.com/stellar/go-stellar-base/amount"
-	"github.com/stellar/go-stellar-base/strkey"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/assets"
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/render/problem"
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/go-smart-base/strkey"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/assets"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/render/problem"
 )
 
 const (

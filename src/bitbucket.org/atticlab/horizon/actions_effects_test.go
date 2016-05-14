@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestEffectActions(t *testing.T) {
@@ -20,7 +20,7 @@ func TestEffectActions(t *testing.T) {
 			So(w.Code, ShouldEqual, 200)
 			So(w.Body, ShouldBePageOf, 11)
 
-			// test streaming, regression for https://github.com/stellar/horizon/issues/147
+			// test streaming, regression for https://bitbucket.org/atticlab/horizon/issues/147
 			w = rh.Get("/effects?limit=2", test.RequestHelperStreaming)
 			So(w.Code, ShouldEqual, 200)
 		})

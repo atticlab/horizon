@@ -1,8 +1,8 @@
 package horizon
 
 import (
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/resource"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/resource"
 )
 
 // RootAction provides a summary of the horizon instance and links to various

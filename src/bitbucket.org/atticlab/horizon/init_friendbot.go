@@ -1,8 +1,8 @@
 package horizon
 
 import (
-	"github.com/stellar/go-stellar-base/strkey"
-	"github.com/stellar/horizon/friendbot"
+	"bitbucket.org/atticlab/go-smart-base/strkey"
+	"bitbucket.org/atticlab/horizon/friendbot"
 )
 
 func initFriendbot(app *App) {

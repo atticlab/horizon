@@ -1,9 +1,9 @@
 package horizon
 
 import (
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/render/sse"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/render/sse"
 )
 
 // DataShowAction renders a account summary found by its address.

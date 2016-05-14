@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/log"
 	"golang.org/x/net/context"
 )
 

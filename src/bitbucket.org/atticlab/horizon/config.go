@@ -25,4 +25,6 @@ type Config struct {
 	// TLSKey is the path to a private key file to use for horizon's TLS config
 	TLSKey string
 	Ingest bool
+	BankMasterKey string
+	BankCommissionKey string
 }

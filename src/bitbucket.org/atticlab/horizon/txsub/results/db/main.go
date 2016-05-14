@@ -6,10 +6,10 @@ import (
 	"bytes"
 	"encoding/base64"
 
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/txsub"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/txsub"
 	"golang.org/x/net/context"
 )
 

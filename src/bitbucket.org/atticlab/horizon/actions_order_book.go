@@ -3,12 +3,12 @@ package horizon
 import (
 	"net/http"
 
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/render/problem"
-	"github.com/stellar/horizon/render/sse"
-	"github.com/stellar/horizon/resource"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/render/problem"
+	"bitbucket.org/atticlab/horizon/render/sse"
+	"bitbucket.org/atticlab/horizon/resource"
 )
 
 // OrderBookShowAction renders a account summary found by its address.

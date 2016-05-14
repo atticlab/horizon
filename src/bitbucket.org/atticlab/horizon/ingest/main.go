@@ -8,9 +8,9 @@ import (
 
 	sq "github.com/lann/squirrel"
 	"github.com/rcrowley/go-metrics"
-	"github.com/stellar/horizon/cache"
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/cache"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/core"
 )
 
 const (

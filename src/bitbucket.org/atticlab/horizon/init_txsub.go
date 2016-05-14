@@ -1,11 +1,11 @@
 package horizon
 
 import (
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/txsub"
-	"github.com/stellar/horizon/txsub/results/db"
-	"github.com/stellar/horizon/txsub/sequence"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/txsub/results/db"
+	"bitbucket.org/atticlab/horizon/txsub/sequence"
 	"net/http"
 )
 

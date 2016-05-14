@@ -3,8 +3,8 @@ package horizon
 import (
 	"net/http"
 
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/render/problem"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/render/problem"
 )
 
 // FriendbotAction causes an account at `Address` to be created.

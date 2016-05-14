@@ -1,6 +1,6 @@
 package horizon
 
-import "github.com/stellar/horizon/render/problem"
+import "bitbucket.org/atticlab/horizon/render/problem"
 
 // NotImplementedAction renders a NotImplemented prblem
 type NotImplementedAction struct {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/guregu/null"
 	sq "github.com/lann/squirrel"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2"
 )
 
 const (

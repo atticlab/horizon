@@ -3,9 +3,9 @@ package results
 import (
 	"testing"
 
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestResultProvider(t *testing.T) {

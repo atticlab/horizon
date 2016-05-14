@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/rcrowley/go-metrics"
-	"github.com/stellar/horizon/log"
-	"github.com/stellar/horizon/txsub/sequence"
+	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/txsub/sequence"
 	"golang.org/x/net/context"
 )
 

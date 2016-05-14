@@ -1,7 +1,7 @@
 package horizon
 
 import (
-	"github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/log"
 )
 
 // InitFn is a function that contributes to the initialization of an App struct

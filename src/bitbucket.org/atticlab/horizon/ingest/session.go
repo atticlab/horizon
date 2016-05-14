@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stellar/go-stellar-base/amount"
-	"github.com/stellar/go-stellar-base/keypair"
-	"github.com/stellar/go-stellar-base/meta"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/ingest/participants"
+	"github.com/spf13/viper"
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/go-smart-base/keypair"
+	"bitbucket.org/atticlab/go-smart-base/meta"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/ingest/participants"
 )
+//var config *horizon.Config
+//var app *horizon.App
 
 // Run starts an attempt to ingest the range of ledgers specified in this
 // session.
@@ -101,14 +104,7 @@ func (is *Session) ingestEffects() {
 
 		effects.Add(op.Destination, history.EffectAccountCreated,
 			map[string]interface{}{
-				"starting_balance": amount.String(op.StartingBalance),
-			},
-		)
-
-		effects.Add(source, history.EffectAccountDebited,
-			map[string]interface{}{
-				"asset_type": "native",
-				"amount":     amount.String(op.StartingBalance),
+				"account_type": uint32(op.AccountType),
 			},
 		)
 
@@ -317,7 +313,15 @@ func (is *Session) ingestLedger() {
 
 	// If this is ledger 1, create the root account
 	if is.Cursor.LedgerSequence() == 1 {
-		is.Ingestion.Account(1, keypair.Master(is.Network).Address())
+		//config := app.Config
+		masterKey := viper.GetString("bank-master-key")
+		//config.BankMasterKey //  
+		commisionKey := viper.GetString("bank-commission-key")// config.BankCommissionKey //  
+		is.Ingestion.Account(1, masterKey)
+			//keypair.Master(is.Network).Address())
+		if masterKey != commisionKey{
+			is.Ingestion.Account(2, commisionKey)
+		}
 	}
 
 	for is.Cursor.NextTx() {
@@ -569,7 +573,7 @@ func (is *Session) operationDetails() map[string]interface{} {
 		op := c.Operation().Body.MustCreateAccountOp()
 		details["funder"] = source.Address()
 		details["account"] = op.Destination.Address()
-		details["starting_balance"] = amount.String(op.StartingBalance)
+		details["account_type"] = uint32(op.AccountType)
 	case xdr.OperationTypePayment:
 		op := c.Operation().Body.MustPaymentOp()
 		details["from"] = source.Address()

@@ -1,10 +1,10 @@
 package horizon
 
 import (
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/log"
 )
 
 func initHorizonDb(app *App) {

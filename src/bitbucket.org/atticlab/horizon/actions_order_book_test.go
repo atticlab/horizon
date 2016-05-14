@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/horizon/render/problem"
-	"github.com/stellar/horizon/resource"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/render/problem"
+	"bitbucket.org/atticlab/horizon/resource"
+	"bitbucket.org/atticlab/horizon/test"
 )
 
 func TestOrderBookActions(t *testing.T) {

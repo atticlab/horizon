@@ -3,8 +3,8 @@ package db
 import (
 	"time"
 
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/log"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/log"
 	"golang.org/x/net/context"
 )
 

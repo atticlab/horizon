@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/test"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/test"
 	"golang.org/x/net/context"
 )
 

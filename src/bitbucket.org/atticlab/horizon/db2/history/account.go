@@ -2,7 +2,7 @@ package history
 
 import (
 	sq "github.com/lann/squirrel"
-	"github.com/stellar/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2"
 )
 
 // Accounts provides a helper to filter rows from the `history_accounts` table

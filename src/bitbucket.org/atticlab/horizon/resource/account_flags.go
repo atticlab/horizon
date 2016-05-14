@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/stellar/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/core"
 )
 
 func (this *AccountFlags) Populate(row core.Account) {

@@ -2,7 +2,7 @@ package history
 
 import (
 	sq "github.com/lann/squirrel"
-	"github.com/stellar/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2"
 )
 
 // LedgerBySequence loads the single ledger at `seq` into `dest`

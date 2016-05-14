@@ -6,9 +6,9 @@ import (
 
 	"github.com/guregu/null"
 	sq "github.com/lann/squirrel"
-	"github.com/stellar/go-stellar-base/strkey"
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/utf8"
+	"bitbucket.org/atticlab/go-smart-base/strkey"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/utf8"
 )
 
 // Base64Signatures returns a slice of strings where each element is a base64

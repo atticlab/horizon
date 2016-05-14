@@ -1,11 +1,11 @@
 package horizon
 
 import (
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/db2/history"
-	"github.com/stellar/horizon/render/hal"
-	"github.com/stellar/horizon/resource"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/resource"
 )
 
 // TradeIndexAction renders a page of effect resources, filtered to include

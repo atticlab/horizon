@@ -2,8 +2,8 @@ package history
 
 import (
 	sq "github.com/lann/squirrel"
-	"github.com/stellar/horizon/db2"
-	"github.com/stellar/horizon/toid"
+	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/toid"
 )
 
 // TransactionByHash is a query that loads a single row from the

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/stellar/go-stellar-base/xdr"
-	"github.com/stellar/horizon/db2/core"
-	"github.com/stellar/horizon/paths"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/paths"
 )
 
 // pathNode implements the paths.Path interface and represents a path
