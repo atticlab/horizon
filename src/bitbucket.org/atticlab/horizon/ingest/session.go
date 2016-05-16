@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/viper"
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/meta"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/participants"
+	"github.com/spf13/viper"
 )
+
 //var config *horizon.Config
 //var app *horizon.App
 
@@ -315,11 +316,11 @@ func (is *Session) ingestLedger() {
 	if is.Cursor.LedgerSequence() == 1 {
 		//config := app.Config
 		masterKey := viper.GetString("bank-master-key")
-		//config.BankMasterKey //  
-		commisionKey := viper.GetString("bank-commission-key")// config.BankCommissionKey //  
+		//config.BankMasterKey //
+		commisionKey := viper.GetString("bank-commission-key") // config.BankCommissionKey //
 		is.Ingestion.Account(1, masterKey)
-			//keypair.Master(is.Network).Address())
-		if masterKey != commisionKey{
+		//keypair.Master(is.Network).Address())
+		if masterKey != commisionKey {
 			is.Ingestion.Account(2, commisionKey)
 		}
 	}
@@ -353,8 +354,29 @@ func (is *Session) ingestOperation() {
 		return
 	}
 
-	// Import the new account if one was created
-	if is.Cursor.Operation().Body.Type == xdr.OperationTypeCreateAccount {
+	if is.Cursor.Operation().Body.Type == xdr.OperationTypePayment {
+		// Update statistics for both accounts
+		// TODO: paste aggregation here
+		source := is.Cursor.OperationSourceAccount()
+		op := is.Cursor.Operation().Body.MustPaymentOp()
+		from := source.Address()
+		to := op.Destination.Address()
+		amount := amount.String(op.Amount)
+		date := time.Unix(is.Cursor.Ledger().CloseTime, 0).UTC()
+		
+		fmt.Printf("from: %s, to: %s, amount: %s, at: %s", from, to, amount, date)
+
+		is.Err = is.Ingestion.UpdateAccountOutcome(from, amount, date)
+		if is.Err != nil {
+			println(is.Err.Error())
+		}
+		is.Err = is.Ingestion.UpdateAccountIncome(to, amount, date)
+		if is.Err != nil {
+			println(is.Err.Error())
+		}
+
+	} else if is.Cursor.Operation().Body.Type == xdr.OperationTypeCreateAccount {
+		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()
 		is.Err = is.Ingestion.Account(is.Cursor.OperationID(), op.Destination.Address())
 	}
