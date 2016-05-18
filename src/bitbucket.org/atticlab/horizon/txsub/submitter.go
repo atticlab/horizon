@@ -120,7 +120,7 @@ func (sub *submitter) checkTransaction(envelope string) error {
 	}
 	
 	for i := 0; i < len(tx.Tx.Operations); i++ {
-		op := tx.Tx.Operations[0]
+		op := tx.Tx.Operations[i]
 		t := op.Body.Type
 		
 		if t == xdr.OperationTypePayment {
