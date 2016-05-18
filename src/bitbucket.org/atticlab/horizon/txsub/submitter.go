@@ -51,7 +51,14 @@ type submitter struct {
 func (sub *submitter) Submit(ctx context.Context, env string) (result SubmissionResult) {
 	start := time.Now()
 	defer func() { result.Duration = time.Since(start) }()
-
+	
+	// check constraints for tx
+	err := sub.checkTransaction(env)
+	if err != nil {
+		result.Err = err
+		return
+	}
+	
 	// construct the request
 	u, err := url.Parse(sub.coreURL)
 	if err != nil {
@@ -103,3 +110,54 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 
 	return
 }
+
+// checkAccountTypes Parse tx and check account types
+func (sub *submitter) checkTransaction(envelope string) error {
+	
+	tx, err := parseTransaction(envelope)
+	if (err != nil) {
+		return err
+	}
+	
+	for i := 0; i < len(tx.Tx.Operations); i++ {
+		op := tx.Tx.Operations[0]
+		t := op.Body.Type
+		
+		if t == xdr.OperationTypePayment {
+			payment := op.Body.MustPaymentOp()
+			destination := payment.Destination.Address()
+			source := op.SourceAccount.Address()
+			
+			var sourceAcc core.Account
+			err = sub.coreDb.AccountByAddress(&sourceAcc, source)
+			if (err != nil) {
+				return err
+			}
+			
+			var destinationAcc core.Account			
+			err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
+			if (err != nil) {
+				return err
+			}
+			
+			err = VerifyAccountTypesForPayment(sourceAcc, destinationAcc)
+			if (err != nil) {
+				return err
+			}
+			
+		}
+	}
+    
+	return nil
+}
+
+func parseTransaction(envelope string) (xdr.TransactionEnvelope, error) {
+	rawr := strings.NewReader(envelope)
+    b64r := base64.NewDecoder(base64.StdEncoding, rawr)
+    var tx xdr.TransactionEnvelope
+    _, err := xdr.Unmarshal(b64r, &tx)
+	
+	return tx, err
+}
+
+

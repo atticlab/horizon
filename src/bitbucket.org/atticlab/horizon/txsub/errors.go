@@ -79,3 +79,13 @@ type MalformedTransactionError struct {
 func (err *MalformedTransactionError) Error() string {
 	return "tx malformed"
 }
+
+// RestrictedForAccountTypeError represent an error that occurred because
+// operation is restricted for specified account types
+type RestrictedForAccountTypeError struct {
+	Reason string
+}
+
+func (err *RestrictedForAccountTypeError) Error() string {
+	return fmt.Sprintf("payment restricted: %s", err.Reason)
+}
