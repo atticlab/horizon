@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"strings"
+	"encoding/base64"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
 )
 
 const (
@@ -18,10 +22,11 @@ const (
 // NewDefaultSubmitter returns a new, simple Submitter implementation
 // that submits directly to the stellar-core at `url` using the http client
 // `h`.
-func NewDefaultSubmitter(h *http.Client, url string) Submitter {
+func NewDefaultSubmitter(h *http.Client, url string, coreDb *core.Q) Submitter {
 	return &submitter{
 		http:    h,
 		coreURL: url,
+		coreDb: coreDb,
 	}
 }
 
@@ -38,6 +43,7 @@ type coreSubmissionResponse struct {
 type submitter struct {
 	http    *http.Client
 	coreURL string
+	coreDb *core.Q
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
