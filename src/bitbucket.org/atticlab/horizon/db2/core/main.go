@@ -19,6 +19,7 @@ type Account struct {
 	HomeDomain    null.String
 	Thresholds    xdr.Thresholds
 	Flags         xdr.AccountFlags
+	AccountType	  xdr.AccountType `db:"accounttype"`
 }
 
 type AccountData struct {
