@@ -87,5 +87,5 @@ type RestrictedForAccountTypeError struct {
 }
 
 func (err *RestrictedForAccountTypeError) Error() string {
-	return fmt.Sprintf("payment restricted: %s", err.Reason)
+	return err.Reason
 }
