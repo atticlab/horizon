@@ -23,6 +23,7 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType {
     
 	xdr.AccountTypeAccountBank: []xdr.AccountType {
 		xdr.AccountTypeAccountSettlementAgent,
+		xdr.AccountTypeAccountDistributionAgent,
 	},
     
     xdr.AccountTypeAccountDistributionAgent: []xdr.AccountType {
