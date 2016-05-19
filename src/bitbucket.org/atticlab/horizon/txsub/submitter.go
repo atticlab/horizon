@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-	"fmt"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/core"
 )
