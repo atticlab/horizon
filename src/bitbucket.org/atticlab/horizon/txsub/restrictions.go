@@ -29,7 +29,6 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType {
 		xdr.AccountTypeAccountAnonymousUser,
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
-        xdr.AccountTypeAccountExchangeAgent,
 	},
     
     xdr.AccountTypeAccountSettlementAgent: []xdr.AccountType {
@@ -37,11 +36,6 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType {
 	},
     
     xdr.AccountTypeAccountExchangeAgent: []xdr.AccountType {
-		xdr.AccountTypeAccountAnonymousUser,
-		xdr.AccountTypeAccountRegisteredUser,
-		xdr.AccountTypeAccountMerchant,
-		xdr.AccountTypeAccountSettlementAgent,
-        xdr.AccountTypeAccountExchangeAgent
 	},
     
 	xdr.AccountTypeAccountAnonymousUser: []xdr.AccountType {
@@ -49,7 +43,6 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType {
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountSettlementAgent,
-		xdr.AccountTypeAccountExchangeAgent,
 	},
 	
 	xdr.AccountTypeAccountRegisteredUser: []xdr.AccountType {
@@ -57,7 +50,6 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType {
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountSettlementAgent,
-		xdr.AccountTypeAccountExchangeAgent,
 	},
 	
 	xdr.AccountTypeAccountMerchant: []xdr.AccountType {
@@ -65,7 +57,6 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType {
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountSettlementAgent,
-		xdr.AccountTypeAccountExchangeAgent,
 	},
 }
 
