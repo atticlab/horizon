@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
 )
 
 const (
@@ -18,10 +20,11 @@ const (
 // NewDefaultSubmitter returns a new, simple Submitter implementation
 // that submits directly to the stellar-core at `url` using the http client
 // `h`.
-func NewDefaultSubmitter(h *http.Client, url string) Submitter {
+func NewDefaultSubmitter(h *http.Client, url string, coreDb *core.Q) Submitter {
 	return &submitter{
 		http:    h,
 		coreURL: url,
+		coreDb: coreDb,
 	}
 }
 
@@ -38,6 +41,7 @@ type coreSubmissionResponse struct {
 type submitter struct {
 	http    *http.Client
 	coreURL string
+	coreDb *core.Q
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
@@ -45,7 +49,14 @@ type submitter struct {
 func (sub *submitter) Submit(ctx context.Context, env string) (result SubmissionResult) {
 	start := time.Now()
 	defer func() { result.Duration = time.Since(start) }()
-
+	
+	// check constraints for tx
+	err := sub.checkTransaction(env)
+	if err != nil {
+		result.Err = err
+		return
+	}
+	
 	// construct the request
 	u, err := url.Parse(sub.coreURL)
 	if err != nil {
@@ -96,4 +107,51 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	}
 
 	return
+}
+
+// checkAccountTypes Parse tx and check account types
+func (sub *submitter) checkTransaction(envelope string) error {
+	
+	tx, err := parseTransaction(envelope)
+	if (err != nil) {
+		return err
+	}
+	
+	for i := 0; i < len(tx.Tx.Operations); i++ {
+		op := tx.Tx.Operations[i]
+		t := op.Body.Type
+		
+		if t == xdr.OperationTypePayment {
+			payment := op.Body.MustPaymentOp()
+			destination := payment.Destination.Address()
+			source := op.SourceAccount.Address()
+			
+			var sourceAcc core.Account
+			err = sub.coreDb.AccountByAddress(&sourceAcc, source)
+			if (err != nil) {
+				return err
+			}
+			
+			var destinationAcc core.Account			
+			err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
+			if (err != nil) {
+				return err
+			}
+			
+			err = VerifyAccountTypesForPayment(sourceAcc, destinationAcc)
+			if (err != nil) {
+				return err
+			}
+			
+		}
+	}
+    
+	return nil
+}
+
+func parseTransaction(envelope string) (xdr.TransactionEnvelope, error) {
+    var tx xdr.TransactionEnvelope
+    err := xdr.SafeUnmarshalBase64(envelope, &tx)
+	
+	return tx, err
 }

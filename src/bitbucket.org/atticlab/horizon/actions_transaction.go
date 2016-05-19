@@ -210,6 +210,13 @@ func (action *TransactionCreateAction) loadResource() {
 				"envelope_xdr": err.EnvelopeXDR,
 			},
 		}
+	case *txsub.RestrictedForAccountTypeError: 
+		action.Err = &problem.P{
+			Type:   "transaction_restricted",
+			Title:  "Transaction Restricted",
+			Status: http.StatusForbidden,
+			Detail: action.Result.Err.Error(),
+		}
 	default:
 		action.Err = err
 	}

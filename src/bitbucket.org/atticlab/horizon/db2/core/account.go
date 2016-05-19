@@ -68,4 +68,5 @@ var selectAccount = sq.Select(
 	"a.homedomain",
 	"a.thresholds",
 	"a.flags",
+	"a.accounttype",
 ).From("accounts a")
