@@ -34,14 +34,6 @@ type Account struct {
 	Balances             []Balance         `json:"balances"`
 	Signers              []Signer          `json:"signers"`
 	Data                 map[string]string `json:"data"`
-	DailyIncome          string            `json:"daily_income"`
-	DailyOutcome         string            `json:"daily_outcome"`
-	WeeklyIncome         string            `json:"weekly_income"`
-	WeeklyOutcome        string            `json:"weekly_outcome"`
-	MonthlyIncome        string            `json:"monthly_income"`
-	MonthlyOutcome       string            `json:"monthly_outcome"`
-	AnnualIncome         string            `json:"annual_income"`
-	AnnualOutcome        string            `json:"annual_outcome"`
 }
 
 // AccountFlags represents the state of an account's flags

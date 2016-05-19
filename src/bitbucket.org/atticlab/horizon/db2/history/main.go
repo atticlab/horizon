@@ -102,15 +102,6 @@ const (
 type Account struct {
 	TotalOrderID
 	Address        string `db:"address"`
-	DailyIncome    string `db:"daily_income"`
-	DailyOutcome   string `db:"daily_outcome"`
-	WeeklyIncome   string `db:"weekly_income"`
-	WeeklyOutcome  string `db:"weekly_outcome"`
-	MonthlyIncome  string `db:"monthly_income"`
-	MonthlyOutcome string `db:"monthly_outcome"`
-	AnnualIncome   string `db:"annual_income"`
-	AnnualOutcome  string `db:"annual_outcome"`
-	UpdatedAt      time.Time `db:"updated_at"`
 }
 
 // AccountsQ is a helper struct to aid in configuring queries that loads
