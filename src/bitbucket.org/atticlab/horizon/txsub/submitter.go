@@ -7,8 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-	"strings"
-	"encoding/base64"
+	"fmt"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/core"
 )
@@ -152,12 +151,8 @@ func (sub *submitter) checkTransaction(envelope string) error {
 }
 
 func parseTransaction(envelope string) (xdr.TransactionEnvelope, error) {
-	rawr := strings.NewReader(envelope)
-    b64r := base64.NewDecoder(base64.StdEncoding, rawr)
     var tx xdr.TransactionEnvelope
-    _, err := xdr.Unmarshal(b64r, &tx)
+    err := xdr.SafeUnmarshalBase64(envelope, &tx)
 	
 	return tx, err
 }
-
-
