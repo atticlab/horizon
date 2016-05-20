@@ -162,9 +162,9 @@ type Root struct {
 
 // Signer represents one of an account's signers.
 type Signer struct {
-	PublicKey string `json:"public_key"`
-	Weight    int32  `json:"weight"`
-	SignerType 	uint32 `json:"signertype"`
+	PublicKey  string `json:"public_key"`
+	Weight     int32  `json:"weight"`
+	SignerType uint32 `json:"signertype"`
 }
 
 // Trade represents a trade effect
