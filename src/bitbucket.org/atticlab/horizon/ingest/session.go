@@ -4,7 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"time"
-
+	
+	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/meta"
@@ -361,16 +362,25 @@ func (is *Session) ingestOperation() {
 		op := is.Cursor.Operation().Body.MustPaymentOp()
 		from := source.Address()
 		to := op.Destination.Address()
-		amount := amount.String(op.Amount)
-		date := time.Unix(is.Cursor.Ledger().CloseTime, 0).UTC()
+		opAmount := int64(op.Amount)
+		assetCode, _ := getAssetCode(op.Asset)
+		timestamp := time.Unix(is.Cursor.Ledger().CloseTime, 0).Local()
+		now := time.Now()
 		
-		fmt.Printf("from: %s, to: %s, amount: %s, at: %s", from, to, amount, date)
+		log.Info(
+			fmt.Printf("Payment from: %s, to: %s, amount: %s %s, at: %s",
+				from,
+				to,
+				amount.String(op.Amount),
+				assetCode,
+				timestamp,
+		))
 
-		is.Err = is.Ingestion.UpdateAccountOutcome(from, amount, date)
+		is.Err = is.Ingestion.UpdateAccountOutcome(from, assetCode, opAmount, timestamp, now)
 		if is.Err != nil {
 			println(is.Err.Error())
 		}
-		is.Err = is.Ingestion.UpdateAccountIncome(to, amount, date)
+		is.Err = is.Ingestion.UpdateAccountIncome(to, assetCode, opAmount, timestamp, now)
 		if is.Err != nil {
 			println(is.Err.Error())
 		}
@@ -559,6 +569,17 @@ func (is *Session) lookupParticipantIDs(aids []xdr.AccountId) (ret []int64, err 
 	}
 
 	return
+}
+
+func getAssetCode(a xdr.Asset) (string, error) {
+	var (
+		t    string
+		code string
+		i    string
+	)
+	err := a.Extract(&t, &code, &i)
+	
+	return code, err
 }
 
 // assetDetails sets the details for `a` on `result` using keys with `prefix`
