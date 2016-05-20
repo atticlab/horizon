@@ -4,6 +4,7 @@
 // migrations/1_initial_schema.sql
 // migrations/2_index_participants_by_toid.sql
 // migrations/3_aggregate_expenses_for_accounts.sql
+// migrations/4_account_statistics_updated_at_timezone.sql
 // DO NOT EDIT!
 
 package schema
@@ -146,7 +147,27 @@ func migrations3_aggregate_expenses_for_accountsSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/3_aggregate_expenses_for_accounts.sql", size: 810, mode: os.FileMode(420), modTime: time.Unix(1463665661, 0)}
+	info := bindataFileInfo{name: "migrations/3_aggregate_expenses_for_accounts.sql", size: 810, mode: os.FileMode(420), modTime: time.Unix(1463669016, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _migrations4_account_statistics_updated_at_timezoneSql = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\xd5\x55\xd0\xce\xcd\x4c\x2f\x4a\x2c\x49\x55\x08\x2d\xe0\xe2\x72\xf4\x09\x71\x0d\x52\x08\x71\x74\xf2\x71\x55\x48\x4c\x4e\xce\x2f\xcd\x2b\x89\x2f\x2e\x49\x2c\xc9\x2c\x2e\xc9\x4c\x2e\x56\x80\x48\x3b\xfb\xfb\x84\xfa\xfa\x29\x28\x94\x16\xa4\x00\xf5\xa5\xc4\x27\x96\x28\x84\x44\x06\xb8\x2a\x94\x64\xe6\xa6\x02\x15\xe7\x16\x28\x94\x67\x96\x64\x80\xb9\x0a\x55\xf9\x79\xa9\xd6\x5c\x5c\xc8\xf6\xb8\xe4\x97\xe7\x51\xd5\xa6\xfc\xd2\x12\x64\xcb\x00\x01\x00\x00\xff\xff\x99\xce\x1e\x1a\xd4\x00\x00\x00")
+
+func migrations4_account_statistics_updated_at_timezoneSqlBytes() ([]byte, error) {
+	return bindataRead(
+		_migrations4_account_statistics_updated_at_timezoneSql,
+		"migrations/4_account_statistics_updated_at_timezone.sql",
+	)
+}
+
+func migrations4_account_statistics_updated_at_timezoneSql() (*asset, error) {
+	bytes, err := migrations4_account_statistics_updated_at_timezoneSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/4_account_statistics_updated_at_timezone.sql", size: 212, mode: os.FileMode(420), modTime: time.Unix(1463750432, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -207,6 +228,7 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/1_initial_schema.sql": migrations1_initial_schemaSql,
 	"migrations/2_index_participants_by_toid.sql": migrations2_index_participants_by_toidSql,
 	"migrations/3_aggregate_expenses_for_accounts.sql": migrations3_aggregate_expenses_for_accountsSql,
+	"migrations/4_account_statistics_updated_at_timezone.sql": migrations4_account_statistics_updated_at_timezoneSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -254,6 +276,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"1_initial_schema.sql": &bintree{migrations1_initial_schemaSql, map[string]*bintree{}},
 		"2_index_participants_by_toid.sql": &bintree{migrations2_index_participants_by_toidSql, map[string]*bintree{}},
 		"3_aggregate_expenses_for_accounts.sql": &bintree{migrations3_aggregate_expenses_for_accountsSql, map[string]*bintree{}},
+		"4_account_statistics_updated_at_timezone.sql": &bintree{migrations4_account_statistics_updated_at_timezoneSql, map[string]*bintree{}},
 	}},
 }}
 
