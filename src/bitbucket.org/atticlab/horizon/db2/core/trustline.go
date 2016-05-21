@@ -42,6 +42,12 @@ func (q *Q) TrustlinesByAddress(dest interface{}, addy string) error {
 	return q.Select(dest, sql)
 }
 
+// TrustlineByAddressAndAsset loads all trustlines for `addy`
+func (q *Q) TrustlineByAddressAndAsset(dest interface{}, addy string, assetCode string, issuer string) error {
+	sql := selectTrustline.Where("accountid = ? AND assetcode = ? AND issuer = ?", addy, assetCode, issuer).Limit(1)
+	return q.Get(dest, sql)
+}
+
 var selectTrustline = sq.Select(
 	"tl.accountid",
 	"tl.assettype",
