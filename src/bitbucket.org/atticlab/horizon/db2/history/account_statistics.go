@@ -6,12 +6,31 @@ import (
     "bitbucket.org/atticlab/horizon/helpers"
     "bitbucket.org/atticlab/horizon/log"
 	sq "github.com/lann/squirrel"
+    dbsql "database/sql"
 )
 
 // StatisticsByAccountAndAsset loads a row from `account_statistics`, by address and asset code
 func (q *Q) StatisticsByAccountAndAsset(dest interface{}, addy string, assetCode string) error {
 	sql := SelectAccountStatisticsTemplate.Where("a.address = ? AND a.asset_code = ?", addy, assetCode)
-	return q.Get(dest, sql)
+    var stats AccountStatistics
+	err := q.Get(&stats, sql)
+    
+    now := time.Now()
+    if err == dbsql.ErrNoRows {
+        // Construct fake account statistics entry
+        stats.Account = addy
+        stats.AssetCode = assetCode
+        stats.UpdatedAt = now
+        dest = stats
+        
+        return nil
+    } else if err == nil {
+        // Erase obsolete data from result. Don't save, to avoid conflicts with ingester's thread
+        stats.ClearObsoleteStats(now)
+        dest = stats
+    }
+    
+    return err
 }
 
 // ClearObsoleteStats checks last update time and erases obsolete data

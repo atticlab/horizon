@@ -2,7 +2,7 @@ package ingest
 
 import (
 	"time"
-    "database/sql"
+    sql "database/sql"
 	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/helpers"    
