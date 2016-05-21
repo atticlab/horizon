@@ -10,11 +10,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"bitbucket.org/atticlab/horizon"
+	conf "bitbucket.org/atticlab/horizon/config"
 	hlog "bitbucket.org/atticlab/horizon/log"
 )
 
 var app *horizon.App
-var config horizon.Config
+var config conf.Config
 var version string
 
 var rootCmd *cobra.Command
@@ -223,7 +224,7 @@ func initConfig() {
 		log.Fatal("Invalid config: bank-commission-key is blank. Please set the BANK_COMMISSION_KEY environment variable.")
 	}
 
-	config = horizon.Config{
+	config = conf.Config{
 		DatabaseURL:            viper.GetString("db-url"),
 		StellarCoreDatabaseURL: viper.GetString("stellar-core-db-url"),
 		StellarCoreURL:         viper.GetString("stellar-core-url"),

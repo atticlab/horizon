@@ -1,4 +1,4 @@
-package horizon
+package config
 
 import (
 	"github.com/PuerkitoBio/throttled"
