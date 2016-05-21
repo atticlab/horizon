@@ -10,7 +10,7 @@ import (
 )
 
 // StatisticsByAccountAndAsset loads a row from `account_statistics`, by address and asset code
-func (q *Q) StatisticsByAccountAndAsset(dest interface{}, addy string, assetCode string) error {
+func (q *Q) StatisticsByAccountAndAsset(dest *AccountStatistics, addy string, assetCode string) error {
 	sql := SelectAccountStatisticsTemplate.Where("a.address = ? AND a.asset_code = ?", addy, assetCode)
     var stats AccountStatistics
 	err := q.Get(&stats, sql)
@@ -21,13 +21,13 @@ func (q *Q) StatisticsByAccountAndAsset(dest interface{}, addy string, assetCode
         stats.Account = addy
         stats.AssetCode = assetCode
         stats.UpdatedAt = now
-        dest = stats
+        *dest = stats
         
         return nil
     } else if err == nil {
         // Erase obsolete data from result. Don't save, to avoid conflicts with ingester's thread
         stats.ClearObsoleteStats(now)
-        dest = stats
+        *dest = stats
     }
     
     return err
