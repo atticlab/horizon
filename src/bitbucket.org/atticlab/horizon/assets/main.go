@@ -72,3 +72,15 @@ func Equals(l, r xdr.Asset) bool {
 
 	return le == re
 }
+
+// Code extracts asset code from the xdr.Asset
+func Code(a xdr.Asset) (string, error) {
+	var (
+		t    string
+		code string
+		i    string
+	)
+	err := a.Extract(&t, &code, &i)
+	
+	return code, err
+}

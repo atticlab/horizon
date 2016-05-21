@@ -212,8 +212,15 @@ func (action *TransactionCreateAction) loadResource() {
 		}
 	case *txsub.RestrictedForAccountTypeError: 
 		action.Err = &problem.P{
-			Type:   "transaction_restricted",
-			Title:  "Transaction Restricted",
+			Type:   "transaction_restricted_account_types",
+			Title:  "Transaction Restricted For Specified Account Types",
+			Status: http.StatusForbidden,
+			Detail: action.Result.Err.Error(),
+		}
+	case *txsub.ExceededLimitError: 
+		action.Err = &problem.P{
+			Type:   "transaction_restricted_limits_exceeded",
+			Title:  "Payment Limits Exceeded",
 			Status: http.StatusForbidden,
 			Detail: action.Result.Err.Error(),
 		}

@@ -2,8 +2,20 @@ package txsub
 
 import (
     "bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/go-smart-base/amount"
     "bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/assets"
     "fmt"
+)
+
+//TODO: get limits from config
+const (
+	anonymousUserDailyOutcomingLimit 	= 		5000000000
+	anonymousUserMonthlyOutcomingLimit 	= 		40000000000
+	anonymousUserAnnualOutcomingLimit	=		620000000000
+	anonymousUserAnnualIncomeLimit		=		620000000000
+	anonymousUserBalanceLimit			=		140000000000
 )
 
 // VerifyAccountTypesForPayment performs account types check for payment operation
@@ -14,6 +26,94 @@ func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
     }
     
     return nil 
+}
+
+// VerifyRestrictionsForSender checks limits  and restrictions for sender
+func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, payment xdr.PaymentOp) error {
+	opAsset, err := assets.Code(payment.Asset)
+	if err != nil {
+		return err
+	}
+	opAmount :=  int64(payment.Amount)
+	
+	if sender.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
+		var stats history.AccountStatistics
+		err = sub.historyDb.StatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
+		if err != nil {
+			return err
+		}
+		
+		if stats.DailyOutcome + opAmount > anonymousUserDailyOutcomingLimit {
+			description := fmt.Sprintf(
+				"Daily outcoming payments limit for anonymous user exceeded: %s + %s out of 500.0 UAH per day",
+				amount.String(xdr.Int64(stats.DailyOutcome)),
+				amount.String(payment.Amount),
+			)
+        	return &ExceededLimitError{ Description: description}
+		} else if stats.MonthlyOutcome + opAmount > anonymousUserMonthlyOutcomingLimit {
+			description := fmt.Sprintf(
+				"Monthly outcoming payments limit for anonymous user exceeded: %s + %s out of 4000.0 UAH per month",
+				amount.String(xdr.Int64(stats.MonthlyOutcome)),
+				amount.String(payment.Amount),
+			)
+        	return &ExceededLimitError{ Description: description}
+		} else if stats.AnnualOutcome + opAmount > anonymousUserAnnualOutcomingLimit {
+			description := fmt.Sprintf(
+				"Annual outcoming payments limit for anonymous user exceeded: %s + %s out of 62000.0 UAH per year",
+				amount.String(xdr.Int64(stats.AnnualOutcome)),
+				amount.String(payment.Amount),
+			)
+        	return &ExceededLimitError{ Description: description}
+		}
+	}
+	
+	return err
+}
+
+// VerifyRestrictionsForReceiver checks limits  and restrictions for receiver
+func (sub *submitter) VerifyRestrictionsForReceiver(receiver core.Account, payment xdr.PaymentOp) error {
+	opAsset, err := assets.Code(payment.Asset)
+	if err != nil {
+		return err
+	}
+	opAmount :=  int64(payment.Amount)
+	
+	if receiver.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH"{
+		// 1. Check max balance
+		var trustline core.Trustline
+		err = sub.coreDb.TrustlineByAddressAndAsset(&trustline, receiver.Accountid, opAsset, sub.config.BankMasterKey)
+		if err != nil {
+			return err
+		}
+
+		if int64(trustline.Balance) + opAmount > anonymousUserBalanceLimit {
+			description := fmt.Sprintf(
+				"Anonymous user's max balance exceeded: %s + %s out of 14000.0 UAH.",
+				amount.String(trustline.Balance),
+				amount.String(payment.Amount),
+			)
+        	return &ExceededLimitError{ Description: description}
+		}
+		
+		// 2.Check max annual income
+		var stats history.AccountStatistics
+		println(receiver.Accountid)
+		err = sub.historyDb.StatisticsByAccountAndAsset(&stats, receiver.Accountid, opAsset)
+		if err != nil {
+			return err
+		}
+		
+		if stats.AnnualIncome + opAmount > anonymousUserAnnualIncomeLimit {
+			description := fmt.Sprintf(
+				"Anonymous user's max annual income limit exceeded: %s + %s out of 62000.0 UAH per year",
+				amount.String(xdr.Int64(stats.AnnualIncome)),
+				amount.String(payment.Amount),
+			)
+        	return &ExceededLimitError{ Description: description}
+		}
+	}
+	
+	return nil
 }
 
 // TODO: generate from template?

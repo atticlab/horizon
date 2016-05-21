@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"time"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
 )
 
 const (
@@ -20,11 +22,19 @@ const (
 // NewDefaultSubmitter returns a new, simple Submitter implementation
 // that submits directly to the stellar-core at `url` using the http client
 // `h`.
-func NewDefaultSubmitter(h *http.Client, url string, coreDb *core.Q) Submitter {
+func NewDefaultSubmitter(
+	h *http.Client,
+	url string,
+	coreDb *core.Q,
+	historyDb *history.Q,
+	config *conf.Config,
+) Submitter {
 	return &submitter{
 		http:    h,
 		coreURL: url,
 		coreDb: coreDb,
+		historyDb: historyDb,
+		config: config,
 	}
 }
 
@@ -42,6 +52,8 @@ type submitter struct {
 	http    *http.Client
 	coreURL string
 	coreDb *core.Q
+	historyDb *history.Q
+	config *conf.Config
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
@@ -138,11 +150,23 @@ func (sub *submitter) checkTransaction(envelope string) error {
 				return err
 			}
 			
+			// 1. Check account types
 			err = VerifyAccountTypesForPayment(sourceAcc, destinationAcc)
 			if (err != nil) {
 				return err
 			}
 			
+			// 2. Check restrictions for sender
+			err = sub.VerifyRestrictionsForSender(sourceAcc, payment)
+			if (err != nil) {
+				return err
+			}
+			
+			// 3. Check restrictions for receiver
+			err = sub.VerifyRestrictionsForReceiver(destinationAcc, payment)
+			if (err != nil) {
+				return err
+			}
 		}
 	}
     
