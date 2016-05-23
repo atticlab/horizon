@@ -10,15 +10,6 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 )
 
-//TODO: get limits from config
-const (
-	anonymousUserDailyOutcomingLimit   = 5000000000
-	anonymousUserMonthlyOutcomingLimit = 40000000000
-	anonymousUserAnnualOutcomingLimit  = 620000000000
-	anonymousUserAnnualIncomeLimit     = 620000000000
-	anonymousUserBalanceLimit          = 140000000000
-)
-
 // VerifyAccountTypesForPayment performs account types check for payment operation
 func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 	if !contains(typeRestrictions[from.AccountType], to.AccountType) {
