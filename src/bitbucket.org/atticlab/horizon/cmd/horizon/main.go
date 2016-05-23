@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 
@@ -298,7 +297,6 @@ func getAnonymousUserRestrictions() conf.AnonymousUserRestrictions {
 			viper.GetString("restrictions-anonymous-user-max-daily-outcome"),
 		)
 	}
-	fmt.Printf("Max dily income: %d\n", value)
 	restrictions.MaxDailyOutcome = value
 
 	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-monthly-outcome"))
