@@ -2,8 +2,9 @@ package core
 
 import (
 	"errors"
-	sq "github.com/lann/squirrel"
+
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	sq "github.com/lann/squirrel"
 )
 
 // AssetsForAddress loads `dest` as `[]xdr.Asset` with every asset the account
