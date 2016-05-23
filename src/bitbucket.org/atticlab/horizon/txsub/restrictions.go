@@ -62,7 +62,7 @@ func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, payment x
 			return &ExceededLimitError{Description: description}
 		} else if stats.AnnualOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualOutcome {
 			description := fmt.Sprintf(
-				"Annual outcoming payments limit for anonymous user exceeded: %s + %s out of 62000.0 UAH per year",
+				"Annual outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per year",
 				amount.String(xdr.Int64(stats.AnnualOutcome)),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualOutcome)),
