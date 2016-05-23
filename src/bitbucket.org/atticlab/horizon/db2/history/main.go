@@ -5,10 +5,10 @@ package history
 import (
 	"time"
 
-	"github.com/guregu/null"
-	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
+	"github.com/guregu/null"
+	sq "github.com/lann/squirrel"
 )
 
 const (
@@ -101,7 +101,7 @@ const (
 // Account is a row of data from the `history_accounts` table
 type Account struct {
 	TotalOrderID
-	Address        string `db:"address"`
+	Address string `db:"address"`
 }
 
 // AccountsQ is a helper struct to aid in configuring queries that loads
@@ -242,17 +242,18 @@ func (q *Q) OldestOutdatedLedgers(dest interface{}, currentVersion int) error {
 
 // AccountStatistics is a row of data from the `account_statistics` table
 type AccountStatistics struct {
-	Account				string			`db:"address"`
-	AssetCode			string			`db:"asset_code"`
-	DailyIncome			int64			`db:"daily_income"`
-	DailyOutcome		int64			`db:"daily_outcome"`
-	WeeklyIncome		int64			`db:"weekly_income"`
-	WeeklyOutcome		int64			`db:"weekly_outcome"`
-	MonthlyIncome		int64			`db:"monthly_income"`
-	MonthlyOutcome		int64			`db:"monthly_outcome"`
-	AnnualIncome		int64			`db:"annual_income"`
-	AnnualOutcome		int64			`db:"annual_outcome"`
-	UpdatedAt			time.Time		`db:"updated_at"`
+	Account          string    `db:"address"`
+	AssetCode        string    `db:"asset_code"`
+	CounterpartyType int16     `db:"counterparty_type"`
+	DailyIncome      int64     `db:"daily_income"`
+	DailyOutcome     int64     `db:"daily_outcome"`
+	WeeklyIncome     int64     `db:"weekly_income"`
+	WeeklyOutcome    int64     `db:"weekly_outcome"`
+	MonthlyIncome    int64     `db:"monthly_income"`
+	MonthlyOutcome   int64     `db:"monthly_outcome"`
+	AnnualIncome     int64     `db:"annual_income"`
+	AnnualOutcome    int64     `db:"annual_outcome"`
+	UpdatedAt        time.Time `db:"updated_at"`
 }
 
 // AccountStatisticsQ is a helper struct to aid in configuring queries that loads

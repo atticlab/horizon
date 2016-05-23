@@ -4,19 +4,17 @@ import (
 	"encoding/base64"
 	"fmt"
 	"time"
-	
-	"bitbucket.org/atticlab/horizon/log"
+
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/meta"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/participants"
+	"bitbucket.org/atticlab/horizon/log"
 	"github.com/spf13/viper"
 )
-
-//var config *horizon.Config
-//var app *horizon.App
 
 // Run starts an attempt to ingest the range of ledgers specified in this
 // session.
@@ -366,23 +364,39 @@ func (is *Session) ingestOperation() {
 		assetCode, _ := getAssetCode(op.Asset)
 		timestamp := time.Unix(is.Cursor.Ledger().CloseTime, 0).Local()
 		now := time.Now()
-		
+
+		var sourceType, destinationType xdr.AccountType
+
+		is.Err = is.getAccountType(&sourceType, from)
+		if is.Err != nil {
+			println(is.Err.Error())
+			return
+		}
+
+		is.Err = is.getAccountType(&destinationType, to)
+		if is.Err != nil {
+			println(is.Err.Error())
+			return
+		}
+
 		log.Info(
-			fmt.Printf("Payment from: %s, to: %s, amount: %s %s, at: %s",
+			fmt.Printf("Payment from: %s(%s), to: %s(%s), amount: %s %s, at: %s",
 				from,
+				sourceType.String(),
 				to,
+				destinationType.String(),
 				amount.String(op.Amount),
 				assetCode,
 				timestamp,
-		))
+			))
 
-		is.Err = is.Ingestion.UpdateAccountOutcome(from, assetCode, opAmount, timestamp, now)
+		is.Err = is.Ingestion.UpdateAccountOutcome(from, assetCode, destinationType, opAmount, timestamp, now)
 		if is.Err != nil {
-			println(is.Err.Error())
+			return
 		}
-		is.Err = is.Ingestion.UpdateAccountIncome(to, assetCode, opAmount, timestamp, now)
+		is.Err = is.Ingestion.UpdateAccountIncome(to, assetCode, sourceType, opAmount, timestamp, now)
 		if is.Err != nil {
-			println(is.Err.Error())
+			return
 		}
 
 	} else if is.Cursor.Operation().Body.Type == xdr.OperationTypeCreateAccount {
@@ -578,7 +592,7 @@ func getAssetCode(a xdr.Asset) (string, error) {
 		i    string
 	)
 	err := a.Extract(&t, &code, &i)
-	
+
 	return code, err
 }
 
@@ -734,6 +748,19 @@ func (is *Session) operationDetails() map[string]interface{} {
 	}
 
 	return details
+}
+
+func (is *Session) getAccountType(accountType *xdr.AccountType, address string) error {
+	var acc core.Account
+	sql := core.SelectAccount.Limit(1).Where("accountid = ?", address)
+	err := is.Cursor.DB.Get(&acc, sql)
+
+	if err != nil {
+		return err
+	}
+	*accountType = acc.AccountType
+
+	return nil
 }
 
 // operationFlagDetails sets the account flag details for `f` on `result`.

@@ -1,8 +1,8 @@
 package core
 
 import (
-	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	sq "github.com/lann/squirrel"
 )
 
 // IsAuthRequired returns true if the account has the "AUTH_REQUIRED" option
@@ -19,7 +19,7 @@ func (ac Account) IsAuthRevocable() bool {
 
 // AccountByAddress loads a row from `accounts`, by address
 func (q *Q) AccountByAddress(dest interface{}, addy string) error {
-	sql := selectAccount.Limit(1).Where("accountid = ?", addy)
+	sql := SelectAccount.Limit(1).Where("accountid = ?", addy)
 
 	return q.Get(dest, sql)
 }
@@ -59,7 +59,7 @@ func (sp *SequenceProvider) Get(addys []string) (map[string]uint64, error) {
 	return results, nil
 }
 
-var selectAccount = sq.Select(
+var SelectAccount = sq.Select(
 	"a.accountid",
 	"a.balance",
 	"a.seqnum",
