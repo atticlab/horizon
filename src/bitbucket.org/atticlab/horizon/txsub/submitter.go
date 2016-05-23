@@ -2,15 +2,16 @@ package txsub
 
 import (
 	"encoding/json"
-	"github.com/go-errors/errors"
-	"golang.org/x/net/context"
 	"net/http"
 	"net/url"
 	"time"
+
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"github.com/go-errors/errors"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -30,11 +31,11 @@ func NewDefaultSubmitter(
 	config *conf.Config,
 ) Submitter {
 	return &submitter{
-		http:    h,
-		coreURL: url,
-		coreDb: coreDb,
+		http:      h,
+		coreURL:   url,
+		coreDb:    coreDb,
 		historyDb: historyDb,
-		config: config,
+		config:    config,
 	}
 }
 
@@ -49,11 +50,11 @@ type coreSubmissionResponse struct {
 // submits directly to the configured stellar-core instance using the
 // configured http client.
 type submitter struct {
-	http    *http.Client
-	coreURL string
-	coreDb *core.Q
+	http      *http.Client
+	coreURL   string
+	coreDb    *core.Q
 	historyDb *history.Q
-	config *conf.Config
+	config    *conf.Config
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
@@ -61,14 +62,14 @@ type submitter struct {
 func (sub *submitter) Submit(ctx context.Context, env string) (result SubmissionResult) {
 	start := time.Now()
 	defer func() { result.Duration = time.Since(start) }()
-	
+
 	// check constraints for tx
 	err := sub.checkTransaction(env)
 	if err != nil {
 		result.Err = err
 		return
 	}
-	
+
 	// construct the request
 	u, err := url.Parse(sub.coreURL)
 	if err != nil {
@@ -123,59 +124,59 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 
 // checkAccountTypes Parse tx and check account types
 func (sub *submitter) checkTransaction(envelope string) error {
-	
+
 	tx, err := parseTransaction(envelope)
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
-	
+
 	for i := 0; i < len(tx.Tx.Operations); i++ {
 		op := tx.Tx.Operations[i]
 		t := op.Body.Type
-		
+
 		if t == xdr.OperationTypePayment {
 			payment := op.Body.MustPaymentOp()
 			destination := payment.Destination.Address()
 			source := op.SourceAccount.Address()
-			
+
 			var sourceAcc core.Account
 			err = sub.coreDb.AccountByAddress(&sourceAcc, source)
-			if (err != nil) {
+			if err != nil {
 				return err
 			}
-			
-			var destinationAcc core.Account			
+
+			var destinationAcc core.Account
 			err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
-			if (err != nil) {
+			if err != nil {
 				return err
 			}
-			
+
 			// 1. Check account types
 			err = VerifyAccountTypesForPayment(sourceAcc, destinationAcc)
-			if (err != nil) {
+			if err != nil {
 				return err
 			}
-			
+
 			// 2. Check restrictions for sender
-			err = sub.VerifyRestrictionsForSender(sourceAcc, payment)
-			if (err != nil) {
+			err = sub.VerifyRestrictionsForSender(sourceAcc, destinationAcc, payment)
+			if err != nil {
 				return err
 			}
-			
+
 			// 3. Check restrictions for receiver
-			err = sub.VerifyRestrictionsForReceiver(destinationAcc, payment)
-			if (err != nil) {
+			err = sub.VerifyRestrictionsForReceiver(sourceAcc, destinationAcc, payment)
+			if err != nil {
 				return err
 			}
 		}
 	}
-    
+
 	return nil
 }
 
 func parseTransaction(envelope string) (xdr.TransactionEnvelope, error) {
-    var tx xdr.TransactionEnvelope
-    err := xdr.SafeUnmarshalBase64(envelope, &tx)
-	
+	var tx xdr.TransactionEnvelope
+	err := xdr.SafeUnmarshalBase64(envelope, &tx)
+
 	return tx, err
 }

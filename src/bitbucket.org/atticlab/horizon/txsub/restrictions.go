@@ -21,40 +21,70 @@ func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 }
 
 // VerifyRestrictionsForSender checks limits  and restrictions for sender
-func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, payment xdr.PaymentOp) error {
+func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
 	opAsset, err := assets.Code(payment.Asset)
 	if err != nil {
 		return err
 	}
+
+	opAsset = opAsset
 	opAmount := int64(payment.Amount)
 
 	if sender.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
-		var stats history.AccountStatistics
-		err = sub.historyDb.StatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
+		var stats map[xdr.AccountType]history.AccountStatistics
+		err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
 		if err != nil {
 			return err
 		}
 
-		if stats.DailyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxDailyOutcome {
+		// 1. Check daily outcome
+		dailyOutcome := sumDailyOutcome(
+			stats,
+			xdr.AccountTypeAccountAnonymousUser,
+			xdr.AccountTypeAccountRegisteredUser,
+			xdr.AccountTypeAccountSettlementAgent,
+		)
+
+		if dailyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxDailyOutcome {
 			description := fmt.Sprintf(
 				"Daily outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per day",
-				amount.String(xdr.Int64(stats.DailyOutcome)),
+				amount.String(xdr.Int64(dailyOutcome)),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxDailyOutcome)),
 			)
 			return &ExceededLimitError{Description: description}
-		} else if stats.MonthlyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxMonthlyOutcome {
+		}
+
+		// 2. Check monthly outcome
+		monthlyOutcome := sumMonthlyOutcome(
+			stats,
+			xdr.AccountTypeAccountAnonymousUser,
+			xdr.AccountTypeAccountRegisteredUser,
+			xdr.AccountTypeAccountSettlementAgent,
+		)
+
+		if monthlyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxMonthlyOutcome {
 			description := fmt.Sprintf(
 				"Monthly outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per month",
-				amount.String(xdr.Int64(stats.MonthlyOutcome)),
+				amount.String(xdr.Int64(monthlyOutcome)),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxMonthlyOutcome)),
 			)
 			return &ExceededLimitError{Description: description}
-		} else if stats.AnnualOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualOutcome {
+		}
+
+		// 3. Check annual outcome
+		annualOutcome := sumAnnualOutcome(
+			stats,
+			xdr.AccountTypeAccountAnonymousUser,
+			xdr.AccountTypeAccountRegisteredUser,
+			xdr.AccountTypeAccountMerchant,
+		)
+
+		if annualOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualOutcome {
 			description := fmt.Sprintf(
 				"Annual outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per year",
-				amount.String(xdr.Int64(stats.AnnualOutcome)),
+				amount.String(xdr.Int64(annualOutcome)),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualOutcome)),
 			)
@@ -66,11 +96,13 @@ func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, payment x
 }
 
 // VerifyRestrictionsForReceiver checks limits  and restrictions for receiver
-func (sub *submitter) VerifyRestrictionsForReceiver(receiver core.Account, payment xdr.PaymentOp) error {
+func (sub *submitter) VerifyRestrictionsForReceiver(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
 	opAsset, err := assets.Code(payment.Asset)
 	if err != nil {
 		return err
 	}
+
+	opAsset = opAsset
 	opAmount := int64(payment.Amount)
 
 	if receiver.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
@@ -92,17 +124,18 @@ func (sub *submitter) VerifyRestrictionsForReceiver(receiver core.Account, payme
 		}
 
 		// 2.Check max annual income
-		var stats history.AccountStatistics
-		println(receiver.Accountid)
-		err = sub.historyDb.StatisticsByAccountAndAsset(&stats, receiver.Accountid, opAsset)
+		var stats map[xdr.AccountType]history.AccountStatistics
+		err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, receiver.Accountid, opAsset)
 		if err != nil {
 			return err
 		}
 
-		if stats.AnnualIncome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualIncome {
+		annualIncome := sumAnnualIncome(stats)
+
+		if annualIncome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualIncome {
 			description := fmt.Sprintf(
 				"Anonymous user's max annual income limit exceeded: %s + %s out of %s UAH per year",
-				amount.String(xdr.Int64(stats.AnnualIncome)),
+				amount.String(xdr.Int64(annualIncome)),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualIncome)),
 			)
@@ -164,4 +197,46 @@ func contains(list []xdr.AccountType, a xdr.AccountType) bool {
 		}
 	}
 	return false
+}
+
+func sumDailyOutcome(stats map[xdr.AccountType]history.AccountStatistics, args ...xdr.AccountType) int64 {
+	var sum int64
+	for accType := range args {
+		if acc, ok := stats[xdr.AccountType(accType)]; ok {
+			sum = sum + acc.DailyOutcome
+		}
+	}
+
+	return sum
+}
+
+func sumMonthlyOutcome(stats map[xdr.AccountType]history.AccountStatistics, args ...xdr.AccountType) int64 {
+	var sum int64
+	for _, accType := range args {
+		if acc, ok := stats[xdr.AccountType(accType)]; ok {
+			sum = sum + acc.MonthlyOutcome
+		}
+	}
+
+	return sum
+}
+
+func sumAnnualOutcome(stats map[xdr.AccountType]history.AccountStatistics, args ...xdr.AccountType) int64 {
+	var sum int64
+	for _, accType := range args {
+		if acc, ok := stats[xdr.AccountType(accType)]; ok {
+			sum = sum + acc.AnnualOutcome
+		}
+	}
+
+	return sum
+}
+
+func sumAnnualIncome(stats map[xdr.AccountType]history.AccountStatistics) int64 {
+	var sum int64
+	for _, value := range stats {
+		sum = sum + value.AnnualIncome
+	}
+
+	return sum
 }
