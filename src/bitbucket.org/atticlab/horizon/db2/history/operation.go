@@ -104,7 +104,6 @@ func (q *OperationsQ) ForTransaction(hash string) *OperationsQ {
 // PathPayments.
 func (q *OperationsQ) OnlyPayments() *OperationsQ {
 	q.sql = q.sql.Where(sq.Eq{"hop.type": []xdr.OperationType{
-		xdr.OperationTypeCreateAccount,
 		xdr.OperationTypePayment,
 		xdr.OperationTypePathPayment,
 	}})
