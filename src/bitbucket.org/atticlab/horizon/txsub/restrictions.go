@@ -201,7 +201,8 @@ func contains(list []xdr.AccountType, a xdr.AccountType) bool {
 
 func sumDailyOutcome(stats map[xdr.AccountType]history.AccountStatistics, args ...xdr.AccountType) int64 {
 	var sum int64
-	for accType := range args {
+	for _, accType := range args {
+		println(xdr.AccountType(accType).String())
 		if acc, ok := stats[xdr.AccountType(accType)]; ok {
 			sum = sum + acc.DailyOutcome
 		}
