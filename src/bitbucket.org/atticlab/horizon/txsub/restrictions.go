@@ -22,21 +22,19 @@ func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 
 // VerifyRestrictionsForSender checks limits  and restrictions for sender
 func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
+	opAmount := int64(payment.Amount)
 	opAsset, err := assets.Code(payment.Asset)
 	if err != nil {
 		return err
 	}
 
-	opAsset = opAsset
-	opAmount := int64(payment.Amount)
+	var stats map[xdr.AccountType]history.AccountStatistics
+	err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
+	if err != nil {
+		return err
+	}
 
 	if sender.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
-		var stats map[xdr.AccountType]history.AccountStatistics
-		err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
-		if err != nil {
-			return err
-		}
-
 		// 1. Check daily outcome
 		dailyOutcome := sumDailyOutcome(
 			stats,
@@ -72,7 +70,9 @@ func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, receiver 
 			)
 			return &ExceededLimitError{Description: description}
 		}
+	}
 
+	if opAsset == "EUAH" && !bankAgent(sender.AccountType) {
 		// 3. Check annual outcome
 		annualOutcome := sumAnnualOutcome(
 			stats,
@@ -83,7 +83,7 @@ func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, receiver 
 
 		if annualOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualOutcome {
 			description := fmt.Sprintf(
-				"Annual outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per year",
+				"Annual outcoming payments limit for user exceeded: %s + %s out of %s UAH per year",
 				amount.String(xdr.Int64(annualOutcome)),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualOutcome)),
@@ -115,7 +115,7 @@ func (sub *submitter) VerifyRestrictionsForReceiver(sender core.Account, receive
 
 		if int64(trustline.Balance)+opAmount > sub.config.AnonymousUserRestrictions.MaxBalance {
 			description := fmt.Sprintf(
-				"Anonymous user's max balance exceeded: %s + %s out of %s UAH.",
+				"User's max balance exceeded: %s + %s out of %s UAH.",
 				amount.String(trustline.Balance),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxBalance)),
@@ -134,7 +134,7 @@ func (sub *submitter) VerifyRestrictionsForReceiver(sender core.Account, receive
 
 		if annualIncome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualIncome {
 			description := fmt.Sprintf(
-				"Anonymous user's max annual income limit exceeded: %s + %s out of %s UAH per year",
+				"User's max annual income limit exceeded: %s + %s out of %s UAH per year",
 				amount.String(xdr.Int64(annualIncome)),
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualIncome)),
@@ -192,9 +192,9 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType{
 
 // bankAgent returns true if specified user type is a bank agent
 func bankAgent(accountType xdr.AccountType) bool {
-	isAgent := receiver.AccountType != xdr.AccountTypeAccountAnonymousUser
-	isAgent = checkLimits && receiver.AccountType != xdr.AccountTypeAccountRegisteredUser
-	isAgent = checkLimits && receiver.AccountType != xdr.AccountTypeAccountMerchant
+	isAgent := accountType != xdr.AccountTypeAccountAnonymousUser
+	isAgent = isAgent && accountType != xdr.AccountTypeAccountRegisteredUser
+	isAgent = isAgent && accountType != xdr.AccountTypeAccountMerchant
 
 	return isAgent
 }
