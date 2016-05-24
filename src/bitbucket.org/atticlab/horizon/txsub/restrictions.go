@@ -105,7 +105,7 @@ func (sub *submitter) VerifyRestrictionsForReceiver(sender core.Account, receive
 	opAsset = opAsset
 	opAmount := int64(payment.Amount)
 
-	if receiver.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
+	if opAsset == "EUAH" && !bankAgent(receiver.AccountType) {
 		// 1. Check max balance
 		var trustline core.Trustline
 		err = sub.coreDb.TrustlineByAddressAndAsset(&trustline, receiver.Accountid, opAsset, sub.config.BankMasterKey)
@@ -190,13 +190,13 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType{
 	},
 }
 
-func contains(list []xdr.AccountType, a xdr.AccountType) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
+// bankAgent returns true if specified user type is a bank agent
+func bankAgent(accountType xdr.AccountType) bool {
+	isAgent := receiver.AccountType != xdr.AccountTypeAccountAnonymousUser
+	isAgent = checkLimits && receiver.AccountType != xdr.AccountTypeAccountRegisteredUser
+	isAgent = checkLimits && receiver.AccountType != xdr.AccountTypeAccountMerchant
+
+	return isAgent
 }
 
 func sumDailyOutcome(stats map[xdr.AccountType]history.AccountStatistics, args ...xdr.AccountType) int64 {
@@ -240,4 +240,13 @@ func sumAnnualIncome(stats map[xdr.AccountType]history.AccountStatistics) int64 
 	}
 
 	return sum
+}
+
+func contains(list []xdr.AccountType, a xdr.AccountType) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
