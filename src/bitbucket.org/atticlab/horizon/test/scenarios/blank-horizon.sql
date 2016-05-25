@@ -36,9 +36,11 @@ DROP INDEX IF EXISTS public.hist_e_by_order;
 DROP INDEX IF EXISTS public.by_ledger;
 DROP INDEX IF EXISTS public.by_hash;
 DROP INDEX IF EXISTS public.by_account;
+DROP INDEX IF EXISTS public.account_statistics_address_idx;
 ALTER TABLE IF EXISTS ONLY public.history_transaction_participants DROP CONSTRAINT IF EXISTS history_transaction_participants_pkey;
 ALTER TABLE IF EXISTS ONLY public.history_operation_participants DROP CONSTRAINT IF EXISTS history_operation_participants_pkey;
 ALTER TABLE IF EXISTS ONLY public.gorp_migrations DROP CONSTRAINT IF EXISTS gorp_migrations_pkey;
+ALTER TABLE IF EXISTS ONLY public.account_statistics DROP CONSTRAINT IF EXISTS account_statistics_pkey;
 ALTER TABLE IF EXISTS public.history_transaction_participants ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.history_operation_participants ALTER COLUMN id DROP DEFAULT;
 DROP TABLE IF EXISTS public.history_transactions;
@@ -51,6 +53,7 @@ DROP TABLE IF EXISTS public.history_ledgers;
 DROP TABLE IF EXISTS public.history_effects;
 DROP TABLE IF EXISTS public.history_accounts;
 DROP TABLE IF EXISTS public.gorp_migrations;
+DROP TABLE IF EXISTS public.account_statistics;
 DROP EXTENSION IF EXISTS hstore;
 DROP EXTENSION IF EXISTS plpgsql;
 DROP SCHEMA IF EXISTS public;
@@ -101,6 +104,26 @@ SET search_path = public, pg_catalog;
 SET default_tablespace = '';
 
 SET default_with_oids = false;
+
+--
+-- Name: account_statistics; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE account_statistics (
+    address character varying(64) NOT NULL,
+    asset_code character varying(12) NOT NULL,
+    daily_income bigint DEFAULT 0 NOT NULL,
+    daily_outcome bigint DEFAULT 0 NOT NULL,
+    weekly_income bigint DEFAULT 0 NOT NULL,
+    weekly_outcome bigint DEFAULT 0 NOT NULL,
+    monthly_income bigint DEFAULT 0 NOT NULL,
+    monthly_outcome bigint DEFAULT 0 NOT NULL,
+    annual_income bigint DEFAULT 0 NOT NULL,
+    annual_outcome bigint DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    counterparty_type smallint DEFAULT 0 NOT NULL
+);
+
 
 --
 -- Name: gorp_migrations; Type: TABLE; Schema: public; Owner: -; Tablespace: 
@@ -273,11 +296,20 @@ ALTER TABLE ONLY history_transaction_participants ALTER COLUMN id SET DEFAULT ne
 
 
 --
+-- Data for Name: account_statistics; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
 -- Data for Name: gorp_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-03-28 15:19:48.335447-07');
-INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-03-28 15:19:48.338603-07');
+INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-05-25 18:25:41.060258+03');
+INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-05-25 18:25:41.074085+03');
+INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-05-25 18:25:41.076912+03');
+INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-05-25 18:25:41.094124+03');
+INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-05-25 18:25:41.103149+03');
 
 
 --
@@ -337,6 +369,14 @@ SELECT pg_catalog.setval('history_transaction_participants_id_seq', 1, false);
 
 
 --
+-- Name: account_statistics_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY account_statistics
+    ADD CONSTRAINT account_statistics_pkey PRIMARY KEY (address, asset_code, counterparty_type);
+
+
+--
 -- Name: gorp_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -358,6 +398,13 @@ ALTER TABLE ONLY history_operation_participants
 
 ALTER TABLE ONLY history_transaction_participants
     ADD CONSTRAINT history_transaction_participants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: account_statistics_address_idx; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX account_statistics_address_idx ON account_statistics USING btree (address);
 
 
 --
