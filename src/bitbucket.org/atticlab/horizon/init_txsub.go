@@ -11,14 +11,15 @@ import (
 
 func initSubmissionSystem(app *App) {
 	cq := &core.Q{Repo: app.CoreRepo(nil)}
+	hq := &history.Q{Repo: app.HorizonRepo(nil)}
 
 	app.submitter = &txsub.System{
 		Pending:         txsub.NewDefaultSubmissionList(),
-		Submitter:       txsub.NewDefaultSubmitter(http.DefaultClient, app.config.StellarCoreURL, cq),
+		Submitter:       txsub.NewDefaultSubmitter(http.DefaultClient, app.config.StellarCoreURL, cq, hq, &app.config),
 		SubmissionQueue: sequence.NewManager(),
 		Results: &results.DB{
 			Core:    cq,
-			History: &history.Q{Repo: app.HorizonRepo(nil)},
+			History: hq,
 		},
 		Sequences:         cq.SequenceProvider(),
 		NetworkPassphrase: app.networkPassphrase,

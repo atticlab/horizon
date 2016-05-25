@@ -36,6 +36,36 @@ type Account struct {
 	Data                 map[string]string `json:"data"`
 }
 
+// AccountStatistics is the detailed income/outcome statistics of an account
+type AccountStatistics struct {
+	Links struct {
+		Self    hal.Link `json:"self"`
+		Account hal.Link `json:"account"`
+	} `json:"_links"`
+	Statistics []AccountStatisticsEntry `json:"ststistics"`
+}
+
+// AccountStatisticsEntry represents account_statistics row
+type AccountStatisticsEntry struct {
+	AssetType            string `json:"asset_type"`
+	AssetCode            string `json:"asset_code"`
+	CounterpartyType     int16  `json:"counterparty_type"`
+	CounterpartyTypeName string `json:"counterparty_type_name"`
+
+	Income struct {
+		Daily   string `json:"daily"`
+		Weekly  string `json:"weekly"`
+		Monthly string `json:"monthly"`
+		Annual  string `json:"annual"`
+	} `json:"income"`
+	Outcome struct {
+		Daily   string `json:"daily"`
+		Weekly  string `json:"weekly"`
+		Monthly string `json:"monthly"`
+		Annual  string `json:"annual"`
+	} `json:"outcome"`
+}
+
 // AccountFlags represents the state of an account's flags
 type AccountFlags struct {
 	AuthRequired  bool `json:"auth_required"`

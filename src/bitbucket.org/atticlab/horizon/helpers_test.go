@@ -10,6 +10,7 @@ import (
 	hlog "bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/test"
+	conf "bitbucket.org/atticlab/horizon/config"
 )
 
 func NewTestApp() *App {
@@ -22,8 +23,8 @@ func NewTestApp() *App {
 	return app
 }
 
-func NewTestConfig() Config {
-	return Config{
+func NewTestConfig() conf.Config {
+	return conf.Config{
 		DatabaseURL:            test.DatabaseURL(),
 		StellarCoreDatabaseURL: test.StellarCoreDatabaseURL(),
 		RateLimit:              throttled.PerHour(1000),

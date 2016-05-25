@@ -2,8 +2,9 @@ package core
 
 import (
 	"errors"
-	sq "github.com/lann/squirrel"
+
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	sq "github.com/lann/squirrel"
 )
 
 // AssetsForAddress loads `dest` as `[]xdr.Asset` with every asset the account
@@ -40,6 +41,12 @@ func (q *Q) AssetsForAddress(dest interface{}, addy string) error {
 func (q *Q) TrustlinesByAddress(dest interface{}, addy string) error {
 	sql := selectTrustline.Where("accountid = ?", addy)
 	return q.Select(dest, sql)
+}
+
+// TrustlineByAddressAndAsset loads all trustlines for `addy`
+func (q *Q) TrustlineByAddressAndAsset(dest interface{}, addy string, assetCode string, issuer string) error {
+	sql := selectTrustline.Where("accountid = ? AND assetcode = ? AND issuer = ?", addy, assetCode, issuer).Limit(1)
+	return q.Get(dest, sql)
 }
 
 var selectTrustline = sq.Select(

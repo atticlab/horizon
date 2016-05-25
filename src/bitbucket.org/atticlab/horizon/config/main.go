@@ -1,4 +1,4 @@
-package horizon
+package config
 
 import (
 	"github.com/PuerkitoBio/throttled"
@@ -23,8 +23,9 @@ type Config struct {
 	// TLSCert is a path to a certificate file to use for horizon's TLS config
 	TLSCert string
 	// TLSKey is the path to a private key file to use for horizon's TLS config
-	TLSKey string
-	Ingest bool
-	BankMasterKey string
-	BankCommissionKey string
+	TLSKey                    string
+	Ingest                    bool
+	BankMasterKey             string
+	BankCommissionKey         string
+	AnonymousUserRestrictions AnonymousUserRestrictions
 }

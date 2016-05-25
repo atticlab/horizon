@@ -21,6 +21,7 @@ import (
 	"bitbucket.org/atticlab/horizon/pump"
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/txsub"
+	conf "bitbucket.org/atticlab/horizon/config"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"gopkg.in/tylerb/graceful.v1"
@@ -33,7 +34,7 @@ var version = ""
 
 // App represents the root of the state of a horizon instance.
 type App struct {
-	config            Config
+	config            conf.Config
 	web               *Web
 	historyQ          *history.Q
 	coreQ             *core.Q
@@ -77,7 +78,7 @@ func AppFromContext(ctx context.Context) (*App, bool) {
 }
 
 // NewApp constructs an new App instance from the provided config.
-func NewApp(config Config) (*App, error) {
+func NewApp(config conf.Config) (*App, error) {
 
 	result := &App{config: config}
 	result.horizonVersion = version

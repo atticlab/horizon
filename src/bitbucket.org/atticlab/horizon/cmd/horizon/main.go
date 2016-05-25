@@ -3,18 +3,20 @@ package main
 import (
 	"log"
 	"runtime"
-	
-	"github.com/joho/godotenv"
+
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/horizon"
+	conf "bitbucket.org/atticlab/horizon/config"
+	hlog "bitbucket.org/atticlab/horizon/log"
 	"github.com/PuerkitoBio/throttled"
 	"github.com/Sirupsen/logrus"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"bitbucket.org/atticlab/horizon"
-	hlog "bitbucket.org/atticlab/horizon/log"
 )
 
 var app *horizon.App
-var config horizon.Config
+var config conf.Config
 var version string
 
 var rootCmd *cobra.Command
@@ -51,7 +53,13 @@ func init() {
 	viper.BindEnv("network-passphrase", "NETWORK_PASSPHRASE")
 	viper.BindEnv("bank-master-key", "BANK_MASTER_KEY")
 	viper.BindEnv("bank-commission-key", "BANK_COMMISSION_KEY")
-	
+
+	viper.BindEnv("restrictions-anonymous-user-max-daily-outcome", "RESTRICTIONS_ANONYMOUS_USER_MAX_DAILY_OUTCOME")
+	viper.BindEnv("restrictions-anonymous-user-max-monthly-outcome", "RESTRICTIONS_ANONYMOUS_USER_MAX_MONTHLY_OUTCOME")
+	viper.BindEnv("restrictions-anonymous-user-max-annual-outcome", "RESTRICTIONS_ANONYMOUS_USER_MAX_ANNUAL_OUTCOME")
+	viper.BindEnv("restrictions-anonymous-user-max-annual-income", "RESTRICTIONS_ANONYMOUS_USER_MAX_ANNUAL_INCOME")
+	viper.BindEnv("restrictions-anonymous-user-max-balance", "RESTRICTIONS_ANONYMOUS_USER_MAX_BALANCE")
+
 	rootCmd = &cobra.Command{
 		Use:   "horizon",
 		Short: "client-facing api server for the stellar network",
@@ -163,11 +171,43 @@ func init() {
 		"",
 		"Bank's master key",
 	)
-	
+
 	rootCmd.Flags().String(
 		"bank-commission-key",
 		"",
 		"Bank's commission key",
+	)
+
+	// User restrictions
+
+	rootCmd.Flags().String(
+		"restrictions-anonymous-user-max-daily-outcome",
+		"500.0",
+		"Maximum daily outcome limit for anonymous users.",
+	)
+
+	rootCmd.Flags().String(
+		"restrictions-anonymous-user-max-monthly-outcome",
+		"4000.0",
+		"Maximum monthly outcome limit for anonymous users.",
+	)
+
+	rootCmd.Flags().String(
+		"restrictions-anonymous-user-max-annual-outcome",
+		"62000.0",
+		"Maximum annual outcome limit for anonymous users.",
+	)
+
+	rootCmd.Flags().String(
+		"restrictions-anonymous-user-max-annual-income",
+		"62000.0",
+		"Maximum annual income limit for anonymous users.",
+	)
+
+	rootCmd.Flags().String(
+		"restrictions-anonymous-user-max-balance",
+		"14000.0",
+		"Maximum annual income limit for anonymous users.",
 	)
 
 	rootCmd.AddCommand(dbCmd)
@@ -215,7 +255,7 @@ func initConfig() {
 	case cert == "" && key != "":
 		log.Fatal("Invalid TLS config: cert not configured")
 	}
-	
+
 	if viper.GetBool("ingest") && viper.GetString("bank-master-key") == "" {
 		log.Fatal("Invalid config: bank-master-key is blank. Please set the BANK_MASTER_KEY environment variable.")
 	}
@@ -223,23 +263,84 @@ func initConfig() {
 		log.Fatal("Invalid config: bank-commission-key is blank. Please set the BANK_COMMISSION_KEY environment variable.")
 	}
 
-	config = horizon.Config{
-		DatabaseURL:            viper.GetString("db-url"),
-		StellarCoreDatabaseURL: viper.GetString("stellar-core-db-url"),
-		StellarCoreURL:         viper.GetString("stellar-core-url"),
-		Autopump:               viper.GetBool("autopump"),
-		Port:                   viper.GetInt("port"),
-		RateLimit:              throttled.PerHour(viper.GetInt("per-hour-rate-limit")),
-		RedisURL:               viper.GetString("redis-url"),
-		LogLevel:               ll,
-		SentryDSN:              viper.GetString("sentry-dsn"),
-		LogglyToken:            viper.GetString("loggly-token"),
-		LogglyHost:             viper.GetString("loggly-host"),
-		FriendbotSecret:        viper.GetString("friendbot-secret"),
-		TLSCert:                cert,
-		TLSKey:                 key,
-		Ingest:                 viper.GetBool("ingest"),
-		BankMasterKey:			viper.GetString("bank-master-key"),
-		BankCommissionKey:		viper.GetString("bank-commission-key"),
-	}	
+	config = conf.Config{
+		DatabaseURL:               viper.GetString("db-url"),
+		StellarCoreDatabaseURL:    viper.GetString("stellar-core-db-url"),
+		StellarCoreURL:            viper.GetString("stellar-core-url"),
+		Autopump:                  viper.GetBool("autopump"),
+		Port:                      viper.GetInt("port"),
+		RateLimit:                 throttled.PerHour(viper.GetInt("per-hour-rate-limit")),
+		RedisURL:                  viper.GetString("redis-url"),
+		LogLevel:                  ll,
+		SentryDSN:                 viper.GetString("sentry-dsn"),
+		LogglyToken:               viper.GetString("loggly-token"),
+		LogglyHost:                viper.GetString("loggly-host"),
+		FriendbotSecret:           viper.GetString("friendbot-secret"),
+		TLSCert:                   cert,
+		TLSKey:                    key,
+		Ingest:                    viper.GetBool("ingest"),
+		BankMasterKey:             viper.GetString("bank-master-key"),
+		BankCommissionKey:         viper.GetString("bank-commission-key"),
+		AnonymousUserRestrictions: getAnonymousUserRestrictions(),
+	}
+}
+
+func getAnonymousUserRestrictions() conf.AnonymousUserRestrictions {
+	var restrictions conf.AnonymousUserRestrictions
+	var value int64
+	var err error
+
+	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-daily-outcome"))
+	if err != nil {
+		log.Fatalf(
+			"Could not parse restrictions-anonymous-user-max-daily-outcome: %v",
+			viper.GetString("restrictions-anonymous-user-max-daily-outcome"),
+		)
+	}
+	restrictions.MaxDailyOutcome = value
+
+	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-monthly-outcome"))
+	if err != nil {
+		log.Fatalf(
+			"Could not parse restrictions-anonymous-user-max-monthly-outcome: %v",
+			viper.GetString("restrictions-anonymous-user-max-monthly-outcome"),
+		)
+	}
+	restrictions.MaxMonthlyOutcome = value
+
+	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-annual-outcome"))
+	if err != nil {
+		log.Fatalf(
+			"Could not parse restrictions-anonymous-user-max-annual-outcome: %v",
+			viper.GetString("restrictions-anonymous-user-max-annual-outcome"),
+		)
+	}
+	restrictions.MaxAnnualOutcome = value
+
+	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-annual-income"))
+	if err != nil {
+		log.Fatalf(
+			"Could not parse restrictions-anonymous-user-max-annual-income: %v",
+			viper.GetString("restrictions-anonymous-user-max-annual-income"),
+		)
+	}
+	restrictions.MaxAnnualIncome = value
+
+	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-balance"))
+	if err != nil {
+		log.Fatalf(
+			"Could not parse restrictions-anonymous-user-max-balance: %v",
+			viper.GetString("restrictions-anonymous-user-max-balance"),
+		)
+	}
+	restrictions.MaxBalance = value
+
+	return restrictions
+}
+
+func parseAmount(strAmount string) (int64, error) {
+	xdrAmount, err := amount.Parse(strAmount)
+	intAmount := int64(xdrAmount)
+
+	return intAmount, err
 }

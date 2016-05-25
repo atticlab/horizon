@@ -89,3 +89,13 @@ type RestrictedForAccountTypeError struct {
 func (err *RestrictedForAccountTypeError) Error() string {
 	return err.Reason
 }
+
+// ExceededLimitError represent an error that occurred because
+// operation is restricted for specified account types
+type ExceededLimitError struct {
+	Description string
+}
+
+func (err *ExceededLimitError) Error() string {
+	return err.Description
+}
