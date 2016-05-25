@@ -106,7 +106,7 @@ type Base struct {
 
 type CreateAccount struct {
 	Base
-	AccountType 	string `json:"account_type"`
+	AccountType 	int32  `json:"account_type"`
 	Funder          string `json:"funder"`
 	Account         string `json:"account"`
 }
