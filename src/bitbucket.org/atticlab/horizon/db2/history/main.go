@@ -263,3 +263,10 @@ type AccountStatisticsQ struct {
 	parent *Q
 	sql    sq.SelectBuilder
 }
+
+// AccountTraits is a row of data from the `account_traits` table
+type AccountTraits struct {
+	TotalOrderID
+	BlockIcomingPayments bool `db:"block_incoming_payments"`
+	BlockOutcomingPayments bool `db:"block_outcoming_payments"`
+}
