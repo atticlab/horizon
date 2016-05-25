@@ -8,9 +8,9 @@ CREATE TABLE account_traits (
 
 CREATE TABLE audit_log (
     id SERIAL PRIMARY KEY,
-    invocer character varying(64),
-    type text,
+    actor character varying(64),
     subject text,
+    action text,
     meta text,
     created_at timestamp without time zone NOT NULL default (now() at time zone 'utc')
 );
