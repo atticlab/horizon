@@ -27,6 +27,13 @@ func (action AccountStatisticsAction) ServeHTTPC(c web.C, w http.ResponseWriter,
 }
 
 // ServeHTTPC is a method for web.Handler
+func (action AccountTraitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
 func (action PaymentsIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
