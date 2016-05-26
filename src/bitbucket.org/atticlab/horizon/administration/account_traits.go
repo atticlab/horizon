@@ -55,6 +55,7 @@ func (m *accountManager) SetTraits(address string, traits map[string]string) err
     
     // 4. Persist changes
     if isNewEntry {
+        accTraits.ID = acc.ID
         err = m.historyDb.CreateAccountTraits(accTraits)
     } else {
         err = m.historyDb.UpdateAccountTraits(accTraits)
