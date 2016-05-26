@@ -2,7 +2,6 @@ package history
 
 import (
 	sq "github.com/lann/squirrel"
-	//"bitbucket.org/atticlab/horizon/db2"
 )
 
 // GetAccountTraitsByAddress returns traits for specified account
@@ -24,7 +23,7 @@ func (q *Q) GetAccountTraits(dest interface{}, id int64) error {
 
 // CreateAccountTraits inserts new account_traits row
 func (q *Q) CreateAccountTraits(traits AccountTraits) error {
-    sql := createAccountTraits.Values(traits.ID, traits.BlockIcomingPayments, traits.BlockOutcomingPayments)
+    sql := createAccountTraits.Values(traits.ID, traits.BlockIncomingPayments, traits.BlockOutcomingPayments)
     _, err := q.Exec(sql)
     
     return err
@@ -32,7 +31,7 @@ func (q *Q) CreateAccountTraits(traits AccountTraits) error {
 
 // UpdateAccountTraits updates account_traits row
 func (q *Q) UpdateAccountTraits(traits AccountTraits) error {
-    sql := updateAccountTraits.Set("block_incoming_payments", traits.BlockIcomingPayments)
+    sql := updateAccountTraits.Set("block_incoming_payments", traits.BlockIncomingPayments)
     sql = sql.Set("block_outcoming_payments", traits.BlockOutcomingPayments)
     sql = sql.Where("id = ?", traits.ID)
     
