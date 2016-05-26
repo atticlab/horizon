@@ -74,7 +74,7 @@ func (m *accountManager) SetTraits(address string, traits map[string]string) err
 func getSetTraitsMeta(traits map[string]string) string {
     meta := ""
     for key, value := range traits {
-        meta = meta + fmt.Sprintf("%: %s\n", key, value)
+        meta = meta + fmt.Sprintf("%s: %s\n", key, value)
     }
     
     return meta
