@@ -20,8 +20,8 @@ type InvalidFieldsError struct {
 }
 
 // NewInvalidFieldsError creates instance of InvalidFieldsError
-func NewInvalidFieldsError() *InvalidFieldsError {
-    return &InvalidFieldsError { Errors: make(map[string]error) }
+func NewInvalidFieldsError() InvalidFieldsError {
+    return InvalidFieldsError { Errors: make(map[string]error) }
 }
 
 func (err InvalidFieldsError) Error() string {
