@@ -86,6 +86,7 @@ func initWebActions(app *App) {
 	r.Get("/accounts/:id", &AccountShowAction{})
 	r.Get("/accounts/:account_id/statistics", &AccountStatisticsAction{})
 	r.Get("/accounts/:account_id/traits", &AccountTraitsAction{})
+	r.Put("/accounts/:account_id/traits", &SetTraitsAction{})
 	r.Get("/accounts/:account_id/transactions", &TransactionIndexAction{})
 	r.Get("/accounts/:account_id/operations", &OperationIndexAction{})
 	r.Get("/accounts/:account_id/payments", &PaymentsIndexAction{})

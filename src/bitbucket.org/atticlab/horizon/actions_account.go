@@ -14,6 +14,7 @@ import (
 // AccountIndexAction: pages of account's addresses in order of creation
 // AccountShowAction: details for single account (including stellar-core state)
 // AccountStatisticsAction: detailed income/outcome statistics for single account
+// AccountStatisticsAction: traits for single account
 // AccountIndexAction renders a page of account resources, identified by
 // a normal page query, ordered by the operation id that created them.
 type AccountIndexAction struct {
@@ -215,57 +216,5 @@ func (action *AccountStatisticsAction) loadResource() {
 		action.Ctx,
 		action.Statistics,
 		action.HistoryRecord,
-	)
-}
-
-// AccountTraitsAction detailed income/outcome statistics for single account
-type AccountTraitsAction struct {
-	Action
-	Address       string
-	AccountTraits history.AccountTraits
-	Resource      resource.AccountTraits
-}
-
-// JSON is a method for actions.JSON
-func (action *AccountTraitsAction) JSON() {
-	action.Do(
-		action.loadParams,
-		action.loadRecord,
-		action.loadResource,
-		func() {
-			hal.Render(action.W, action.Resource)
-		},
-	)
-}
-
-// SSE is a method for actions.SSE
-func (action *AccountTraitsAction) SSE(stream sse.Stream) {
-	// TODO: check
-	action.Do(
-		action.loadParams,
-		action.loadRecord,
-		action.loadResource,
-		func() {
-			stream.Send(sse.Event{Data: action.Resource})
-		},
-	)
-}
-
-func (action *AccountTraitsAction) loadParams() {
-	action.Address = action.GetString("account_id")
-}
-
-func (action *AccountTraitsAction) loadRecord() {
-	action.Err = action.HistoryQ().GetAccountTraitsByAddress(&action.AccountTraits, action.Address)
-	if action.Err != nil {
-		return
-	}
-}
-
-func (action *AccountTraitsAction) loadResource() {
-	action.Err = action.Resource.Populate(
-		action.Ctx,
-		action.Address,
-		action.AccountTraits,
 	)
 }
