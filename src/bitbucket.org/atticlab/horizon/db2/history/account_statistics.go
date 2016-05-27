@@ -37,6 +37,24 @@ func (q *Q) GetAccountStatistics(
 	return err
 }
 
+// GetStatisticsByAccount selects rows from `account_statistics` by address
+func (q *Q) GetStatisticsByAccount(dest *[]AccountStatistics, addy string) error {
+	sql := SelectAccountStatisticsTemplate.Where("a.address = ?", addy)
+	var stats []AccountStatistics
+	err := q.Select(&stats, sql)
+
+	if err == nil {
+		now := time.Now()
+		for _, stat := range stats {
+			// Erase obsolete data from result. Don't save, to avoid conflicts with ingester's thread
+			stat.ClearObsoleteStats(now)
+		}
+		*dest = stats
+	}
+
+	return err
+}
+
 // GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
 func (q *Q) GetStatisticsByAccountAndAsset(dest *map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error {
 	sql := SelectAccountStatisticsTemplate.Where("a.address = ? AND a.asset_code = ?", addy, assetCode)
