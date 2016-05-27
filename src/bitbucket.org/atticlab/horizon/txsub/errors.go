@@ -99,3 +99,14 @@ type ExceededLimitError struct {
 func (err *ExceededLimitError) Error() string {
 	return err.Description
 }
+
+// RestrictedForAccountError represent an error that occurred because
+// operation is restricted for specified accounts
+type RestrictedForAccountError struct {
+	Address string
+	Reason string
+}
+
+func (err *RestrictedForAccountError) Error() string {
+	return err.Reason
+}

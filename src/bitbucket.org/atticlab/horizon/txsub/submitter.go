@@ -161,15 +161,21 @@ func (sub *submitter) checkTransaction(envelope string) error {
 			if err != nil {
 				return err
 			}
-
-			// 2. Check restrictions for sender
-			err = sub.VerifyRestrictionsForSender(sourceAcc, destinationAcc, payment)
+			
+			// 2. Check restrictions for accounts
+			err = sub.VerifyRestrictions(source, destination)
 			if err != nil {
 				return err
 			}
 
-			// 3. Check restrictions for receiver
-			err = sub.VerifyRestrictionsForReceiver(sourceAcc, destinationAcc, payment)
+			// 3. Check restrictions for sender
+			err = sub.VerifyLimitsForSender(sourceAcc, destinationAcc, payment)
+			if err != nil {
+				return err
+			}
+
+			// 4. Check restrictions for receiver
+			err = sub.VerifyLimitsForReceiver(sourceAcc, destinationAcc, payment)
 			if err != nil {
 				return err
 			}

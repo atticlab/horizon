@@ -20,8 +20,38 @@ func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 	return nil
 }
 
-// VerifyRestrictionsForSender checks limits  and restrictions for sender
-func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
+// VerifyRestrictions checks traits of the involved accounts
+func (sub *submitter) VerifyRestrictions(from string, to string) error  {
+	// Get account traits
+	var sourceTraits, destTraits history.AccountTraits
+	err := sub.historyDb.GetAccountTraitsByAddress(&sourceTraits, from)
+	if err != nil {
+		return err
+	}
+	err = sub.historyDb.GetAccountTraitsByAddress(&destTraits, to)
+	if err != nil {
+		return err
+	}
+	
+	// Check restrictions
+	if sourceTraits.BlockOutcomingPayments {
+		return &RestrictedForAccountError{
+			Reason: "Outcoming payments for this account are restricted by administrator.",
+			Address: from,
+		}
+	}
+	if destTraits.BlockIncomingPayments {
+		return &RestrictedForAccountError{
+			Reason: "Incoming payments for this account are restricted by administrator.",
+			Address: to,
+		}
+	}
+	
+	return nil
+}
+
+// VerifyLimitsForSender checks limits for sender
+func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
 	opAmount := int64(payment.Amount)
 	opAsset, err := assets.Code(payment.Asset)
 	if err != nil {
@@ -95,8 +125,8 @@ func (sub *submitter) VerifyRestrictionsForSender(sender core.Account, receiver 
 	return err
 }
 
-// VerifyRestrictionsForReceiver checks limits  and restrictions for receiver
-func (sub *submitter) VerifyRestrictionsForReceiver(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
+// VerifyLimitsForReceiver checks limits  and restrictions for receiver
+func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
 	opAsset, err := assets.Code(payment.Asset)
 	if err != nil {
 		return err
