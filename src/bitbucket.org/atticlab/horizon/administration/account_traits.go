@@ -19,12 +19,9 @@ func (m *accountManager) SetTraits(address string, traits map[string]string) err
     }
     
     // 2. Try get traits for account
-    var isNewEntry bool
     var accTraits history.AccountTraits
     err = m.historyDb.GetAccountTraits(&accTraits, acc.ID)
-    if err ==  sql.ErrNoRows {
-        isNewEntry = true
-    } else if err != nil {
+    if err != nil {
         return err
     }
     
@@ -54,12 +51,7 @@ func (m *accountManager) SetTraits(address string, traits map[string]string) err
     }
     
     // 4. Persist changes
-    if isNewEntry {
-        accTraits.ID = acc.ID
-        err = m.historyDb.CreateAccountTraits(accTraits)
-    } else {
-        err = m.historyDb.UpdateAccountTraits(accTraits)
-    }
+    err = m.historyDb.UpdateAccountTraits(accTraits)
     
     _ = m.historyDb.CreateAuditLogEntry(
         "TODO: add invocer address",
