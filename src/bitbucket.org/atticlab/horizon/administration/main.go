@@ -9,6 +9,7 @@ import (
 // AccountManager facilitates methods for accounts management
 type AccountManager interface {
 	SetTraits(string, map[string]string) error
+	SetLimits(history.AccountLimits) error
 }
 
 // NewAccountManager returns AccountManager implementation

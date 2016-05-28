@@ -4,14 +4,13 @@ import (
 	"database/sql"
 	"net/http"
 	"strings"
-
-	"github.com/PuerkitoBio/throttled"
-	"github.com/PuerkitoBio/throttled/store"
 	"github.com/rcrowley/go-metrics"
-	"github.com/rs/cors"
-	"github.com/sebest/xff"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
+	"github.com/PuerkitoBio/throttled"
+	"github.com/PuerkitoBio/throttled/store"
+	"github.com/rs/cors"
+	"github.com/sebest/xff"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
 )
@@ -117,6 +116,8 @@ func initWebActions(app *App) {
 	// Transaction submission API
 	r.Post("/transactions", &TransactionCreateAction{})
 	r.Get("/paths", &PathIndexAction{})
+
+	r.Post("/limits", &LimitsSetAction{})
 
 	// friendbot
 	r.Post("/friendbot", &FriendbotAction{})

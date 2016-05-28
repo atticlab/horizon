@@ -72,8 +72,8 @@ type AccountTraits struct {
 		Self    hal.Link `json:"self"`
 		Account hal.Link `json:"account"`
 	} `json:"_links"`
-	BlockIncomingPayments bool `json:"block_incoming_payments"`
-	BlockOutcomingPayments bool `json:"block_outcoming_payments"`	
+	BlockIncomingPayments  bool `json:"block_incoming_payments"`
+	BlockOutcomingPayments bool `json:"block_outcoming_payments"`
 }
 
 // AccountFlags represents the state of an account's flags
@@ -276,6 +276,24 @@ type TransactionSuccess struct {
 	Env    string `json:"envelope_xdr"`
 	Result string `json:"result_xdr"`
 	Meta   string `json:"result_meta_xdr"`
+}
+
+// AccountLimits is the limits set on an account
+type AccountLimits struct {
+	Links struct {
+		Self    hal.Link `json:"self"`
+		Account hal.Link `json:"account"`
+	} `json:"_links"`
+	Account string               `json:"account"`
+	Limits  []AccountLimitsEntry `json:"limits"`
+}
+
+// AccountLimitsEntry represents limits on a specific currency
+type AccountLimitsEntry struct {
+	AssetCode       string `json:"asset_code"`
+	MaxOperation    int64  `json:"max_operation"`
+	DailyTurnover   int64  `json:"daily_turnover"`
+	MonthlyTurnover int64  `json:"monthly_turnover"`
 }
 
 // NewEffect returns a resource of the appropriate sub-type for the provided
