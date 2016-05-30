@@ -3,6 +3,7 @@ package txsub
 import (
 	"errors"
 	"fmt"
+
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/codes"
 )
@@ -14,10 +15,10 @@ var (
 
 	// ErrBadSequence is a canned error response for transactions whose sequence
 	// number is wrong.
-	ErrBadSequence = &FailedTransactionError{"AAAAAAAAAAD////7AAAAAA=="}
+	ErrBadSequence = &FailedTransactionError{"AAAAAP////sAAAAA"}
 	// ErrNoAccount is returned when the source account for the transaction
 	// cannot be found in the database
-	ErrNoAccount = &FailedTransactionError{"AAAAAAAAAAD////4AAAAAA=="}
+	ErrNoAccount = &FailedTransactionError{"AAAAAP////gAAAAA"}
 )
 
 // FailedTransactionError represent an error that occurred because
@@ -104,7 +105,7 @@ func (err *ExceededLimitError) Error() string {
 // operation is restricted for specified accounts
 type RestrictedForAccountError struct {
 	Address string
-	Reason string
+	Reason  string
 }
 
 func (err *RestrictedForAccountError) Error() string {

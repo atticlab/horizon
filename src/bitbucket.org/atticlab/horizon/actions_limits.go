@@ -32,7 +32,7 @@ func (action *LimitsSetAction) JSON() {
 
 func (action *LimitsSetAction) loadLimits() {
 	action.ValidateBodyType()
-	action.Limits.Account = action.GetString("account")
+	action.Limits.Account = action.GetString("account_id")
 	action.Limits.AssetCode = action.GetString("asset_code")
 	action.Limits.MaxOperation = action.GetInt64("max_operation")
 	action.Limits.DailyTurnover = action.GetInt64("daily_turnnover")

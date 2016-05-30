@@ -1,6 +1,7 @@
 package txsub
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/log"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
@@ -129,7 +131,7 @@ func (sub *submitter) checkTransaction(envelope string) error {
 	if err != nil {
 		return err
 	}
- 	
+
 	for i := 0; i < len(tx.Tx.Operations); i++ {
 		op := tx.Tx.Operations[i]
 		t := op.Body.Type
@@ -141,19 +143,35 @@ func (sub *submitter) checkTransaction(envelope string) error {
 			if len(op.SourceAccount.Address()) > 0 {
 				source = op.SourceAccount.Address()
 			} else {
-				source = tx.Tx.SourceAccount.Address()				
+				source = tx.Tx.SourceAccount.Address()
 			}
 
 			var sourceAcc core.Account
 			err = sub.coreDb.AccountByAddress(&sourceAcc, source)
-			if err != nil {
-				return err
+			if err == sql.ErrNoRows {
+				return ErrNoAccount
+			} else {
+				if err != nil {
+
+					return err
+				}
+
 			}
 
 			var destinationAcc core.Account
 			err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
-			if err != nil {
-				return err
+			if err == sql.ErrNoRows {
+				destinationAcc.Accountid = destination
+				destinationAcc.AccountType = 0
+				return ErrNoAccount
+			} else {
+				if err != nil {
+					log.WithStack(err).
+						WithField("err", err.Error()).
+						Error("destAccError")
+
+					return err
+				}
 			}
 
 			// 1. Check account types
@@ -161,7 +179,7 @@ func (sub *submitter) checkTransaction(envelope string) error {
 			if err != nil {
 				return err
 			}
-			
+
 			// 2. Check restrictions for accounts
 			err = sub.VerifyRestrictions(source, destination)
 			if err != nil {
