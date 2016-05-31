@@ -5,6 +5,7 @@ package resource
 import (
 	"time"
 
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/resource/base"
@@ -12,6 +13,19 @@ import (
 	"bitbucket.org/atticlab/horizon/resource/operations"
 	"golang.org/x/net/context"
 )
+
+// AccountTypeNames maps from account type to the string used to represent that type
+// in horizon's JSON responses
+var AccountTypeNames = map[xdr.AccountType]string{
+	xdr.AccountTypeAccountAnonymousUser:      "anonymous_user",
+	xdr.AccountTypeAccountRegisteredUser:            "registered_user",
+	xdr.AccountTypeAccountMerchant:        "merchant",
+	xdr.AccountTypeAccountDistributionAgent:        "distribution_agent",
+	xdr.AccountTypeAccountSettlementAgent: "settlement_agent",
+	xdr.AccountTypeAccountExchangeAgent:         "exchange_agent",
+	xdr.AccountTypeAccountBank:        "bank",
+}
+
 
 // Account is the summary of an account
 type Account struct {
@@ -26,6 +40,8 @@ type Account struct {
 
 	HistoryAccount
 	Sequence             string            `json:"sequence"`
+	Type          		 string `json:"type"`
+	TypeI         		 int32  `json:"type_i"`	
 	SubentryCount        int32             `json:"subentry_count"`
 	InflationDestination string            `json:"inflation_destination,omitempty"`
 	HomeDomain           string            `json:"home_domain,omitempty"`
@@ -64,6 +80,16 @@ type AccountStatisticsEntry struct {
 		Monthly string `json:"monthly"`
 		Annual  string `json:"annual"`
 	} `json:"outcome"`
+}
+
+// AccountTraits is the detailed income/outcome statistics of an account
+type AccountTraits struct {
+	Links struct {
+		Self    hal.Link `json:"self"`
+		Account hal.Link `json:"account"`
+	} `json:"_links"`
+	BlockIncomingPayments  bool `json:"block_incoming_payments"`
+	BlockOutcomingPayments bool `json:"block_outcoming_payments"`
 }
 
 // AccountFlags represents the state of an account's flags
@@ -266,6 +292,24 @@ type TransactionSuccess struct {
 	Env    string `json:"envelope_xdr"`
 	Result string `json:"result_xdr"`
 	Meta   string `json:"result_meta_xdr"`
+}
+
+// AccountLimits is the limits set on an account
+type AccountLimits struct {
+	Links struct {
+		Self    hal.Link `json:"self"`
+		Account hal.Link `json:"account"`
+	} `json:"_links"`
+	Account string               `json:"account"`
+	Limits  []AccountLimitsEntry `json:"limits"`
+}
+
+// AccountLimitsEntry represents limits on a specific currency
+type AccountLimitsEntry struct {
+	AssetCode       string `json:"asset_code"`
+	MaxOperation    int64  `json:"max_operation"`
+	DailyTurnover   int64  `json:"daily_turnover"`
+	MonthlyTurnover int64  `json:"monthly_turnover"`
 }
 
 // NewEffect returns a resource of the appropriate sub-type for the provided

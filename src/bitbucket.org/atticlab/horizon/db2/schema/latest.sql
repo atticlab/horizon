@@ -16,6 +16,19 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- Name: account_limits; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE account_limits (
+    address character varying(64) NOT NULL,
+    asset_code character varying(12) NOT NULL,
+    max_operation bigint DEFAULT 0 NOT NULL,
+    daily_turnover bigint DEFAULT 0 NOT NULL,
+    monthly_turnover bigint DEFAULT 0 NOT NULL
+);
+
+
+--
 -- Name: account_statistics; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -33,6 +46,50 @@ CREATE TABLE account_statistics (
     updated_at timestamp with time zone NOT NULL,
     counterparty_type smallint DEFAULT 0 NOT NULL
 );
+
+
+--
+-- Name: account_traits; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE account_traits (
+    id bigint NOT NULL,
+    block_incoming_payments boolean DEFAULT false NOT NULL,
+    block_outcoming_payments boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: audit_log; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE audit_log (
+    id integer NOT NULL,
+    actor character varying(64),
+    subject text,
+    action text,
+    meta text,
+    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+
+--
+-- Name: audit_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE audit_log_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: audit_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE audit_log_id_seq OWNED BY audit_log.id;
 
 
 --
@@ -195,6 +252,13 @@ CREATE TABLE history_transactions (
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
+ALTER TABLE ONLY audit_log ALTER COLUMN id SET DEFAULT nextval('audit_log_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
 ALTER TABLE ONLY history_operation_participants ALTER COLUMN id SET DEFAULT nextval('history_operation_participants_id_seq'::regclass);
 
 
@@ -206,20 +270,47 @@ ALTER TABLE ONLY history_transaction_participants ALTER COLUMN id SET DEFAULT ne
 
 
 --
+-- Data for Name: account_limits; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
 -- Data for Name: account_statistics; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
 
 --
+-- Data for Name: account_traits; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: audit_log; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Name: audit_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('audit_log_id_seq', 1, false);
+
+
+--
 -- Data for Name: gorp_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-05-25 18:25:41.060258+03');
-INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-05-25 18:25:41.074085+03');
-INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-05-25 18:25:41.076912+03');
-INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-05-25 18:25:41.094124+03');
-INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-05-25 18:25:41.103149+03');
+INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-05-31 17:41:02.075008+03');
+INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-05-31 17:41:02.080132+03');
+INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-05-31 17:41:02.085306+03');
+INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-05-31 17:41:02.091201+03');
+INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-05-31 17:41:02.098516+03');
+INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-05-31 17:41:02.113121+03');
+INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-05-31 17:41:02.120352+03');
 
 
 --
@@ -279,11 +370,35 @@ SELECT pg_catalog.setval('history_transaction_participants_id_seq', 1, false);
 
 
 --
+-- Name: account_limits_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY account_limits
+    ADD CONSTRAINT account_limits_pkey PRIMARY KEY (address, asset_code);
+
+
+--
 -- Name: account_statistics_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
 ALTER TABLE ONLY account_statistics
     ADD CONSTRAINT account_statistics_pkey PRIMARY KEY (address, asset_code, counterparty_type);
+
+
+--
+-- Name: account_traits_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY account_traits
+    ADD CONSTRAINT account_traits_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY audit_log
+    ADD CONSTRAINT audit_log_pkey PRIMARY KEY (id);
 
 
 --
@@ -490,6 +605,14 @@ CREATE UNIQUE INDEX index_history_transactions_on_id ON history_transactions USI
 --
 
 CREATE INDEX trade_effects_by_order_book ON history_effects USING btree (((details ->> 'sold_asset_type'::text)), ((details ->> 'sold_asset_code'::text)), ((details ->> 'sold_asset_issuer'::text)), ((details ->> 'bought_asset_type'::text)), ((details ->> 'bought_asset_code'::text)), ((details ->> 'bought_asset_issuer'::text))) WHERE (type = 33);
+
+
+--
+-- Name: account_traits_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY account_traits
+    ADD CONSTRAINT account_traits_id_fkey FOREIGN KEY (id) REFERENCES history_accounts(id);
 
 
 --

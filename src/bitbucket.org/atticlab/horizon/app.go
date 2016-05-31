@@ -21,6 +21,7 @@ import (
 	"bitbucket.org/atticlab/horizon/pump"
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/administration"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
@@ -45,6 +46,7 @@ type App struct {
 	horizonVersion    string
 	networkPassphrase string
 	submitter         *txsub.System
+	accountManager	  *administration.AccountManager
 	pump              *pump.Pump
 	paths             paths.Finder
 	friendbot         *friendbot.Bot
@@ -164,6 +166,11 @@ func (a *App) HorizonRepo(ctx context.Context) *db2.Repo {
 // database. The returned repo is bound to `ctx`.
 func (a *App) CoreRepo(ctx context.Context) *db2.Repo {
 	return &db2.Repo{DB: a.coreQ.Repo.DB, Ctx: ctx}
+}
+
+// AccountManager returns a new account manager instance.
+func (a *App) AccountManager() *administration.AccountManager {
+	return a.accountManager
 }
 
 // CoreQ returns a helper object for performing sql queries aginst the

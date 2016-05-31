@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/PuerkitoBio/throttled"
-	"github.com/PuerkitoBio/throttled/store"
-	"github.com/rcrowley/go-metrics"
-	"github.com/rs/cors"
-	"github.com/sebest/xff"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
+	"github.com/PuerkitoBio/throttled"
+	"github.com/PuerkitoBio/throttled/store"
+	"github.com/rs/cors"
+	"github.com/sebest/xff"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
+	"github.com/rcrowley/go-metrics"
 )
 
 // Web contains the http server related fields for horizon: the router,
@@ -85,6 +85,8 @@ func initWebActions(app *App) {
 	r.Get("/accounts", &AccountIndexAction{})
 	r.Get("/accounts/:id", &AccountShowAction{})
 	r.Get("/accounts/:account_id/statistics", &AccountStatisticsAction{})
+	r.Get("/accounts/:account_id/traits", &AccountTraitsAction{})
+	r.Post("/accounts/:account_id/traits", &SetTraitsAction{})
 	r.Get("/accounts/:account_id/transactions", &TransactionIndexAction{})
 	r.Get("/accounts/:account_id/operations", &OperationIndexAction{})
 	r.Get("/accounts/:account_id/payments", &PaymentsIndexAction{})
@@ -115,6 +117,8 @@ func initWebActions(app *App) {
 	// Transaction submission API
 	r.Post("/transactions", &TransactionCreateAction{})
 	r.Get("/paths", &PathIndexAction{})
+
+	r.Post("/accounts/:account_id/limits", &LimitsSetAction{})
 
 	// friendbot
 	r.Post("/friendbot", &FriendbotAction{})

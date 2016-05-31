@@ -263,3 +263,28 @@ type AccountStatisticsQ struct {
 	parent *Q
 	sql    sq.SelectBuilder
 }
+
+// AccountLimits contains limits for account set by the admin of a bank and
+// is a row of data from the `account_limits` table
+type AccountLimits struct {
+	Account         string `db:"address"`
+	AssetCode       string `db:"asset_code"`
+	MaxOperation    int64  `db:"max_operation"`
+	DailyTurnover   int64  `db:"daily_turnover"`
+	MonthlyTurnover int64  `db:"monthly_turnover"`
+}
+
+// AccountLimitsQ is a helper struct to aid in configuring queries that loads
+// slices of AccountLimits structs.
+type AccountLimitsQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
+
+// AccountTraits is a row of data from the `account_traits` table
+type AccountTraits struct {
+	TotalOrderID
+	BlockIncomingPayments  bool `db:"block_incoming_payments"`
+	BlockOutcomingPayments bool `db:"block_outcoming_payments"`
+}

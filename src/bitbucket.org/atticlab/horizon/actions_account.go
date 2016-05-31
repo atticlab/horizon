@@ -14,6 +14,7 @@ import (
 // AccountIndexAction: pages of account's addresses in order of creation
 // AccountShowAction: details for single account (including stellar-core state)
 // AccountStatisticsAction: detailed income/outcome statistics for single account
+// AccountStatisticsAction: traits for single account
 // AccountIndexAction renders a page of account resources, identified by
 // a normal page query, ordered by the operation id that created them.
 type AccountIndexAction struct {
