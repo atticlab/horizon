@@ -20,11 +20,18 @@ func (m *accountManager) SetTraits(address string, traits map[string]string) err
     
     // 2. Try get traits for account
     var accTraits history.AccountTraits
+    var isNew = false
     err = m.historyDb.GetAccountTraits(&accTraits, acc.ID)
-    if err != nil {
+    if err == sql.ErrNoRows {
+        isNew = true
+        accTraits.ID = acc.ID
+        accTraits.BlockIncomingPayments = false
+        accTraits.BlockOutcomingPayments = false        
+    }else {
+        if err != nil {
         return err
     }
-    
+    }
     // 3. Validate and set traits
     errors := NewInvalidFieldsError()
     
@@ -51,7 +58,12 @@ func (m *accountManager) SetTraits(address string, traits map[string]string) err
     }
     
     // 4. Persist changes
-    err = m.historyDb.UpdateAccountTraits(accTraits)
+    if isNew{
+        err = m.historyDb.CreateAccountTraits(accTraits)
+    } else {
+        err = m.historyDb.UpdateAccountTraits(accTraits)
+    }
+    
     
     _ = m.historyDb.CreateAuditLogEntry(
         "TODO: add invocer address",

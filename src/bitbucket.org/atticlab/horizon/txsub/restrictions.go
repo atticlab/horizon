@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
+  	"database/sql"
 )
 
 // VerifyAccountTypesForPayment performs account types check for payment operation
@@ -24,23 +25,24 @@ func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 func (sub *submitter) VerifyRestrictions(from string, to string) error  {
 	// Get account traits
 	var sourceTraits, destTraits history.AccountTraits
-	err := sub.historyDb.GetAccountTraitsByAddress(&sourceTraits, from)
-	if err != nil {
-		return err
-	}
-	err = sub.historyDb.GetAccountTraitsByAddress(&destTraits, to)
-	if err != nil {
-		return err
-	}
+	errSource := sub.historyDb.GetAccountTraitsByAddress(&sourceTraits, from)
+	if errSource != nil && errSource != sql.ErrNoRows {
+        return errSource
+    }
+
+	errDest := sub.historyDb.GetAccountTraitsByAddress(&destTraits, to)
+	if errDest != nil && errDest != sql.ErrNoRows {
+        return errDest
+    }
 	
 	// Check restrictions
-	if sourceTraits.BlockOutcomingPayments {
+	if errSource != nil && sourceTraits.BlockOutcomingPayments {
 		return &RestrictedForAccountError{
 			Reason: "Outcoming payments for this account are restricted by administrator.",
 			Address: from,
 		}
 	}
-	if destTraits.BlockIncomingPayments {
+	if errDest != nil && destTraits.BlockIncomingPayments {
 		return &RestrictedForAccountError{
 			Reason: "Incoming payments for this account are restricted by administrator.",
 			Address: to,
