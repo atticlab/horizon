@@ -26,7 +26,7 @@ func (this *Account) Populate(
 	this.SubentryCount = ca.Numsubentries
 	this.InflationDestination = ca.Inflationdest.String
 	this.HomeDomain = ca.HomeDomain.String
-
+	this.populateType(ca)
 	this.Flags.Populate(ca)
 	this.Thresholds.Populate(ca)
 
@@ -69,4 +69,14 @@ func (this *Account) Populate(
 	this.Links.Offers = lb.PagedLink(self, "offers")
 
 	return
+}
+
+func (this *Account) populateType(row core.Account) {
+	var ok bool
+	this.TypeI = int32(row.AccountType)
+	this.Type, ok = AccountTypeNames[row.AccountType]
+
+	if !ok {
+		this.Type = "unknown"
+	}
 }
