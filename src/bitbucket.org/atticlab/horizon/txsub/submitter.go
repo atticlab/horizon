@@ -131,81 +131,163 @@ func (sub *submitter) checkTransaction(envelope string) error {
 	if err != nil {
 		return err
 	}
-
+	additional := make([]string, len(tx.Tx.Operations))
+	var xdrResult xdr.TransactionResult
+	operationResults := make([]xdr.OperationResult, len(tx.Tx.Operations))
+	allowTx := true
 	for i := 0; i < len(tx.Tx.Operations); i++ {
 		op := tx.Tx.Operations[i]
-		t := op.Body.Type
-
-		if t == xdr.OperationTypePayment {
-			payment := op.Body.MustPaymentOp()
-			destination := payment.Destination.Address()
-			var source string
-			if len(op.SourceAccount.Address()) > 0 {
-				source = op.SourceAccount.Address()
-			} else {
-				source = tx.Tx.SourceAccount.Address()
-			}
-
-			var sourceAcc core.Account
-			err = sub.coreDb.AccountByAddress(&sourceAcc, source)
-			if err == sql.ErrNoRows {
-				return ErrNoAccount
-			} else {
-				if err != nil {
-
-					return err
-				}
-
-			}
-
-			var destinationAcc core.Account
-			err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
-			if err == sql.ErrNoRows {
-				destinationAcc.Accountid = destination
-				destinationAcc.AccountType = 0
-				return ErrNoAccount
-			} else {
-				if err != nil {
-					log.WithStack(err).
-						WithField("err", err.Error()).
-						Error("destAccError")
-
-					return err
-				}
-			}
-
-			// 1. Check account types
-			err = VerifyAccountTypesForPayment(sourceAcc, destinationAcc)
-			if err != nil {
-				return err
-			}
-
-			// 2. Check restrictions for accounts
-			err = sub.VerifyRestrictions(source, destination)
-			if err != nil {
-				return err
-			}
-
-			// 3. Check restrictions for sender
-			err = sub.VerifyLimitsForSender(sourceAcc, destinationAcc, payment)
-			if err != nil {
-				return err
-			}
-
-			// 4. Check restrictions for receiver
-			err = sub.VerifyLimitsForReceiver(sourceAcc, destinationAcc, payment)
-			if err != nil {
-				return err
-			}
+		opRes, err := sub.checkOperation(op, tx)
+		operationResults[i] = opRes
+		if err != nil {
+			additional[i] = err.Error()
+			allowTx = false
 		}
 	}
+	if !allowTx {
+		xdrResult.Result, _ = xdr.NewTransactionResultResult(xdr.TransactionResultCodeTxFailed, operationResults)
+		resEnv, err := xdr.MarshalBase64(xdrResult)
+		if err != nil {
+			return err
+		}
 
+		return &RestrictedTransactionError{FailedTransactionError{resEnv}, additional}
+	}
 	return nil
 }
 
-func parseTransaction(envelope string) (xdr.TransactionEnvelope, error) {
-	var tx xdr.TransactionEnvelope
-	err := xdr.SafeUnmarshalBase64(envelope, &tx)
+// checkAccountTypes Parse tx and check account types
+func (sub *submitter) checkOperation(op xdr.Operation, tx xdr.TransactionEnvelope) (opResult xdr.OperationResult, err error) {
+	switch op.Body.Type {
+	case xdr.OperationTypePayment:
+		payment := op.Body.MustPaymentOp()
+		destination := payment.Destination.Address()
+		var source string
+		if len(op.SourceAccount.Address()) > 0 {
+			source = op.SourceAccount.Address()
+		} else {
+			source = tx.Tx.SourceAccount.Address()
+		}
 
+		var sourceAcc core.Account
+		err = sub.coreDb.AccountByAddress(&sourceAcc, source)
+		if err == sql.ErrNoRows {
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
+			err = ErrNoAccount
+			return
+		}
+		if err != nil {
+			return
+		}
+
+		var destinationAcc core.Account
+		err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
+		if err == sql.ErrNoRows {
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNoDestination)
+			err = ErrNoAccount
+			destinationAcc.Accountid = destination
+			destinationAcc.AccountType = 0
+			return
+		}
+		if err != nil {
+			log.WithStack(err).
+				WithField("err", err.Error()).
+				Error("destAccError")
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
+
+			return
+		}
+
+		// 1. Check account types
+		err = VerifyAccountTypesForPayment(sourceAcc, destinationAcc)
+		if err != nil {
+			log.WithStack(err).
+				WithField("err", err.Error()).
+				Error("VerifyAccountTypesForPaymentError")
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
+			return
+		}
+
+		// 2. Check restrictions for accounts
+		err = sub.VerifyRestrictions(source, destination)
+		if err != nil {
+			log.WithStack(err).
+				WithField("err", err.Error()).
+				Error("VerifyRestrictionsError")
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
+			return
+		}
+
+		// 3. Check restrictions for sender
+		err = sub.VerifyLimitsForSender(sourceAcc, destinationAcc, payment)
+		if err != nil {
+			log.WithStack(err).
+				WithField("err", err.Error()).
+				Error("VerifyLimitsForSenderError")
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentSrcNotAuthorized)
+			return
+		}
+
+		// 4. Check restrictions for receiver
+		err = sub.VerifyLimitsForReceiver(sourceAcc, destinationAcc, payment)
+		if err != nil {
+			log.WithStack(err).
+				WithField("err", err.Error()).
+				Error("VerifyLimitsForReceiverError")
+
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
+			return
+		}
+		opResult = paymentOpResult(xdr.PaymentResultCodePaymentSuccess)
+	default:
+		opResult, err = getSuccessResult(op.Body.Type)
+	}
+	return
+}
+
+func getSuccessResult(opType xdr.OperationType) (opResult xdr.OperationResult, err error) {
+	var res interface{}
+	switch opType {
+	case xdr.OperationTypeCreateAccount:
+		res = xdr.CreateAccountResult{xdr.CreateAccountResultCodeCreateAccountSuccess}
+	case xdr.OperationTypePathPayment:
+		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
+	case xdr.OperationTypeManageOffer:
+		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
+	case xdr.OperationTypeCreatePassiveOffer:
+		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
+	case xdr.OperationTypeSetOptions:
+		res = xdr.SetOptionsResult{xdr.SetOptionsResultCodeSetOptionsSuccess}
+	case xdr.OperationTypeChangeTrust:
+		res = xdr.ChangeTrustResult{xdr.ChangeTrustResultCodeChangeTrustSuccess}
+	case xdr.OperationTypeAllowTrust:
+		res = xdr.AllowTrustResult{xdr.AllowTrustResultCodeAllowTrustSuccess}
+	case xdr.OperationTypeAccountMerge:
+		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
+	case xdr.OperationTypeInflation:
+		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
+	case xdr.OperationTypeManageData:
+		res = xdr.ManageDataResult{xdr.ManageDataResultCodeManageDataSuccess}
+	default:
+		err = &MalformedTransactionError{"unknown_operation"}
+		return
+	}
+	opR, _ := xdr.NewOperationResultTr(opType, res)
+	opResult, err = xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
+	return
+}
+
+func paymentOpResult(code xdr.PaymentResultCode) xdr.OperationResult {
+	pr := xdr.PaymentResult{code}
+	opR, _ := xdr.NewOperationResultTr(xdr.OperationTypePayment, pr)
+	opResult, _ := xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
+	return opResult
+}
+
+func parseTransaction(envelope string) (tx xdr.TransactionEnvelope, err error) {
+	err = xdr.SafeUnmarshalBase64(envelope, &tx)
+	if err != nil {
+		err = &MalformedTransactionError{envelope}
+	}
 	return tx, err
 }

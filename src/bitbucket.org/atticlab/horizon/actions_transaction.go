@@ -178,6 +178,25 @@ func (action *TransactionCreateAction) loadResource() {
 	}
 
 	switch err := action.Result.Err.(type) {
+	case *txsub.RestrictedTransactionError:
+		rcr := resource.TransactionResultCodes{}
+		rcr.Populate(action.Ctx, &err.FailedTransactionError)
+
+		action.Err = &problem.P{
+			Type:   "transaction_restricted",
+			Title:  "Transaction Restricted",
+			Status: http.StatusBadRequest,
+			Detail: "The transaction violates some of the restrictions. " +
+				"The `extras.result_codes` and `extras.additional_errors` fields on this response contain further " +
+				"details.  Descriptions of each code can be found at: " +
+				"https://www.stellar.org/developers/learn/concepts/list-of-operations.html",
+			Extras: map[string]interface{}{
+				"envelope_xdr":      action.Result.EnvelopeXDR,
+				"result_xdr":        err.ResultXDR,
+				"result_codes":      rcr,
+				"additional_errors": err.AdditionalErrors,
+			},
+		}
 	case *txsub.FailedTransactionError:
 		rcr := resource.TransactionResultCodes{}
 		rcr.Populate(action.Ctx, err)
@@ -210,21 +229,21 @@ func (action *TransactionCreateAction) loadResource() {
 				"envelope_xdr": err.EnvelopeXDR,
 			},
 		}
-	case *txsub.RestrictedForAccountTypeError: 
+	case *txsub.RestrictedForAccountTypeError:
 		action.Err = &problem.P{
 			Type:   "transaction_restricted_account_types",
 			Title:  "Transaction Restricted For Specified Account Types",
 			Status: http.StatusForbidden,
 			Detail: action.Result.Err.Error(),
 		}
-	case *txsub.ExceededLimitError: 
+	case *txsub.ExceededLimitError:
 		action.Err = &problem.P{
 			Type:   "transaction_restricted_limits_exceeded",
 			Title:  "Payment Limits Exceeded",
 			Status: http.StatusForbidden,
 			Detail: action.Result.Err.Error(),
 		}
-	case *txsub.RestrictedForAccountError: 
+	case *txsub.RestrictedForAccountError:
 		action.Err = &problem.P{
 			Type:   "transaction_restricted_for_account",
 			Title:  "Transaction Restricted For This Account",

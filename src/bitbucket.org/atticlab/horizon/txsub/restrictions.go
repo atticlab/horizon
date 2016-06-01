@@ -3,12 +3,13 @@ package txsub
 import (
 	"fmt"
 
+	"database/sql"
+
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
-  	"database/sql"
 )
 
 // VerifyAccountTypesForPayment performs account types check for payment operation
@@ -22,33 +23,33 @@ func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 }
 
 // VerifyRestrictions checks traits of the involved accounts
-func (sub *submitter) VerifyRestrictions(from string, to string) error  {
+func (sub *submitter) VerifyRestrictions(from string, to string) error {
 	// Get account traits
 	var sourceTraits, destTraits history.AccountTraits
 	errSource := sub.historyDb.GetAccountTraitsByAddress(&sourceTraits, from)
 	if errSource != nil && errSource != sql.ErrNoRows {
-        return errSource
-    }
+		return errSource
+	}
 
 	errDest := sub.historyDb.GetAccountTraitsByAddress(&destTraits, to)
 	if errDest != nil && errDest != sql.ErrNoRows {
-        return errDest
-    }
-	
+		return errDest
+	}
+
 	// Check restrictions
 	if errSource != nil && sourceTraits.BlockOutcomingPayments {
 		return &RestrictedForAccountError{
-			Reason: "Outcoming payments for this account are restricted by administrator.",
+			Reason:  "Outcoming payments for this account are restricted by administrator.",
 			Address: from,
 		}
 	}
 	if errDest != nil && destTraits.BlockIncomingPayments {
 		return &RestrictedForAccountError{
-			Reason: "Incoming payments for this account are restricted by administrator.",
+			Reason:  "Incoming payments for this account are restricted by administrator.",
 			Address: to,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -134,15 +135,19 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 		return err
 	}
 
-	opAsset = opAsset
 	opAmount := int64(payment.Amount)
 
 	if opAsset == "EUAH" && !bankAgent(receiver.AccountType) {
 		// 1. Check max balance
 		var trustline core.Trustline
 		err = sub.coreDb.TrustlineByAddressAndAsset(&trustline, receiver.Accountid, opAsset, sub.config.BankMasterKey)
-		if err != nil {
-			return err
+		if err == sql.ErrNoRows {
+			// let's suppose the balance is zero and let core throw error
+			trustline.Balance = 0
+		} else {
+			if err != nil {
+				return err
+			}
 		}
 
 		if int64(trustline.Balance)+opAmount > sub.config.AnonymousUserRestrictions.MaxBalance {

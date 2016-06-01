@@ -71,6 +71,14 @@ func (fte *FailedTransactionError) OperationResultCodes() (result []string, err 
 	return
 }
 
+// RestrictedTransactionError represent an error that occurred because
+// horizon rejected the transaction.  ResultXDR is a base64
+// encoded TransactionResult struct
+type RestrictedTransactionError struct {
+	FailedTransactionError
+	AdditionalErrors []string
+}
+
 // MalformedTransactionError represent an error that occurred because
 // a TransactionEnvelope could not be decoded from the provided data.
 type MalformedTransactionError struct {
