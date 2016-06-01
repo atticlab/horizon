@@ -17,15 +17,14 @@ import (
 // AccountTypeNames maps from account type to the string used to represent that type
 // in horizon's JSON responses
 var AccountTypeNames = map[xdr.AccountType]string{
-	xdr.AccountTypeAccountAnonymousUser:      "anonymous_user",
-	xdr.AccountTypeAccountRegisteredUser:            "registered_user",
-	xdr.AccountTypeAccountMerchant:        "merchant",
-	xdr.AccountTypeAccountDistributionAgent:        "distribution_agent",
-	xdr.AccountTypeAccountSettlementAgent: "settlement_agent",
-	xdr.AccountTypeAccountExchangeAgent:         "exchange_agent",
-	xdr.AccountTypeAccountBank:        "bank",
+	xdr.AccountTypeAccountAnonymousUser:     "anonymous_user",
+	xdr.AccountTypeAccountRegisteredUser:    "registered_user",
+	xdr.AccountTypeAccountMerchant:          "merchant",
+	xdr.AccountTypeAccountDistributionAgent: "distribution_agent",
+	xdr.AccountTypeAccountSettlementAgent:   "settlement_agent",
+	xdr.AccountTypeAccountExchangeAgent:     "exchange_agent",
+	xdr.AccountTypeAccountBank:              "bank",
 }
-
 
 // Account is the summary of an account
 type Account struct {
@@ -40,8 +39,8 @@ type Account struct {
 
 	HistoryAccount
 	Sequence             string            `json:"sequence"`
-	Type          		 string `json:"type"`
-	TypeI         		 int32  `json:"type_i"`	
+	Type                 string            `json:"type"`
+	TypeI                int32             `json:"type_i"`
 	SubentryCount        int32             `json:"subentry_count"`
 	InflationDestination string            `json:"inflation_destination,omitempty"`
 	HomeDomain           string            `json:"home_domain,omitempty"`

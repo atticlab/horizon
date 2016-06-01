@@ -403,13 +403,13 @@ SELECT pg_catalog.setval('audit_log_id_seq', 1, false);
 -- Data for Name: gorp_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-05-31 17:41:02.075008+03');
-INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-05-31 17:41:02.080132+03');
-INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-05-31 17:41:02.085306+03');
-INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-05-31 17:41:02.091201+03');
-INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-05-31 17:41:02.098516+03');
-INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-05-31 17:41:02.113121+03');
-INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-05-31 17:41:02.120352+03');
+INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-05-31 17:44:33.644927+03');
+INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-05-31 17:44:33.656537+03');
+INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-05-31 17:44:33.66386+03');
+INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-05-31 17:44:33.668049+03');
+INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-05-31 17:44:33.682272+03');
+INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-05-31 17:44:33.693746+03');
+INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-05-31 17:44:33.696118+03');
 
 
 --
