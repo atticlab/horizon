@@ -184,7 +184,7 @@ func (sub *submitter) checkOperation(op xdr.Operation, tx xdr.TransactionEnvelop
 		err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
 		if err == sql.ErrNoRows {
 			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNoDestination)
-			err = ErrNoAccount
+			err = nil
 			destinationAcc.Accountid = destination
 			destinationAcc.AccountType = 0
 			return
@@ -230,6 +230,9 @@ func (sub *submitter) checkOperation(op xdr.Operation, tx xdr.TransactionEnvelop
 
 		// 4. Check restrictions for receiver
 		err = sub.VerifyLimitsForReceiver(sourceAcc, destinationAcc, payment)
+		if err == sql.ErrNoRows {
+			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNoTrust)
+		}
 		if err != nil {
 			log.WithStack(err).
 				WithField("err", err.Error()).
