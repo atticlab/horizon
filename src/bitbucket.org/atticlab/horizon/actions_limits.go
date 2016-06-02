@@ -34,9 +34,12 @@ func (action *LimitsSetAction) loadLimits() {
 	action.ValidateBodyType()
 	action.Limits.Account = action.GetString("account_id")
 	action.Limits.AssetCode = action.GetString("asset_code")
-	action.Limits.MaxOperation = action.GetInt64("max_operation")
-	action.Limits.DailyTurnover = action.GetInt64("daily_turnnover")
-	action.Limits.MonthlyTurnover = action.GetInt64("monthly_turnover")
+	action.Limits.MaxOperationOut = action.GetInt64("max_operation_out")
+	action.Limits.DailyMaxOut = action.GetInt64("daily_max_out")
+	action.Limits.MonthlyMaxOut = action.GetInt64("monthly_max_out")
+	action.Limits.MaxOperationIn = action.GetInt64("max_operation_in")
+	action.Limits.DailyMaxIn = action.GetInt64("daily_max_in")
+	action.Limits.MonthlyMaxIn = action.GetInt64("monthly_max_in")
 }
 
 func (action *LimitsSetAction) updateLimits() {

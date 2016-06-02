@@ -121,9 +121,12 @@ SET default_with_oids = false;
 CREATE TABLE account_limits (
     address character varying(64) NOT NULL,
     asset_code character varying(12) NOT NULL,
-    max_operation bigint DEFAULT 0 NOT NULL,
-    daily_turnover bigint DEFAULT 0 NOT NULL,
-    monthly_turnover bigint DEFAULT 0 NOT NULL
+    max_operation_out bigint DEFAULT 0 NOT NULL,
+    daily_max_out bigint DEFAULT 0 NOT NULL,
+    monthly_max_out bigint DEFAULT 0 NOT NULL,
+    max_operation_in bigint DEFAULT (-1) NOT NULL,
+    daily_max_in bigint DEFAULT (-1) NOT NULL,
+    monthly_max_in bigint DEFAULT (-1) NOT NULL
 );
 
 
@@ -403,13 +406,14 @@ SELECT pg_catalog.setval('audit_log_id_seq', 1, false);
 -- Data for Name: gorp_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-05-31 17:44:33.644927+03');
-INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-05-31 17:44:33.656537+03');
-INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-05-31 17:44:33.66386+03');
-INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-05-31 17:44:33.668049+03');
-INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-05-31 17:44:33.682272+03');
-INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-05-31 17:44:33.693746+03');
-INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-05-31 17:44:33.696118+03');
+INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-06-02 16:05:15.996827+03');
+INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-06-02 16:05:16.000571+03');
+INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-06-02 16:05:16.004558+03');
+INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-06-02 16:05:16.012356+03');
+INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-06-02 16:05:16.025724+03');
+INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-06-02 16:05:16.035977+03');
+INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-06-02 16:05:16.039575+03');
+INSERT INTO gorp_migrations VALUES ('8_account_limits_two_way.sql', '2016-06-02 16:05:16.045149+03');
 
 
 --

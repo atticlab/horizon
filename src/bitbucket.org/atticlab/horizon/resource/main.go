@@ -306,9 +306,12 @@ type AccountLimits struct {
 // AccountLimitsEntry represents limits on a specific currency
 type AccountLimitsEntry struct {
 	AssetCode       string `json:"asset_code"`
-	MaxOperation    int64  `json:"max_operation"`
-	DailyTurnover   int64  `json:"daily_turnover"`
-	MonthlyTurnover int64  `json:"monthly_turnover"`
+	MaxOperationOut int64  `json:"max_operation_out"`
+	DailyMaxOut     int64  `json:"daily_max_out"`
+	MonthlyMaxOut   int64  `json:"monthly_max_out"`
+	MaxOperationIn  int64  `json:"max_operation_in"`
+	DailyMaxIn      int64  `json:"daily_max_in"`
+	MonthlyMaxIn    int64  `json:"monthly_max_in"`
 }
 
 // NewEffect returns a resource of the appropriate sub-type for the provided

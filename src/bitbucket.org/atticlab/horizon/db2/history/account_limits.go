@@ -4,7 +4,7 @@ import sq "github.com/lann/squirrel"
 
 // GetAccountLimits returns limits row by account and asset.
 func (q *Q) GetAccountLimits(
-	dest *AccountLimits,
+	dest interface{},
 	address string,
 	assetCode string,
 ) error {
@@ -14,13 +14,7 @@ func (q *Q) GetAccountLimits(
 		assetCode,
 	)
 
-	var limits AccountLimits
-	err := q.Get(&limits, sql)
-
-	if err == nil {
-		*dest = limits
-	}
-
+	err := q.Get(dest, sql)
 	return err
 }
 
@@ -39,7 +33,9 @@ func (q *Q) GetLimitsByAccount(dest *[]AccountLimits, address string) error {
 
 // CreateAccountLimits inserts new account_limits row
 func (q *Q) CreateAccountLimits(limits AccountLimits) error {
-	sql := CreateAccountLimitsTemplate.Values(limits.Account, limits.AssetCode, limits.MaxOperation, limits.DailyTurnover, limits.MonthlyTurnover)
+	sql := CreateAccountLimitsTemplate.Values(limits.Account, limits.AssetCode,
+		limits.MaxOperationOut, limits.DailyMaxOut, limits.MonthlyMaxOut,
+		limits.MaxOperationIn, limits.DailyMaxIn, limits.MonthlyMaxIn)
 	_, err := q.Exec(sql)
 
 	return err
@@ -47,9 +43,12 @@ func (q *Q) CreateAccountLimits(limits AccountLimits) error {
 
 // UpdateAccountLimits updates account_limits row
 func (q *Q) UpdateAccountLimits(limits AccountLimits) error {
-	sql := UpdateAccountLimitsTemplate.Set("max_operation", limits.MaxOperation)
-	sql = sql.Set("daily_turnover", limits.DailyTurnover)
-	sql = sql.Set("monthly_turnover", limits.MonthlyTurnover)
+	sql := UpdateAccountLimitsTemplate.Set("max_operation_out", limits.MaxOperationOut)
+	sql = sql.Set("daily_max_out", limits.DailyMaxOut)
+	sql = sql.Set("monthly_max_out", limits.MonthlyMaxOut)
+	sql = sql.Set("max_operation_in", limits.MaxOperationIn)
+	sql = sql.Set("daily_max_in", limits.DailyMaxIn)
+	sql = sql.Set("monthly_max_in", limits.MonthlyMaxIn)
 	sql = sql.Where("address = ? and asset_code = ?", limits.Account, limits.AssetCode)
 
 	_, err := q.Exec(sql)
@@ -64,9 +63,12 @@ var SelectAccountLimitsTemplate = sq.Select("a.*").From("account_limits a")
 var CreateAccountLimitsTemplate = sq.Insert("account_limits").Columns(
 	"address",
 	"asset_code",
-	"max_operation",
-	"daily_turnover",
-	"monthly_turnover",
+	"max_operation_out",
+	"daily_max_out",
+	"monthly_max_out",
+	"max_operation_in",
+	"daily_max_in",
+	"monthly_max_in",
 )
 
 // UpdateAccountLimitsTemplate is a prepared statement for insertion into the account_limits

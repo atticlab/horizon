@@ -269,9 +269,12 @@ type AccountStatisticsQ struct {
 type AccountLimits struct {
 	Account         string `db:"address"`
 	AssetCode       string `db:"asset_code"`
-	MaxOperation    int64  `db:"max_operation"`
-	DailyTurnover   int64  `db:"daily_turnover"`
-	MonthlyTurnover int64  `db:"monthly_turnover"`
+	MaxOperationOut int64  `db:"max_operation_out"`
+	DailyMaxOut     int64  `db:"daily_max_out"`
+	MonthlyMaxOut   int64  `db:"monthly_max_out"`
+	MaxOperationIn  int64  `db:"max_operation_in"`
+	DailyMaxIn      int64  `db:"daily_max_in"`
+	MonthlyMaxIn    int64  `db:"monthly_max_in"`
 }
 
 // AccountLimitsQ is a helper struct to aid in configuring queries that loads

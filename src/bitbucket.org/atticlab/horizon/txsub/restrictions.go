@@ -61,21 +61,66 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 		return err
 	}
 
+	var limits history.AccountLimits
+	hasLimits := false
+	err = sub.historyDb.GetAccountLimits(&limits, sender.Accountid, opAsset)
+	if err == nil {
+		if opAmount > limits.MaxOperationOut {
+			description := fmt.Sprintf(
+				"Maximal operation amount for this account exceeded: %s of %s %s",
+				amount.String(payment.Amount),
+				amount.String(xdr.Int64(limits.MaxOperationOut)),
+				opAsset,
+			)
+			return &ExceededLimitError{Description: description}
+		}
+		hasLimits = true
+	}
+
+	if !hasLimits && opAsset != "EUAH" {
+		// Nothing to be checked
+		return nil
+	}
+
 	var stats map[xdr.AccountType]history.AccountStatistics
 	err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
 	if err != nil {
 		return err
 	}
+	dailyOutcome := sumDailyOutcome(
+		stats,
+		xdr.AccountTypeAccountAnonymousUser,
+		xdr.AccountTypeAccountRegisteredUser,
+		xdr.AccountTypeAccountSettlementAgent,
+	)
+	monthlyOutcome := sumMonthlyOutcome(
+		stats,
+		xdr.AccountTypeAccountAnonymousUser,
+		xdr.AccountTypeAccountRegisteredUser,
+		xdr.AccountTypeAccountSettlementAgent,
+	)
+
+	if hasLimits && limits.DailyMaxOut >= 0 && dailyOutcome+opAmount > limits.DailyMaxOut {
+		description := fmt.Sprintf(
+			"Daily outcoming payments limit for account exceeded: %s + %s out of %s UAH per day",
+			amount.String(xdr.Int64(dailyOutcome)),
+			amount.String(payment.Amount),
+			amount.String(xdr.Int64(limits.DailyMaxOut)),
+		)
+		return &ExceededLimitError{Description: description}
+	}
+	if hasLimits && limits.MonthlyMaxOut >= 0 && monthlyOutcome+opAmount > limits.MonthlyMaxOut {
+		description := fmt.Sprintf(
+			"Monthly outcoming payments limit for account exceeded: %s + %s out of %s UAH per month",
+			amount.String(xdr.Int64(monthlyOutcome)),
+			amount.String(payment.Amount),
+			amount.String(xdr.Int64(limits.MonthlyMaxOut)),
+		)
+		return &ExceededLimitError{Description: description}
+	}
 
 	if sender.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
 		// 1. Check daily outcome
-		dailyOutcome := sumDailyOutcome(
-			stats,
-			xdr.AccountTypeAccountAnonymousUser,
-			xdr.AccountTypeAccountRegisteredUser,
-			xdr.AccountTypeAccountSettlementAgent,
-		)
-
 		if dailyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxDailyOutcome {
 			description := fmt.Sprintf(
 				"Daily outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per day",
@@ -87,13 +132,6 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 		}
 
 		// 2. Check monthly outcome
-		monthlyOutcome := sumMonthlyOutcome(
-			stats,
-			xdr.AccountTypeAccountAnonymousUser,
-			xdr.AccountTypeAccountRegisteredUser,
-			xdr.AccountTypeAccountSettlementAgent,
-		)
-
 		if monthlyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxMonthlyOutcome {
 			description := fmt.Sprintf(
 				"Monthly outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per month",
@@ -137,6 +175,68 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 
 	opAmount := int64(payment.Amount)
 
+	var limits history.AccountLimits
+	hasLimits := false
+	err = sub.historyDb.GetAccountLimits(&limits, receiver.Accountid, opAsset)
+	if err == nil {
+		if opAmount > limits.MaxOperationIn {
+			description := fmt.Sprintf(
+				"Maximal income operation amount for this account exceeded: %s of %s %s",
+				amount.String(payment.Amount),
+				amount.String(xdr.Int64(limits.MaxOperationIn)),
+				opAsset,
+			)
+			return &ExceededLimitError{Description: description}
+		}
+		hasLimits = true
+	}
+
+	if !hasLimits && opAsset != "EUAH" {
+		// Nothing to be checked
+		return nil
+	}
+	var stats map[xdr.AccountType]history.AccountStatistics
+	err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, receiver.Accountid, opAsset)
+	if err != nil {
+		return err
+	}
+
+	dailyIncome := sumDailyIncome(
+		stats,
+		xdr.AccountTypeAccountAnonymousUser,
+		xdr.AccountTypeAccountRegisteredUser,
+		xdr.AccountTypeAccountMerchant,
+		xdr.AccountTypeAccountDistributionAgent,
+	)
+	monthlyIncome := sumMonthlyIncome(
+		stats,
+		xdr.AccountTypeAccountAnonymousUser,
+		xdr.AccountTypeAccountRegisteredUser,
+		xdr.AccountTypeAccountMerchant,
+		xdr.AccountTypeAccountDistributionAgent,
+	)
+
+	if hasLimits && limits.DailyMaxIn >= 0 && dailyIncome+opAmount > limits.DailyMaxIn {
+		description := fmt.Sprintf(
+			"Daily incoming payments limit for account exceeded: %s + %s out of %s %s per day",
+			amount.String(xdr.Int64(dailyIncome)),
+			amount.String(payment.Amount),
+			amount.String(xdr.Int64(limits.DailyMaxIn)),
+			opAsset,
+		)
+		return &ExceededLimitError{Description: description}
+	}
+	if hasLimits && limits.MonthlyMaxIn >= 0 && monthlyIncome+opAmount > limits.MonthlyMaxIn {
+		description := fmt.Sprintf(
+			"Monthly incoming payments limit for account exceeded: %s + %s out of %s %s per month",
+			amount.String(xdr.Int64(monthlyIncome)),
+			amount.String(payment.Amount),
+			amount.String(xdr.Int64(limits.MonthlyMaxIn)),
+			opAsset,
+		)
+		return &ExceededLimitError{Description: description}
+	}
+
 	if opAsset == "EUAH" && !bankAgent(receiver.AccountType) {
 		// 1. Check max balance
 		var trustline core.Trustline
@@ -161,12 +261,6 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 		}
 
 		// 2.Check max annual income
-		var stats map[xdr.AccountType]history.AccountStatistics
-		err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, receiver.Accountid, opAsset)
-		if err != nil {
-			return err
-		}
-
 		annualIncome := sumAnnualIncome(stats)
 
 		if annualIncome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualIncome {
@@ -264,6 +358,29 @@ func sumAnnualOutcome(stats map[xdr.AccountType]history.AccountStatistics, args 
 	for _, accType := range args {
 		if acc, ok := stats[xdr.AccountType(accType)]; ok {
 			sum = sum + acc.AnnualOutcome
+		}
+	}
+
+	return sum
+}
+
+func sumDailyIncome(stats map[xdr.AccountType]history.AccountStatistics, args ...xdr.AccountType) int64 {
+	var sum int64
+	for _, accType := range args {
+		println(xdr.AccountType(accType).String())
+		if acc, ok := stats[xdr.AccountType(accType)]; ok {
+			sum = sum + acc.DailyIncome
+		}
+	}
+
+	return sum
+}
+
+func sumMonthlyIncome(stats map[xdr.AccountType]history.AccountStatistics, args ...xdr.AccountType) int64 {
+	var sum int64
+	for _, accType := range args {
+		if acc, ok := stats[xdr.AccountType(accType)]; ok {
+			sum = sum + acc.MonthlyIncome
 		}
 	}
 

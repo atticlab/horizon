@@ -36,7 +36,10 @@ func (al *AccountLimits) Populate(
 // Populate fills out the resource's fields
 func (ale *AccountLimitsEntry) Populate(entry history.AccountLimits) {
 	ale.AssetCode = entry.AssetCode
-	ale.MaxOperation = entry.MaxOperation
-	ale.DailyTurnover = entry.DailyTurnover
-	ale.MonthlyTurnover = entry.MonthlyTurnover
+	ale.MaxOperationOut = entry.MaxOperationOut
+	ale.DailyMaxOut = entry.DailyMaxOut
+	ale.MonthlyMaxOut = entry.MonthlyMaxOut
+	ale.MaxOperationIn = entry.MaxOperationIn
+	ale.DailyMaxIn = entry.DailyMaxIn
+	ale.MonthlyMaxIn = entry.MonthlyMaxIn
 }
