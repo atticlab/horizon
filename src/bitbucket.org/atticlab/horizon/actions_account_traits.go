@@ -22,7 +22,6 @@ type AccountTraitsAction struct {
 // JSON is a method for actions.JSON
 func (action *AccountTraitsAction) JSON() {
 	action.Do(
-		action.requireAdminSignature,
 		action.loadParams,
 		action.loadRecord,
 		action.loadResource,
@@ -76,6 +75,7 @@ type SetTraitsAction struct {
 // JSON format action handler
 func (action *SetTraitsAction) JSON() {
 	action.Do(
+		action.requireAdminSignature,
 		action.loadParams,
 		action.updateTraits,
 		action.loadResource,
