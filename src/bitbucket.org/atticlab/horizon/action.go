@@ -4,12 +4,16 @@ import (
 	"net/http"
 	"net/url"
 
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"github.com/spf13/viper"
+
 	"bitbucket.org/atticlab/horizon/actions"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/httpx"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/toid"
 	"github.com/zenazn/goji/web"
 )
@@ -111,6 +115,45 @@ func (action *Action) ValidateCursorAsDefault() {
 	}
 
 	action.GetInt64(actions.ParamCursor)
+}
+
+func (action *Action) requireAdminSignature() {
+	// log.Info("LimitsSetAction verifyAccess")
+	if !action.IsSigned {
+		action.Err = &problem.P{
+			Type:   "unauthorized",
+			Title:  "Unauthorized request",
+			Status: http.StatusUnauthorized,
+			Detail: "Request should be signed.",
+		}
+		return
+	}
+	var coreSigners []core.Signer
+	err := action.CoreQ().
+		SignersByAddress(&coreSigners, viper.GetString("bank-master-key"))
+	if err != nil {
+
+		// log.WithField("err", err).Error("LimitsSetAction")
+		action.Err = &problem.P{
+			Type:   "unauthorized",
+			Title:  "Unauthorized request",
+			Status: http.StatusUnauthorized,
+			Detail: "Request should be signed.",
+		}
+		return
+	}
+	for _, signer := range coreSigners {
+		if signer.Publickey == action.Signer && signer.SignerType == uint32(xdr.SignerTypeSignerAdmin) {
+			return
+		}
+	}
+	// log.WithField("coreSigners", coreSigners).WithField("action.Signer", action.Signer).Error("LimitsSetAction not found")
+	action.Err = &problem.P{
+		Type:   "unauthorized",
+		Title:  "Unauthorized request",
+		Status: http.StatusUnauthorized,
+		Detail: "Only admin can sign request.",
+	}
 }
 
 // BaseURL returns the base url for this requestion, defined as a url containing

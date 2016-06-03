@@ -1,13 +1,19 @@
 package actions
 
 import (
+	"bytes"
+	"encoding/hex"
+	"io/ioutil"
 	"net/http"
 
-	gctx "github.com/goji/context"
-
+	"bitbucket.org/atticlab/go-smart-base/hash"
+	"bitbucket.org/atticlab/go-smart-base/keypair"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/render/sse"
+	gctx "github.com/goji/context"
 	"github.com/zenazn/goji/web"
 	"golang.org/x/net/context"
 )
@@ -23,7 +29,9 @@ type Base struct {
 	R       *http.Request
 	Err     error
 
-	isSetup bool
+	isSetup  bool
+	IsSigned bool
+	Signer   string
 }
 
 // Prepare established the common attributes that get used in nearly every
@@ -34,6 +42,61 @@ func (base *Base) Prepare(c web.C, w http.ResponseWriter, r *http.Request) {
 	base.GojiCtx = c
 	base.W = w
 	base.R = r
+	base.IsSigned = false
+	signature := r.Header.Get("X-AuthSignature")
+	publicKey := r.Header.Get("X-AuthPublicKey")
+	timestamp := r.Header.Get("X-AuthTimestamp")
+	if signature == "" || publicKey == "" || timestamp == "" {
+		return
+	}
+	base.Signer = publicKey
+	// Read the content
+	var bodyBytes []byte
+	if r.Body != nil {
+		bodyBytes, _ = ioutil.ReadAll(r.Body)
+	}
+	// Restore the io.ReadCloser to its original state
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	// Use the content
+	bodyString := string(bodyBytes)
+
+	signatureBase := "{method: 'post', body: '" + bodyString + "', timestamp: '" + timestamp + "'}"
+	hashBase := hash.Hash([]byte(signatureBase))
+	actual := hex.EncodeToString(hashBase[:])
+	log.WithField("signatureBase", signatureBase).
+		Info("signatureBase")
+	log.WithField("actual", actual).
+		WithField("hashBase", hashBase).
+		WithField("publicKey", publicKey).
+		Info("signatureBase")
+	pubKey, err := keypair.Parse(publicKey)
+	if err != nil {
+		log.WithField("err", err).
+			Info("signatureBase")
+		return
+	}
+	var decoratedSign xdr.DecoratedSignature
+	err = xdr.SafeUnmarshalBase64(signature, &decoratedSign)
+	if err != nil {
+		log.WithField("err", err).
+			Info("signatureBase")
+		return
+	}
+
+	log.WithField("sigBytes", decoratedSign.Signature).
+		WithField("signature", signature).
+		Info("signatureBase")
+	err = pubKey.Verify(hashBase[:], decoratedSign.Signature)
+	if err == nil {
+		log.Info("signatureVerified")
+		base.IsSigned = true
+	} else {
+		log.Info("signatureNotVerified")
+		log.WithField("err", err).
+			Error("signatureBase")
+	}
+	// let data = hash(signatureBase);
+
 }
 
 // Execute trigger content negottion and the actual execution of one of the

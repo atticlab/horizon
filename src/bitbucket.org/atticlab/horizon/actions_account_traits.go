@@ -1,13 +1,14 @@
 package horizon
 
 import (
-    "net/http"
+	"net/http"
+
+	"bitbucket.org/atticlab/horizon/administration"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/render/hal"
+	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/resource"
-    "bitbucket.org/atticlab/horizon/administration"
-    "bitbucket.org/atticlab/horizon/render/problem"
 )
 
 // AccountTraitsAction detailed income/outcome statistics for single account
@@ -21,6 +22,7 @@ type AccountTraitsAction struct {
 // JSON is a method for actions.JSON
 func (action *AccountTraitsAction) JSON() {
 	action.Do(
+		action.requireAdminSignature,
 		action.loadParams,
 		action.loadRecord,
 		action.loadResource,
@@ -65,10 +67,10 @@ func (action *AccountTraitsAction) loadResource() {
 // SetTraitsAction changes traits for specified account
 type SetTraitsAction struct {
 	Action
-    Address      string
-	Traits       map[string]string
-    Result       error
-	Resource     resource.AccountTraits
+	Address  string
+	Traits   map[string]string
+	Result   error
+	Resource resource.AccountTraits
 }
 
 // JSON format action handler
@@ -85,26 +87,26 @@ func (action *SetTraitsAction) JSON() {
 
 func (action *SetTraitsAction) loadParams() {
 	action.Address = action.GetAddress("account_id")
-    action.Traits = make(map[string]string)
-    
-    // TODO: move all validation logic here
-    blockIncoming := action.GetString("block_incoming_payments")
-    if len(blockIncoming) > 0 {
-        action.Traits["block_incoming_payments"] = blockIncoming
-    }
-    
-    blockOutcoming := action.GetString("block_outcoming_payments")
-    if len(blockOutcoming) > 0 {
-        action.Traits["block_outcoming_payments"] = blockOutcoming
-    }
+	action.Traits = make(map[string]string)
+
+	// TODO: move all validation logic here
+	blockIncoming := action.GetString("block_incoming_payments")
+	if len(blockIncoming) > 0 {
+		action.Traits["block_incoming_payments"] = blockIncoming
+	}
+
+	blockOutcoming := action.GetString("block_outcoming_payments")
+	if len(blockOutcoming) > 0 {
+		action.Traits["block_outcoming_payments"] = blockOutcoming
+	}
 }
 
 func (action *SetTraitsAction) updateTraits() {
-    result := (*action.App.AccountManager()).SetTraits(action.Address, action.Traits)
-    
-    switch err := result.(type) {
+	result := (*action.App.AccountManager()).SetTraits(action.Address, action.Traits)
+
+	switch err := result.(type) {
 	case administration.AccountNotFoundError:
-        println("Sup")
+		println("Sup")
 		action.Err = &problem.P{
 			Type:   "account_not_found",
 			Title:  "Account not found",
@@ -114,8 +116,8 @@ func (action *SetTraitsAction) updateTraits() {
 				"account_id": action.Address,
 			},
 		}
-    case administration.InvalidFieldsError:
-        println("Soap")
+	case administration.InvalidFieldsError:
+		println("Soap")
 		action.Err = &problem.P{
 			Type:   "malformed_request",
 			Title:  "Malformed request",
@@ -129,22 +131,22 @@ func (action *SetTraitsAction) updateTraits() {
 }
 
 func (action *SetTraitsAction) loadResource() {
-    var traits history.AccountTraits
-    action.Err = (*action.HistoryQ()).GetAccountTraitsByAddress(&traits, action.Address)
-    
+	var traits history.AccountTraits
+	action.Err = (*action.HistoryQ()).GetAccountTraitsByAddress(&traits, action.Address)
+
 	if action.Err == nil {
-		action.Resource.Populate(action.Ctx, action.Address,traits)
+		action.Resource.Populate(action.Ctx, action.Address, traits)
 		return
 	}
 }
 
 func extractErrors(errors map[string]error) map[string]interface{} {
-    result := make(map[string]interface{})
-    for key, err := range errors {
-        result[key] = err.Error()
-    }
-    
-    return result
+	result := make(map[string]interface{})
+	for key, err := range errors {
+		result[key] = err.Error()
+	}
+
+	return result
 }
 
 // type AccountNotFoundError struct {

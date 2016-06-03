@@ -21,6 +21,7 @@ type LimitsSetAction struct {
 // JSON format action handler
 func (action *LimitsSetAction) JSON() {
 	action.Do(
+		action.requireAdminSignature,
 		action.loadLimits,
 		action.updateLimits,
 		action.loadResource,
@@ -31,6 +32,7 @@ func (action *LimitsSetAction) JSON() {
 }
 
 func (action *LimitsSetAction) loadLimits() {
+
 	action.ValidateBodyType()
 	action.Limits.Account = action.GetString("account_id")
 	action.Limits.AssetCode = action.GetString("asset_code")
