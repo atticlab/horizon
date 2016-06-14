@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/rcrowley/go-metrics"
+
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
 	"github.com/PuerkitoBio/throttled"
@@ -13,7 +15,6 @@ import (
 	"github.com/sebest/xff"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
-	"github.com/rcrowley/go-metrics"
 )
 
 // Web contains the http server related fields for horizon: the router,
@@ -87,6 +88,7 @@ func initWebActions(app *App) {
 	r.Get("/accounts/:account_id/statistics", &AccountStatisticsAction{})
 	r.Get("/accounts/:account_id/traits", &AccountTraitsAction{})
 	r.Post("/accounts/:account_id/traits", &SetTraitsAction{})
+	r.Get("/accounts/:account_id/limits", &AccountLimitsAction{})
 	r.Get("/accounts/:account_id/transactions", &TransactionIndexAction{})
 	r.Get("/accounts/:account_id/operations", &OperationIndexAction{})
 	r.Get("/accounts/:account_id/payments", &PaymentsIndexAction{})

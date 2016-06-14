@@ -65,11 +65,11 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 	hasLimits := false
 	err = sub.historyDb.GetAccountLimits(&limits, sender.Accountid, opAsset)
 	if err == nil {
-		if opAmount > limits.MaxOperationOut {
+		if limits.MaxOperationOut >= 0 && opAmount > limits.MaxOperationOut*amount.One {
 			description := fmt.Sprintf(
 				"Maximal operation amount for this account exceeded: %s of %s %s",
 				amount.String(payment.Amount),
-				amount.String(xdr.Int64(limits.MaxOperationOut)),
+				amount.String(xdr.Int64(limits.MaxOperationOut*amount.One)),
 				opAsset,
 			)
 			return &ExceededLimitError{Description: description}
@@ -100,21 +100,21 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 		xdr.AccountTypeAccountSettlementAgent,
 	)
 
-	if hasLimits && limits.DailyMaxOut >= 0 && dailyOutcome+opAmount > limits.DailyMaxOut {
+	if hasLimits && limits.DailyMaxOut >= 0 && dailyOutcome+opAmount > limits.DailyMaxOut*amount.One {
 		description := fmt.Sprintf(
 			"Daily outcoming payments limit for account exceeded: %s + %s out of %s UAH per day",
 			amount.String(xdr.Int64(dailyOutcome)),
 			amount.String(payment.Amount),
-			amount.String(xdr.Int64(limits.DailyMaxOut)),
+			amount.String(xdr.Int64(limits.DailyMaxOut*amount.One)),
 		)
 		return &ExceededLimitError{Description: description}
 	}
-	if hasLimits && limits.MonthlyMaxOut >= 0 && monthlyOutcome+opAmount > limits.MonthlyMaxOut {
+	if hasLimits && limits.MonthlyMaxOut >= 0 && monthlyOutcome+opAmount > limits.MonthlyMaxOut*amount.One {
 		description := fmt.Sprintf(
 			"Monthly outcoming payments limit for account exceeded: %s + %s out of %s UAH per month",
 			amount.String(xdr.Int64(monthlyOutcome)),
 			amount.String(payment.Amount),
-			amount.String(xdr.Int64(limits.MonthlyMaxOut)),
+			amount.String(xdr.Int64(limits.MonthlyMaxOut*amount.One)),
 		)
 		return &ExceededLimitError{Description: description}
 	}
@@ -179,11 +179,11 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 	hasLimits := false
 	err = sub.historyDb.GetAccountLimits(&limits, receiver.Accountid, opAsset)
 	if err == nil {
-		if opAmount > limits.MaxOperationIn {
+		if limits.MaxOperationIn >= 0 && opAmount > limits.MaxOperationIn*amount.One {
 			description := fmt.Sprintf(
 				"Maximal income operation amount for this account exceeded: %s of %s %s",
 				amount.String(payment.Amount),
-				amount.String(xdr.Int64(limits.MaxOperationIn)),
+				amount.String(xdr.Int64(limits.MaxOperationIn*amount.One)),
 				opAsset,
 			)
 			return &ExceededLimitError{Description: description}
@@ -207,6 +207,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountDistributionAgent,
+		xdr.AccountTypeAccountBank,
 	)
 	monthlyIncome := sumMonthlyIncome(
 		stats,
@@ -214,24 +215,25 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountDistributionAgent,
+		xdr.AccountTypeAccountBank,
 	)
 
-	if hasLimits && limits.DailyMaxIn >= 0 && dailyIncome+opAmount > limits.DailyMaxIn {
+	if hasLimits && limits.DailyMaxIn >= 0 && dailyIncome+opAmount > limits.DailyMaxIn*amount.One {
 		description := fmt.Sprintf(
 			"Daily incoming payments limit for account exceeded: %s + %s out of %s %s per day",
 			amount.String(xdr.Int64(dailyIncome)),
 			amount.String(payment.Amount),
-			amount.String(xdr.Int64(limits.DailyMaxIn)),
+			amount.String(xdr.Int64(limits.DailyMaxIn*amount.One)),
 			opAsset,
 		)
 		return &ExceededLimitError{Description: description}
 	}
-	if hasLimits && limits.MonthlyMaxIn >= 0 && monthlyIncome+opAmount > limits.MonthlyMaxIn {
+	if hasLimits && limits.MonthlyMaxIn >= 0 && monthlyIncome+opAmount > limits.MonthlyMaxIn*amount.One {
 		description := fmt.Sprintf(
 			"Monthly incoming payments limit for account exceeded: %s + %s out of %s %s per month",
 			amount.String(xdr.Int64(monthlyIncome)),
 			amount.String(payment.Amount),
-			amount.String(xdr.Int64(limits.MonthlyMaxIn)),
+			amount.String(xdr.Int64(limits.MonthlyMaxIn*amount.One)),
 			opAsset,
 		)
 		return &ExceededLimitError{Description: description}
