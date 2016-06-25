@@ -16,6 +16,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+var FeeTypeNames = map[xdr.OperationFeeType]string{
+	xdr.OperationFeeTypeOpFeeNone:    "none",
+	xdr.OperationFeeTypeOpFeeCharged: "charged",
+}
+
 // Run starts an attempt to ingest the range of ledgers specified in this
 // session.
 func (is *Session) Run() {
@@ -596,6 +601,31 @@ func getAssetCode(a xdr.Asset) (string, error) {
 	return code, err
 }
 
+func (is *Session) feeDetails(fee xdr.OperationFee) map[string]interface{} {
+	feeType, feeTypeOk := FeeTypeNames[fee.Type]
+	if !feeTypeOk {
+		feeType = "unknown"
+	}
+	details := map[string]interface{}{}
+	details["type"] = feeType
+	details["type_i"] = int32(fee.Type)
+
+	switch fee.Type {
+	case xdr.OperationFeeTypeOpFeeCharged:
+		charged := fee.MustFee()
+		details["amount_changed"] = amount.String(charged.AmountToCharge)
+
+		if charged.FlatFee != nil {
+			details["flat_fee"] = amount.String(*charged.FlatFee)
+		}
+
+		if charged.PercentFee != nil {
+			details["percent_fee"] = amount.String(*charged.PercentFee)
+		}
+	}
+	return details
+}
+
 // assetDetails sets the details for `a` on `result` using keys with `prefix`
 func (is *Session) assetDetails(result map[string]interface{}, a xdr.Asset, prefix string) error {
 	var (
@@ -624,6 +654,9 @@ func (is *Session) operationDetails() map[string]interface{} {
 	details := map[string]interface{}{}
 	c := is.Cursor
 	source := c.OperationSourceAccount()
+
+	fee := c.Transaction().Envelope.OperationFees[c.OperationOrder() - 1]
+	details["fee"] = is.feeDetails(fee)
 
 	switch c.OperationType() {
 	case xdr.OperationTypeCreateAccount:

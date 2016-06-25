@@ -245,8 +245,8 @@
 		{
 			"importpath": "bitbucket.org/atticlab/go-smart-base",
 			"repository": "https://bitbucket.org/atticlab/go-smart-base",
-			"revision": "8876f94049201fa116c1e0ea23c0608f69cf8fd5",
-			"branch": "master"
+			"revision": "43c373cca4dbdc50f9f23d315511995dc4ed0492",
+			"branch": "feature/commission"
 		},
 		{
 			"importpath": "github.com/joho/godotenv",

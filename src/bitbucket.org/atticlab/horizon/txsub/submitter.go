@@ -14,6 +14,7 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
+	"bitbucket.org/atticlab/horizon/commissions"
 )
 
 const (
@@ -65,12 +66,34 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	start := time.Now()
 	defer func() { result.Duration = time.Since(start) }()
 
-	// check constraints for tx
-	err := sub.checkTransaction(env)
+	// parse tx
+	tx, err := parseTransaction(env)
 	if err != nil {
 		result.Err = err
 		return
 	}
+
+	// check constraints for tx
+	err = sub.checkTransaction(&tx)
+	if err != nil {
+		result.Err = err
+		return
+	}
+
+	err = commissions.SetCommissions(&tx);
+	if err != nil {
+		log.WithField("Error", err).Error("Failed to set commissions")
+		result.Err = err
+		return
+	}
+
+	updatedEnv, err := writeTransaction(&tx)
+	if err != nil {
+		result.Err = err
+		return
+	}
+
+	env = *updatedEnv
 
 	// construct the request
 	u, err := url.Parse(sub.coreURL)
@@ -125,12 +148,8 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 }
 
 // checkAccountTypes Parse tx and check account types
-func (sub *submitter) checkTransaction(envelope string) error {
+func (sub *submitter) checkTransaction(tx *xdr.TransactionEnvelope) error {
 
-	tx, err := parseTransaction(envelope)
-	if err != nil {
-		return err
-	}
 	additional := make([]string, len(tx.Tx.Operations))
 	var xdrResult xdr.TransactionResult
 	operationResults := make([]xdr.OperationResult, len(tx.Tx.Operations))
@@ -157,7 +176,7 @@ func (sub *submitter) checkTransaction(envelope string) error {
 }
 
 // checkAccountTypes Parse tx and check account types
-func (sub *submitter) checkOperation(op xdr.Operation, tx xdr.TransactionEnvelope) (opResult xdr.OperationResult, err error) {
+func (sub *submitter) checkOperation(op xdr.Operation, tx *xdr.TransactionEnvelope) (opResult xdr.OperationResult, err error) {
 	switch op.Body.Type {
 	case xdr.OperationTypePayment:
 		payment := op.Body.MustPaymentOp()
@@ -293,4 +312,14 @@ func parseTransaction(envelope string) (tx xdr.TransactionEnvelope, err error) {
 		err = &MalformedTransactionError{envelope}
 	}
 	return tx, err
+}
+
+func writeTransaction(tx *xdr.TransactionEnvelope) (*string, error) {
+	res, err := xdr.MarshalBase64(tx)
+	if err != nil {
+		log.WithField("Erorr", err).Error("Failed to marshal tx")
+		err = &MalformedTransactionError{}
+		return nil, err
+	}
+	return &res, nil
 }
