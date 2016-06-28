@@ -4,6 +4,7 @@ package assets
 import (
 	"github.com/go-errors/errors"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/resource/base"
 )
 
 // ErrInvalidString gets returns when the string form of the asset type is invalid
@@ -18,6 +19,12 @@ var AssetTypeMap = map[string]xdr.AssetType{
 	"native":            xdr.AssetTypeAssetTypeNative,
 	"credit_alphanum4":  xdr.AssetTypeAssetTypeCreditAlphanum4,
 	"credit_alphanum12": xdr.AssetTypeAssetTypeCreditAlphanum12,
+}
+
+func ToBaseAsset(asset xdr.Asset) (base.Asset) {
+	var result base.Asset
+	asset.Extract(&result.Type, &result.Code, &result.Issuer)
+	return result
 }
 
 //Parse creates an asset from the provided strings.  See AssetTypeMap for valid strings for aType.

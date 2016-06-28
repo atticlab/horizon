@@ -291,3 +291,12 @@ type AccountTraits struct {
 	BlockIncomingPayments  bool `db:"block_incoming_payments"`
 	BlockOutcomingPayments bool `db:"block_outcoming_payments"`
 }
+
+type Commission struct {
+	Id         int    `db:"id"`
+	KeyHash    string `db:"key_hash"`
+	KeyValue   string `db:"key_value"`
+	FlatFee    int64  `db:"flat_fee"`
+	PercentFee int64  `db:"percent_fee"`
+	weight     int
+}

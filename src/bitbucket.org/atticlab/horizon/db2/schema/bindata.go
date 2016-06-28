@@ -9,6 +9,7 @@
 // migrations/6_account_traits.sql
 // migrations/7_account_limits.sql
 // migrations/8_account_limits_two_way.sql
+// migrations/9_commission.sql
 // DO NOT EDIT!
 
 package schema
@@ -256,6 +257,26 @@ func migrations8_account_limits_two_waySql() (*asset, error) {
 	return a, nil
 }
 
+var _migrations9_commissionSql = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x84\x90\x41\x4b\xc3\x30\x14\xc7\xcf\x0b\xe4\x3b\xbc\x63\x8b\x0e\x3c\x88\x17\x4f\xd5\x46\x29\xd6\x74\xd4\x14\xb6\x53\x49\xbb\xb7\xf5\x61\x9b\x8e\x24\x2a\x7e\x7b\x5b\x36\x47\xd0\xc3\x72\x4a\xf2\xff\xf1\x1e\xbf\xff\x72\x09\x57\x03\xed\xad\xf6\x08\xd5\x81\x33\xce\x1e\x4b\x91\x28\x01\x2a\x79\xc8\x05\xb4\xe3\x30\x90\x73\x34\x1a\x88\x38\x5b\xd0\x16\xce\xc7\xa1\x25\xdd\x5f\x73\x36\x3f\xde\xf1\xbb\xee\xb4\xeb\xe6\x7b\xdb\x69\xab\x5b\x8f\x36\xba\xbb\x8d\x41\x16\x0a\x64\x95\xe7\x01\xf8\xa9\xfb\x0f\x84\x85\x12\x6b\xf5\x37\xde\xf5\xda\xd7\x3b\x9c\xd2\x86\xf6\x64\xfc\x39\x87\x54\x3c\x25\x55\xae\xe0\xe6\x44\x1e\xd0\xb6\x68\x8e\xf0\x25\x76\x55\x66\xaf\x49\xb9\x81\x17\xb1\x89\x68\x1b\x73\x16\xdf\x07\xa6\x99\x4c\xc5\x3a\x30\xad\x9b\x93\x4b\x21\x43\xff\xea\x2d\x93\xcf\xd0\x78\x3b\x2d\x8c\x7e\x7d\x8f\x83\xc2\x12\xd3\xf1\xcb\xcc\x7f\x69\x59\xac\xfe\x95\x38\xd1\x3f\x01\x00\x00\xff\xff\xcc\xde\xe9\x32\x71\x01\x00\x00")
+
+func migrations9_commissionSqlBytes() ([]byte, error) {
+	return bindataRead(
+		_migrations9_commissionSql,
+		"migrations/9_commission.sql",
+	)
+}
+
+func migrations9_commissionSql() (*asset, error) {
+	bytes, err := migrations9_commissionSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/9_commission.sql", size: 369, mode: os.FileMode(438), modTime: time.Unix(1466872941, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -317,6 +338,7 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/6_account_traits.sql": migrations6_account_traitsSql,
 	"migrations/7_account_limits.sql": migrations7_account_limitsSql,
 	"migrations/8_account_limits_two_way.sql": migrations8_account_limits_two_waySql,
+	"migrations/9_commission.sql": migrations9_commissionSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -369,6 +391,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"6_account_traits.sql": &bintree{migrations6_account_traitsSql, map[string]*bintree{}},
 		"7_account_limits.sql": &bintree{migrations7_account_limitsSql, map[string]*bintree{}},
 		"8_account_limits_two_way.sql": &bintree{migrations8_account_limits_two_waySql, map[string]*bintree{}},
+		"9_commission.sql": &bintree{migrations9_commissionSql, map[string]*bintree{}},
 	}},
 }}
 

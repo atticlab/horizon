@@ -80,7 +80,8 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 		return
 	}
 
-	err = commissions.SetCommissions(&tx);
+	cm := commissions.New(sub.coreDb, sub.historyDb)
+	err = cm.SetCommissions(&tx);
 	if err != nil {
 		log.WithField("Error", err).Error("Failed to set commissions")
 		result.Err = err
