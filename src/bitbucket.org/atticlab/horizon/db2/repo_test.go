@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepo(t *testing.T) {
+func _TestRepo(t *testing.T) {
 	scenarios.Load(tdb.StellarCoreURL(), "base-core.sql")
 	assert := assert.New(t)
 	require := require.New(t)

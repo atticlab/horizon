@@ -293,10 +293,18 @@ type AccountTraits struct {
 }
 
 type Commission struct {
-	Id         int    `db:"id"`
+	Id         int64  `db:"id"`
 	KeyHash    string `db:"key_hash"`
 	KeyValue   string `db:"key_value"`
 	FlatFee    int64  `db:"flat_fee"`
 	PercentFee int64  `db:"percent_fee"`
 	weight     int
+}
+
+// CommissionQ is a helper struct to aid in configuring queries that loads
+// slices of Commission.
+type CommissionQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
 }

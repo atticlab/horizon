@@ -8,7 +8,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 )
 
-func TestResultProvider(t *testing.T) {
+func _TestResultProvider(t *testing.T) {
 	tt := test.Start(t).ScenarioWithoutHorizon("base")
 	defer tt.Finish()
 

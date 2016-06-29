@@ -11,6 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"math/rand"
 )
 
 func TestCommissionHash(t *testing.T) {
@@ -40,13 +41,15 @@ func TestCommissionHash(t *testing.T) {
 	}
 	others = append(others, comKeyEUR)
 	// only account type
+	accType := int32(3)
 	fromTypeKey := CommissionKey{
-		FromType: 3,
+		FromType: &accType,
 	}
 	checkGreater(t, fromTypeKey, others)
 	{
+		accType = accType + 1
 		toTypeKey := CommissionKey{
-			ToType: 1,
+			ToType: &accType,
 		}
 		assert.Equal(t, 0, fromTypeKey.Compare(&toTypeKey))
 	}
@@ -95,7 +98,7 @@ func TestCommissionStore(t *testing.T) {
 			var accountType int32
 			key = CommissionKey{
 				From:   accountId,
-				ToType: accountType,
+				ToType: &accountType,
 			}
 		}
 		commission, err := NewCommission(key, 10*amount.One, 12*amount.One)
@@ -103,7 +106,7 @@ func TestCommissionStore(t *testing.T) {
 		err = q.InsertCommission(commission)
 		assert.Nil(t, err)
 
-		keys := CreateCommissionKeys(key.From, "to", 123, key.ToType, base.Asset{
+		keys := CreateCommissionKeys(key.From, "to", 123, *key.ToType, base.Asset{
 			Type:   "random_type",
 			Issuer: "random_issuer",
 			Code:   "ASD",
@@ -114,8 +117,8 @@ func TestCommissionStore(t *testing.T) {
 		assert.Equal(t, 1, len(stored))
 		commission.Id = stored[0].Id
 		stored[0].weight = commission.weight
-		assert.Equal(t, *commission, stored[0])
-		err = q.deleteCommissions()
+		assert.True(t, commission.Equals(stored[0]))
+		err = q.DeleteCommissions()
 		assert.Nil(t, err)
 	})
 	Convey("create keys", t, func() {
@@ -126,8 +129,7 @@ func TestCommissionStore(t *testing.T) {
 		}
 	})
 	Convey("filter", t, func() {
-		rawCommissions := []Commission {
-		}
+		rawCommissions := []Commission{}
 		filtered := filterByWeight(rawCommissions)
 		assert.Equal(t, 0, len(filtered))
 		rawCommissions = []Commission{
@@ -144,4 +146,110 @@ func TestCommissionStore(t *testing.T) {
 		filtered = filterByWeight(rawCommissions)
 		assert.Equal(t, 2, len(filtered))
 	})
+}
+
+func TestCommissionSelector(t *testing.T) {
+	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
+	q := &Q{test.Start(t).HorizonRepo()}
+	accountIdA := getRandomAccountId(t)
+	accountType := int32(4)
+	asset := base.Asset{
+		Issuer: getRandomAccountId(t),
+		Code:   "USD",
+		Type:   "random_type",
+	}
+	commission, err := NewCommission(CommissionKey{
+		From:   accountIdA,
+		ToType: &accountType,
+		Asset:  asset,
+	}, 10*amount.One, 12*amount.One)
+	assert.Nil(t, err)
+
+	commission.Id = 1
+	err = q.InsertCommission(commission)
+	assert.Nil(t, err)
+	newAccountType := accountType + 1
+	otherCommission, err := NewCommission(CommissionKey{
+		From:   getRandomAccountId(t),
+		To: getRandomAccountId(t),
+		ToType: &newAccountType,
+		FromType: &newAccountType,
+		Asset:  asset,
+	}, 10*amount.One, 12*amount.One)
+	assert.Nil(t, err)
+	err = q.InsertCommission(otherCommission)
+	assert.Nil(t, err)
+	Convey("by account", t, func() {
+		var comms []Commission
+		err = q.Commissions().ForAccount(accountIdA).Select(&comms)
+		assert.Nil(t, err)
+		log.WithField("comms", comms).WithField("len", len(comms)).Debug("Go commission by account")
+		assert.Equal(t, 1, len(comms))
+		assert.True(t, commission.Equals(comms[0]))
+	})
+	Convey("by account type", t, func() {
+		var comms []Commission
+		err = q.Commissions().ForAccountType(accountType).Select(&comms)
+		assert.Nil(t, err)
+		log.WithField("comms", comms).Debug("Go commission by account type")
+		assert.Equal(t, 1, len(comms))
+		assert.True(t, commission.Equals(comms[0]))
+	})
+	Convey("by asset", t, func() {
+		var comms []Commission
+		err = q.Commissions().ForAsset(asset).Select(&comms)
+		assert.Nil(t, err)
+		log.WithField("comms", comms).Debug("Go commission by asset")
+		assert.Equal(t, 2, len(comms))
+		equal := false
+		for _, comm := range comms {
+			if commission.Equals(comm) {
+				equal = true
+				break
+			}
+		}
+		assert.True(t, equal)
+	})
+	Convey("by account and type", t, func() {
+		var comms []Commission
+		err = q.Commissions().ForAccount(accountIdA).ForAccountType(123).Select(&comms)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(comms))
+		err = q.Commissions().ForAccount(accountIdA).ForAccountType(accountType).Select(&comms)
+		assert.Nil(t, err)
+		log.WithField("comms", comms).Debug("Go commission by account and type")
+		assert.Equal(t, 1, len(comms))
+		assert.True(t, commission.Equals(comms[0]))
+	})
+	Convey("by account and type and asset", t, func() {
+		var comms []Commission
+		err = q.Commissions().ForAccount(accountIdA).ForAccountType(accountType).ForAsset(base.Asset{
+			Type: "new_random_type",
+		}).Select(&comms)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(comms))
+		err = q.Commissions().ForAccount(accountIdA).ForAccountType(accountType).ForAsset(asset).Select(&comms)
+		assert.Nil(t, err)
+		log.WithField("comms", comms).Debug("Go commission by account and type and asset")
+		assert.Equal(t, 1, len(comms))
+		assert.True(t, commission.Equals(comms[0]))
+	})
+	//err = q.deleteCommissions()
+	assert.Nil(t, err)
+	keys := CreateCommissionKeys(getRandomAccountId(t), getRandomAccountId(t), int32(1), int32(2), base.Asset{
+		Type: assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
+		Code: "EUR",
+		Issuer: getRandomAccountId(t),
+	})
+	for _, key := range keys {
+		comm, err := NewCommission(key, rand.Int63(), rand.Int63())
+		assert.Nil(t, err)
+		q.InsertCommission(comm)
+	}
+}
+
+func getRandomAccountId(t *testing.T) string {
+	key, err := keypair.Random()
+	assert.Nil(t, err)
+	return key.Address()
 }

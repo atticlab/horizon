@@ -82,7 +82,7 @@ func (cm *CommissionsManager) getCommission(sourceId, destinationId xdr.AccountI
 	histCommission := new(history.Commission)
 	fee := xdr.Int64(math.MaxInt64)
 	for _, comm := range commissions {
-		newFee := cm.countPercentFee(amount, xdr.Int64(comm.PercentFee)) + xdr.Int64(comm.FlatFee)
+		newFee := countPercentFee(amount, xdr.Int64(comm.PercentFee)) + xdr.Int64(comm.FlatFee)
 		if newFee <= fee {
 			*histCommission = comm
 		}
@@ -107,14 +107,14 @@ func (cm *CommissionsManager) countCommission(source, destination xdr.AccountId,
 		Type: xdr.OperationFeeTypeOpFeeCharged,
 		Fee: &xdr.OperationFeeFee{
 			Asset:          asset,
-			AmountToCharge: cm.countPercentFee(amount, percent) + xdr.Int64(flatFee),
+			AmountToCharge: countPercentFee(amount, percent) + xdr.Int64(flatFee),
 			PercentFee:     &percent,
 			FlatFee:        &flatFee,
 		},
 	}, nil
 }
 
-func (cm *CommissionsManager) countPercentFee(paymentAmountI, percentI xdr.Int64) xdr.Int64 {
+func countPercentFee(paymentAmountI, percentI xdr.Int64) xdr.Int64 {
 	zero := xdr.Int64(0)
 	if percentI == zero {
 		return zero

@@ -7,7 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestMain(t *testing.T) {
+func _TestMainPumb(t *testing.T) {
 
 	Convey("Pump", t, func() {
 		t := make(chan struct{})

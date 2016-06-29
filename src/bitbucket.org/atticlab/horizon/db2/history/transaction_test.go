@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 )
 
-func TestTransactionQueries(t *testing.T) {
+func _TestTransactionQueries(t *testing.T) {
 	tt := test.Start(t).Scenario("base")
 	defer tt.Finish()
 	q := &Q{tt.HorizonRepo()}

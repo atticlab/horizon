@@ -2,21 +2,38 @@ package history
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/hash"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/resource/base"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/go-errors/errors"
 	sq "github.com/lann/squirrel"
-	"strings"
 	"sort"
+	"strings"
 )
 
 type CommissionKey struct {
+	base.Asset
 	From     string     `json:"from,omitempty"`
 	To       string     `json:"to,omitempty"`
-	FromType int32      `json:"from_type,omitempty"`
-	ToType   int32      `json:"to_type,omitempty"`
-	Asset    base.Asset `json:"asset,omitempty"`
+	FromType *int32      `json:"from_type,omitempty"`
+	ToType   *int32      `json:"to_type,omitempty"`
+}
+
+func (k *CommissionKey) Equals(o CommissionKey) bool {
+	if k.Asset != o.Asset || k.From != o.From || k.To != o.To {
+		return false
+	}
+	return equals(k.FromType, o.FromType) && equals(k.ToType, o.ToType)
+}
+
+func equals(l, r *int32) bool {
+	if l == nil || r == nil {
+		return r == l
+	}
+	return *l == *r
 }
 
 func CreateCommissionKeys(from, to string, fromType, toType int32, asset base.Asset) map[string]CommissionKey {
@@ -29,6 +46,20 @@ func CreateCommissionKeys(from, to string, fromType, toType int32, asset base.As
 	setAccount(result, from, true)
 	setAccount(result, to, false)
 	return result
+}
+
+func (c *Commission) GetKey() CommissionKey {
+	var key CommissionKey
+	c.UnmarshalKeyDetails(&key)
+	return key
+}
+
+func (c Commission) Equals(o Commission) bool {
+	if c.KeyHash != o.KeyHash || c.FlatFee != o.FlatFee || c.PercentFee != o.PercentFee {
+		return false
+	}
+	cKey := c.GetKey()
+	return cKey.Equals(o.GetKey())
 }
 
 type ByWeight []Commission
@@ -45,19 +76,19 @@ func (q *Q) GetHighestWeightCommission(keys map[string]CommissionKey) (resulting
 	return filterByWeight(rawCommissions), nil
 }
 
-func filterByWeight(rawCommissions []Commission) ([]Commission) {
+func filterByWeight(rawCommissions []Commission) []Commission {
 	sort.Sort(ByWeight(rawCommissions))
 	bestTo := 0
 	for i, val := range rawCommissions {
 		if i == 0 {
 			continue
 		}
-		if val.weight != rawCommissions[i -1].weight {
+		if val.weight != rawCommissions[i-1].weight {
 			bestTo = i
 			break
 		}
 	}
-	return  rawCommissions[:bestTo]
+	return rawCommissions[:bestTo]
 }
 
 func setAsset(keys map[string]CommissionKey, asset base.Asset) {
@@ -65,14 +96,14 @@ func setAsset(keys map[string]CommissionKey, asset base.Asset) {
 		value.Asset = asset
 		keys[value.UnsafeHash()] = value
 	}
- }
+}
 
 func setType(keys map[string]CommissionKey, accountType int32, isFrom bool) {
 	for _, value := range keys {
 		if isFrom {
-			value.FromType = accountType
+			value.FromType = &accountType
 		} else {
-			value.ToType = accountType
+			value.ToType = &accountType
 		}
 		keys[value.UnsafeHash()] = value
 	}
@@ -89,13 +120,12 @@ func setAccount(keys map[string]CommissionKey, account string, isFrom bool) {
 	}
 }
 
-
 func (key *CommissionKey) Hash() (string, error) {
 	_, hash, err := key.HashData()
 	return hash, err
 }
 
-func (key *CommissionKey) UnsafeHash() (string) {
+func (key *CommissionKey) UnsafeHash() string {
 	result, _ := key.Hash()
 	return result
 }
@@ -148,11 +178,11 @@ func (key *CommissionKey) CountWeight() int {
 		weight += assetWeight
 	}
 
-	if key.FromType != 0 {
+	if key.FromType != nil {
 		weight += typeWeight
 	}
 
-	if key.ToType != 0 {
+	if key.ToType != nil {
 		weight += typeWeight
 	}
 
@@ -174,20 +204,46 @@ func NewCommission(key CommissionKey, flatFee, percentFee int64) (*Commission, e
 		return nil, err
 	}
 	return &Commission{
-		KeyHash: hash,
-		KeyValue: hashData,
-		FlatFee: flatFee,
+		KeyHash:    hash,
+		KeyValue:   hashData,
+		FlatFee:    flatFee,
 		PercentFee: percentFee,
 	}, nil
 }
 
 func (q *Q) InsertCommission(commission *Commission) (err error) {
+	if commission == nil {
+		return
+	}
 	insert := insertCommission.Values(commission.KeyHash, commission.KeyValue, commission.FlatFee, commission.PercentFee)
 	_, err = q.Exec(insert)
 	if err != nil {
-		log.WithStack(err).WithError(err).Error("Failed to insert commission")
+		log.WithStack(err).WithError(err).WithField("commission", *commission).Error("Failed to insert commission")
 	}
 	return
+}
+
+func (q *Q) UpdateCommission(commission *Commission) (bool, error) {
+	if commission == nil {
+		return false, nil
+	}
+	update := updateCommission.SetMap(map[string]interface{} {
+		"key_hash": commission.KeyHash,
+		"key_value": commission.KeyValue,
+		"flat_fee": commission.FlatFee,
+		"percent_fee": commission.PercentFee,
+	}).Where("id = ?", commission.Id)
+	result, err := q.Exec(update)
+	if err != nil {
+		log.WithStack(err).WithField("commission", *commission).WithError(err).Error("Failed to update commission")
+		return false, nil
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		log.WithStack(err).WithField("commission", *commission).WithError(err).Error("Failed to update commission")
+		return false, nil
+	}
+	return rows > 0, nil
 }
 
 func getHashes(keys map[string]CommissionKey) []interface{} {
@@ -206,7 +262,7 @@ func (q *Q) CommissionByKey(keys map[string]CommissionKey) (resultingCommissions
 		return
 	}
 	hashes := getHashes(keys)
-	sql := selectCommission.Where("com.key_hash IN (?" + strings.Repeat(", ?", len(hashes) - 1) + ")", hashes...)
+	sql := selectCommission.Where("com.key_hash IN (?"+strings.Repeat(", ?", len(hashes)-1)+")", hashes...)
 	var storedCommissions []Commission
 	err = q.Select(&storedCommissions, sql)
 	if err != nil {
@@ -225,7 +281,7 @@ func (q *Q) CommissionByKey(keys map[string]CommissionKey) (resultingCommissions
 		if !isExist {
 			continue
 		}
-		if canBeKey == key {
+		if key.Equals(canBeKey) {
 			canBeCom.weight = canBeKey.CountWeight()
 			resultingCommissions = append(resultingCommissions, canBeCom)
 		}
@@ -233,11 +289,87 @@ func (q *Q) CommissionByKey(keys map[string]CommissionKey) (resultingCommissions
 	return resultingCommissions, nil
 }
 
-func (q *Q) deleteCommissions() error {
+func (q *Q) DeleteCommissions() error {
 	_, err := q.Exec(delete)
 	return err
 }
 
+// UnmarshalDetails unmarshals the details of this effect into `dest`
+func (r *Commission) UnmarshalKeyDetails(dest interface{}) error {
+
+	err := json.Unmarshal([]byte(r.KeyValue), &dest)
+	if err != nil {
+		err = errors.Wrap(err, 1)
+	}
+	return err
+}
+
+// Commissions provides a helper to filter rows from the `commission`
+// table with pre-defined filters.
+func (q *Q) Commissions() *CommissionQ {
+	return &CommissionQ{
+		parent: q,
+		sql:    selectCommission,
+	}
+}
+
+// ForAccount filters the commission collection to a specific account
+func (q *CommissionQ) ForAccount(aid string) *CommissionQ {
+	q.sql = q.sql.Where("(com.key_value->>'from' = ? OR com.key_value->>'to' = ?)", aid, aid)
+	return q
+}
+
+// ForAccountType filters the query to only commission for a specific account type
+func (q *CommissionQ) ForAccountType(accountType int32) *CommissionQ {
+	q.sql = q.sql.Where("(com.key_value->>'from_type' = ? OR com.key_value->>'to_type' = ?)", accountType, accountType)
+	return q
+}
+
+// ForAccountType filters the query to only commission for a specific asset
+func (q *CommissionQ) ForAsset(asset base.Asset) *CommissionQ {
+
+	if asset.Type == xdr.AssetTypeAssetTypeNative.String() {
+		clause := `(com.key_value->>'asset_type' = ?
+		AND com.key_value ?? 'asset_code' = false
+		AND com.key_value ?? 'asset_issuer' = false)`
+		q.sql = q.sql.Where(clause, asset.Type)
+		return q
+	}
+
+	clause := `(com.key_value->>'asset_type' = ?
+	AND com.key_value->>'asset_code' = ?
+	AND com.key_value->>'asset_issuer' = ?)`
+	q.sql = q.sql.Where(clause, asset.Type, asset.Code, asset.Issuer)
+	return q
+}
+
+// Page specifies the paging constraints for the query being built by `q`.
+func (q *CommissionQ) Page(page db2.PageQuery) *CommissionQ {
+	if q.Err != nil {
+		return q
+	}
+
+	q.sql, q.Err = page.ApplyTo(q.sql, "com.id")
+	return q
+}
+
+// Select loads the results of the query specified by `q` into `dest`.
+func (q *CommissionQ) Select(dest interface{}) error {
+	if q.Err != nil {
+		log.WithStack(q.Err).WithError(q.Err).Error("Failed to create query to select commissions")
+		return q.Err
+	}
+
+	strSql, args, _ := q.sql.ToSql()
+	log.WithField("query", strSql).WithField("args", args).Debug("Tring to get commissions")
+	q.Err = q.parent.Select(dest, q.sql)
+	if q.Err != nil {
+		log.WithStack(q.Err).WithError(q.Err).WithField("query", strSql).Error("Failed to select commissions")
+	}
+	return q.Err
+}
+
 var selectCommission = sq.Select("com.*").From("commission com")
 var insertCommission = sq.Insert("commission").Columns("key_hash", "key_value", "flat_fee", "percent_fee")
+var updateCommission = sq.Update("commission")
 var delete = sq.Delete("commission")

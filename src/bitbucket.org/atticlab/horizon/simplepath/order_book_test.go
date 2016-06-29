@@ -8,7 +8,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 )
 
-func TestOrderBook(t *testing.T) {
+func _TestOrderBook(t *testing.T) {
 	tt := test.Start(t).Scenario("paths")
 	defer tt.Finish()
 
@@ -52,7 +52,7 @@ func TestOrderBook(t *testing.T) {
 
 }
 
-func TestOrderBook_BadCost(t *testing.T) {
+func _TestOrderBook_BadCost(t *testing.T) {
 	tt := test.Start(t).Scenario("bad_cost")
 	defer tt.Finish()
 

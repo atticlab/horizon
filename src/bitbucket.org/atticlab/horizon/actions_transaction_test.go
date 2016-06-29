@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestTransactionActions(t *testing.T) {
+func _TestTransactionActions(t *testing.T) {
 
 	Convey("Transactions Actions:", t, func() {
 		test.LoadScenario("base")

@@ -7,7 +7,7 @@ import (
 )
 
 // REGRESSION:  ensure that we can craft a transaction
-func TestFriendbot_makeTx(t *testing.T) {
+func _TestFriendbot_makeTx(t *testing.T) {
 	tt := test.Start(t).Scenario("base")
 	defer tt.Finish()
 

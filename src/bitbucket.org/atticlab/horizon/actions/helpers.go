@@ -66,27 +66,36 @@ func (base *Base) GetInt64(name string) int64 {
 	return asI64
 }
 
+func (base *Base) GetInt32(name string) int32 {
+	result := base.GetInt32Pointer(name)
+	if result == nil {
+		return 0
+	}
+	return *result
+}
+
 // GetInt32 retrieves an int32 from the action parameter of the given name.
 // Populates err if the value is not a valid int32
-func (base *Base) GetInt32(name string) int32 {
+func (base *Base) GetInt32Pointer(name string) *int32 {
 	if base.Err != nil {
-		return 0
+		return nil
 	}
 
 	asStr := base.GetString(name)
 
 	if asStr == "" {
-		return 0
+		return nil
 	}
 
 	asI64, err := strconv.ParseInt(asStr, 10, 32)
 
 	if err != nil {
 		base.SetInvalidField(name, err)
-		return 0
+		return nil
 	}
 
-	return int32(asI64)
+	result := int32(asI64)
+	return &result
 }
 
 // GetPagingParams returns the cursor/order/limit triplet that is the

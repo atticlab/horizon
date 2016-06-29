@@ -72,11 +72,5 @@ func (this *Account) Populate(
 }
 
 func (this *Account) populateType(row core.Account) {
-	var ok bool
-	this.TypeI = int32(row.AccountType)
-	this.Type, ok = AccountTypeNames[row.AccountType]
-
-	if !ok {
-		this.Type = "unknown"
-	}
+	this.TypeI, this.Type = PopulateAccountType(row.AccountType)
 }
