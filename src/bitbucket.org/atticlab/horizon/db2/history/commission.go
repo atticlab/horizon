@@ -73,10 +73,14 @@ func (q *Q) GetHighestWeightCommission(keys map[string]CommissionKey) (resulting
 	if err != nil {
 		return
 	}
+	log.WithField("len", len(rawCommissions)).Debug("Got commissions")
 	return filterByWeight(rawCommissions), nil
 }
 
 func filterByWeight(rawCommissions []Commission) []Commission {
+	if len(rawCommissions) == 0 {
+		return rawCommissions
+	}
 	sort.Sort(ByWeight(rawCommissions))
 	bestTo := 0
 	for i, val := range rawCommissions {
@@ -88,7 +92,9 @@ func filterByWeight(rawCommissions []Commission) []Commission {
 			break
 		}
 	}
-	return rawCommissions[:bestTo]
+	result := rawCommissions[:bestTo+1]
+	log.WithField("len", len(result)).Debug("Filtered commissions")
+	return result
 }
 
 func setAsset(keys map[string]CommissionKey, asset base.Asset) {
