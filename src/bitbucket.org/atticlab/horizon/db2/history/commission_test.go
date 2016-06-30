@@ -83,6 +83,8 @@ func checkGreater(t *testing.T, key CommissionKey, others []CommissionKey) {
 func TestCommissionStore(t *testing.T) {
 	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
 	q := &Q{test.Start(t).HorizonRepo()}
+	err := q.DeleteCommissions()
+	assert.Nil(t, err)
 	Convey("not exist", t, func() {
 		keys := CreateCommissionKeys("from", "to", 1, 3, base.Asset{})
 		commissions, err := q.CommissionByKey(keys)

@@ -35,6 +35,7 @@ var version = ""
 
 // App represents the root of the state of a horizon instance.
 type App struct {
+	unsafeMode        bool
 	config            conf.Config
 	web               *Web
 	historyQ          *history.Q

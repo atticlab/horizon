@@ -16,10 +16,10 @@ import (
 
 type CommissionKey struct {
 	base.Asset
-	From     string     `json:"from,omitempty"`
-	To       string     `json:"to,omitempty"`
-	FromType *int32      `json:"from_type,omitempty"`
-	ToType   *int32      `json:"to_type,omitempty"`
+	From     string `json:"from,omitempty"`
+	To       string `json:"to,omitempty"`
+	FromType *int32 `json:"from_type,omitempty"`
+	ToType   *int32 `json:"to_type,omitempty"`
 }
 
 func (k *CommissionKey) Equals(o CommissionKey) bool {
@@ -227,10 +227,10 @@ func (q *Q) UpdateCommission(commission *Commission) (bool, error) {
 	if commission == nil {
 		return false, nil
 	}
-	update := updateCommission.SetMap(map[string]interface{} {
-		"key_hash": commission.KeyHash,
-		"key_value": commission.KeyValue,
-		"flat_fee": commission.FlatFee,
+	update := updateCommission.SetMap(map[string]interface{}{
+		"key_hash":    commission.KeyHash,
+		"key_value":   commission.KeyValue,
+		"flat_fee":    commission.FlatFee,
 		"percent_fee": commission.PercentFee,
 	}).Where("id = ?", commission.Id)
 	result, err := q.Exec(update)
@@ -244,6 +244,17 @@ func (q *Q) UpdateCommission(commission *Commission) (bool, error) {
 		return false, nil
 	}
 	return rows > 0, nil
+}
+
+func (q *Q) DeleteCommission(id int64) (bool, error) {
+	deleteQ := delete.Where("id = ?", id)
+	result, err := q.Exec(deleteQ)
+	if err != nil {
+		log.WithStack(err).WithError(err).Error("Failed to delete commission")
+		return false, err
+	}
+	rows, err := result.RowsAffected()
+	return rows != 0, err
 }
 
 func getHashes(keys map[string]CommissionKey) []interface{} {

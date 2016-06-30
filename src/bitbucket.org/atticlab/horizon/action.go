@@ -5,7 +5,6 @@ import (
 	"net/url"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"github.com/spf13/viper"
 
 	"bitbucket.org/atticlab/horizon/actions"
 	"bitbucket.org/atticlab/horizon/db2"
@@ -118,6 +117,10 @@ func (action *Action) ValidateCursorAsDefault() {
 }
 
 func (action *Action) requireAdminSignature() {
+	if action.App.unsafeMode {
+		log.Warn("UnsafeMode - skiping admin signature check")
+		return
+	}
 	// log.Info("LimitsSetAction verifyAccess")
 	if !action.IsSigned {
 		action.Err = &problem.P{
@@ -130,7 +133,7 @@ func (action *Action) requireAdminSignature() {
 	}
 	var coreSigners []core.Signer
 	err := action.CoreQ().
-		SignersByAddress(&coreSigners, viper.GetString("bank-master-key"))
+		SignersByAddress(&coreSigners, action.App.config.BankMasterKey)
 	if err != nil {
 
 		// log.WithField("err", err).Error("LimitsSetAction")

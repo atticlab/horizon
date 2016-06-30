@@ -10,6 +10,7 @@ import (
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/render/problem"
+	"errors"
 )
 
 const (
@@ -41,6 +42,23 @@ func (base *Base) GetString(name string) string {
 	}
 
 	return base.R.URL.Query().Get(name)
+}
+
+func (base *Base) GetBool(name string) bool {
+	if base.Err != nil {
+		return false
+	}
+
+	asStr := base.GetString(name)
+	if asStr == "" {
+		return false
+	}
+
+	result, err := strconv.ParseBool(asStr)
+	if err != nil {
+		return false
+	}
+	return result
 }
 
 // GetInt64 retrieves an int64 from the action parameter of the given name.
@@ -151,30 +169,73 @@ func (base *Base) GetAddress(name string) (result string) {
 	return result
 }
 
-// GetAccountID retireves an xdr.AccountID by attempting to decode a stellar
-// address at the provided name.
 func (base *Base) GetAccountID(name string) (result xdr.AccountId) {
-	raw, err := strkey.Decode(strkey.VersionByteAccountID, base.GetString(name))
-
 	if base.Err != nil {
 		return
 	}
 
+	accountId := base.GetOptionalAccountID(name)
+	if base.Err != nil {
+		return
+	}
+
+	if accountId == nil {
+		base.SetInvalidField(name, errors.New("can not be empty"))
+		return
+	}
+	result = *accountId
+	return
+}
+
+func (base *Base) GetOptionalAccountType(name string) (result *xdr.AccountType) {
+	if base.Err != nil {
+		return
+	}
+	rawType := base.GetInt32Pointer(name)
+	if rawType == nil {
+		return nil
+	}
+
+	if !xdr.AccountTypeAccountAnonymousUser.ValidEnum(*rawType) {
+		base.SetInvalidField(name, errors.New("invalid value for account type"))
+		return
+	}
+	accountType := xdr.AccountType(*rawType)
+	return &accountType
+}
+
+// GetAccountID retireves an xdr.AccountID by attempting to decode a stellar
+// address at the provided name.
+func (base *Base) GetOptionalAccountID(name string) (result *xdr.AccountId) {
+	if base.Err != nil {
+		return nil
+	}
+
+	strData := base.GetString(name)
+	if strData == "" {
+		return nil
+	}
+	raw, err := strkey.Decode(strkey.VersionByteAccountID, strData)
+
+	if base.Err != nil {
+		return nil
+	}
+
 	if err != nil {
 		base.SetInvalidField(name, err)
-		return
+		return nil
 	}
 
 	var key xdr.Uint256
 	copy(key[:], raw)
 
-	result, err = xdr.NewAccountId(xdr.CryptoKeyTypeKeyTypeEd25519, key)
+	rawResult, err := xdr.NewAccountId(xdr.CryptoKeyTypeKeyTypeEd25519, key)
 	if err != nil {
 		base.SetInvalidField(name, err)
-		return
+		return nil
 	}
 
-	return
+	return &rawResult
 }
 
 // GetAmount returns a native amount (i.e. 64-bit integer) by parsing

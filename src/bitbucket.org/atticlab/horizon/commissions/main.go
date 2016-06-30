@@ -10,16 +10,21 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"database/sql"
 )
 
+type AccountProviderInterface interface {
+	AccountByAddress(dest interface{}, addy string) error
+}
+
 type CommissionsManager struct {
-	CoreQ    *core.Q
+	AccountProvider AccountProviderInterface
 	HistoryQ *history.Q
 }
 
-func New(coreQ *core.Q, histQ *history.Q) CommissionsManager {
+func New(accProvider AccountProviderInterface, histQ *history.Q) CommissionsManager {
 	return CommissionsManager{
-		CoreQ: coreQ,
+		AccountProvider: accProvider,
 		HistoryQ: histQ,
 	}
 }
@@ -59,20 +64,32 @@ func (cm *CommissionsManager) CountCommission(txSource xdr.AccountId, op xdr.Ope
 	}
 }
 
+func (cm *CommissionsManager) getAccountType(accountId string, mustExists bool) (int32, error) {
+	var account core.Account
+	err := cm.AccountProvider.AccountByAddress(&account, accountId)
+	if err != nil {
+		if err == sql.ErrNoRows && !mustExists {
+			return int32(xdr.AccountTypeAccountAnonymousUser), nil
+		}
+		log.WithField("accountId", accountId).WithError(err).Error("Failed to get account type")
+		return 0, err
+	}
+	return int32(account.AccountType), nil
+}
+
 func (cm *CommissionsManager) getCommission(sourceId, destinationId xdr.AccountId, amount xdr.Int64, asset xdr.Asset) (*history.Commission, error) {
-	var sourceAccount, destAccount core.Account
-	err := cm.CoreQ.AccountByAddress(&sourceAccount, sourceId.Address())
+	sourceAccountType, err := cm.getAccountType(sourceId.Address(), true)
 	if err != nil {
 		return nil, err
 	}
 
-	err = cm.CoreQ.AccountByAddress(&destAccount, destinationId.Address())
+	destAccountType, err := cm.getAccountType(destinationId.Address(), false)
 	if err != nil {
 		return nil, err
 	}
 
 	baseAsset := assets.ToBaseAsset(asset)
-	keys := history.CreateCommissionKeys(sourceId.Address(), destinationId.Address(), int32(sourceAccount.AccountType), int32(destAccount.AccountType), baseAsset)
+	keys := history.CreateCommissionKeys(sourceId.Address(), destinationId.Address(), int32(sourceAccountType), int32(destAccountType), baseAsset)
 	commissions, err := cm.HistoryQ.GetHighestWeightCommission(keys)
 	if err != nil {
 		log.WithStack(err).WithError(err).Error("Failed to GetHighestWeightCommission")
