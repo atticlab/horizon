@@ -96,11 +96,12 @@ func (cm *CommissionsManager) getCommission(sourceId, destinationId xdr.AccountI
 		return nil, err
 	}
 
-	histCommission := new(history.Commission)
+	var histCommission *history.Commission
 	fee := xdr.Int64(math.MaxInt64)
 	for _, comm := range commissions {
 		newFee := countPercentFee(amount, xdr.Int64(comm.PercentFee)) + xdr.Int64(comm.FlatFee)
 		if newFee <= fee {
+			histCommission = new(history.Commission)
 			*histCommission = comm
 		}
 	}
