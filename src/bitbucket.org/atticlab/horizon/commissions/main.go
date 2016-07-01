@@ -29,6 +29,7 @@ func New(accProvider AccountProviderInterface, histQ *history.Q) CommissionsMana
 	}
 }
 
+// sets commission for each operation
 func (cm *CommissionsManager) SetCommissions(env *xdr.TransactionEnvelope) (err error) {
 	if env == nil {
 		return errors.New("SetCommissions: tx must not be nil")
@@ -45,6 +46,7 @@ func (cm *CommissionsManager) SetCommissions(env *xdr.TransactionEnvelope) (err 
 	return
 }
 
+// calculates operation fee based on operation source or (if is not set) on tx source and operations data
 func (cm *CommissionsManager) CalculateCommissionForOperation(txSource xdr.AccountId, op xdr.Operation) (*xdr.OperationFee, error) {
 	opSource := txSource
 	if op.SourceAccount != nil {
@@ -64,6 +66,7 @@ func (cm *CommissionsManager) CalculateCommissionForOperation(txSource xdr.Accou
 	}
 }
 
+// gets account's type from core db, if account does not exist and mustExists - returns error, if mustExists false - xdr.AccountTypeAccountAnonymousUser
 func (cm *CommissionsManager) getAccountType(accountId string, mustExists bool) (int32, error) {
 	var account core.Account
 	err := cm.AccountProvider.AccountByAddress(&account, accountId)
@@ -77,6 +80,8 @@ func (cm *CommissionsManager) getAccountType(accountId string, mustExists bool) 
 	return int32(account.AccountType), nil
 }
 
+
+// returns commission with highest weight and lowest fee from db based on keys created from params
 func (cm *CommissionsManager) getCommission(sourceId, destinationId xdr.AccountId, amount xdr.Int64, asset xdr.Asset) (*history.Commission, error) {
 	sourceAccountType, err := cm.getAccountType(sourceId.Address(), true)
 	if err != nil {
@@ -101,6 +106,7 @@ func (cm *CommissionsManager) getCommission(sourceId, destinationId xdr.AccountI
 	return histCommission, nil
 }
 
+// selects smallest fee from commissions slice
 func getSmallestFee(commissions []history.Commission, amount xdr.Int64) *history.Commission {
 	var histCommission *history.Commission
 	fee := xdr.Int64(math.MaxInt64)
@@ -115,6 +121,7 @@ func getSmallestFee(commissions []history.Commission, amount xdr.Int64) *history
 	return histCommission
 }
 
+// returns xdr.Operation fee with highest weight and lowest fee from db based on keys created from params
 func (cm *CommissionsManager) CalculateCommission(source, destination xdr.AccountId, amount xdr.Int64, asset xdr.Asset) (*xdr.OperationFee, error) {
 	commission, err := cm.getCommission(source, destination, amount, asset)
 	if err != nil {
@@ -139,6 +146,7 @@ func (cm *CommissionsManager) CalculateCommission(source, destination xdr.Accoun
 	}, nil
 }
 
+// calculates percentI from paymentAmountI
 func calculatePercentFee(paymentAmountI, percentI xdr.Int64) xdr.Int64 {
 	zero := xdr.Int64(0)
 	if percentI == zero {
