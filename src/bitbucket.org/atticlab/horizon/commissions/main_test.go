@@ -5,6 +5,8 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/log"
 	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -26,30 +28,31 @@ func (m *mockAccountProvider) AccountByAddress(dest interface{}, addy string) er
 }
 
 func TestCommission(t *testing.T) {
+	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
 	Convey("countPercentFee", t, func() {
 		percentFee := xdr.Int64(1 * amount.One) // fee is 1%
 		Convey("amount too small", func() {
-			fee := countPercentFee(xdr.Int64(1), percentFee)
+			fee := calculatePercentFee(xdr.Int64(1), percentFee)
 			assert.Equal(t, xdr.Int64(0), fee)
 		})
 		Convey("amount is ok", func() {
 			paymentAmount := 1230 * amount.One
-			fee := countPercentFee(xdr.Int64(paymentAmount), percentFee)
+			fee := calculatePercentFee(xdr.Int64(paymentAmount), percentFee)
 			assert.Equal(t, xdr.Int64(12.3*amount.One), fee)
 		})
 		Convey("fee cutted", func() {
 			paymentAmount := 156
-			fee := countPercentFee(xdr.Int64(paymentAmount), percentFee)
+			fee := calculatePercentFee(xdr.Int64(paymentAmount), percentFee)
 			assert.Equal(t, xdr.Int64(1), fee)
 		})
 		Convey("fee cutted not rounded", func() {
 			paymentAmount := 1560
-			fee := countPercentFee(xdr.Int64(paymentAmount), percentFee)
+			fee := calculatePercentFee(xdr.Int64(paymentAmount), percentFee)
 			assert.Equal(t, xdr.Int64(15), fee)
 		})
 		Convey("amount is big", func() {
 			paymentAmount := math.MaxInt64
-			fee := countPercentFee(xdr.Int64(paymentAmount), percentFee)
+			fee := calculatePercentFee(xdr.Int64(paymentAmount), percentFee)
 			assert.Equal(t, xdr.Int64(paymentAmount/100), fee)
 		})
 	})
@@ -87,5 +90,26 @@ func TestCommission(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, int32(expectedType), accType)
 		})
+	})
+	Convey("get smallest", t, func() {
+		comms := []history.Commission{
+			history.Commission{
+				Id:         int64(1),
+				KeyHash:    "hash",
+				KeyValue:   "{}",
+				FlatFee:    int64(20000000),
+				PercentFee: int64(40000000),
+			},
+			history.Commission{
+				Id:         int64(2),
+				KeyHash:    "hash",
+				KeyValue:   "{}",
+				FlatFee:    int64(20000000),
+				PercentFee: int64(400000000),
+			},
+		}
+		comm := getSmallestFee(comms, xdr.Int64(1000000000))
+		assert.NotNil(t, comm)
+		assert.Equal(t, comms[0], *comm)
 	})
 }

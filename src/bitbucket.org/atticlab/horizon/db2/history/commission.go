@@ -88,12 +88,12 @@ func filterByWeight(rawCommissions []Commission) []Commission {
 			continue
 		}
 		if val.weight != rawCommissions[i-1].weight {
-			bestTo = i
+			bestTo = i - 1
 			break
 		}
 	}
 	result := rawCommissions[:bestTo+1]
-	log.WithField("len", len(result)).Debug("Filtered commissions")
+	log.WithField("len", len(result)).WithField("commissions", result).Debug("Filtered commissions")
 	return result
 }
 

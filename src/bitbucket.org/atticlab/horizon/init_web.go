@@ -125,6 +125,7 @@ func initWebActions(app *App) {
 	// Commission API
 	r.Get("/commission", &CommissionIndexAction{})
 	r.Post("/commission", &SetCommissionAction{})
+	r.Get("/commission/calculate", &CalculateCommissionAction{})
 
 	// friendbot
 	r.Post("/friendbot", &FriendbotAction{})

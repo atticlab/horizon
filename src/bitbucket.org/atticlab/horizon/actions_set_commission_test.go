@@ -11,7 +11,6 @@ import (
 	"bitbucket.org/atticlab/horizon/resource"
 	"bitbucket.org/atticlab/horizon/resource/base"
 	"bitbucket.org/atticlab/horizon/test"
-	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
@@ -30,7 +29,6 @@ func TestActionsSetCommission(t *testing.T) {
 		Convey("Check signature", func() {
 			app.unsafeMode = false
 			form := url.Values{
-				"id": []string{"1"},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 401)
@@ -55,49 +53,56 @@ func TestActionsSetCommission(t *testing.T) {
 				"asset_issuer": []string{asset.Issuer},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			checkMalformed(t, w, "asset_issuer")
+			So(w.Code, ShouldEqual, 400)
+			So(w.Body, ShouldBeProblem, problem.BadRequest, "asset_issuer")
 		})
 		Convey("Invalid from", func() {
 			form := url.Values{
 				"from":   []string{"random_str"},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			checkMalformed(t, w, "from")
+			So(w.Code, ShouldEqual, 400)
+			So(w.Body, ShouldBeProblem, problem.BadRequest, "from")
 		})
 		Convey("Invalid to", func() {
 			form := url.Values{
 				"to":   []string{"random_str"},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			checkMalformed(t, w, "to")
+			So(w.Code, ShouldEqual, 400)
+			So(w.Body, ShouldBeProblem, problem.BadRequest, "to")
 		})
 		Convey("Invalid from accountType", func() {
 			form := url.Values{
 				"from_type":   []string{"10"},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			checkMalformed(t, w, "from_type")
+			So(w.Code, ShouldEqual, 400)
+			So(w.Body, ShouldBeProblem, problem.BadRequest, "from_type")
 		})
 		Convey("Invalid to accountType", func() {
 			form := url.Values{
 				"to_type":   []string{"10"},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			checkMalformed(t, w, "to_type")
+			So(w.Code, ShouldEqual, 400)
+			So(w.Body, ShouldBeProblem, problem.BadRequest, "to_type")
 		})
 		Convey("Invalid flat_fee", func() {
 			form := url.Values{
 				"flat_fee":   []string{"-10"},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			checkMalformed(t, w, "flat_fee")
+			So(w.Code, ShouldEqual, 400)
+			So(w.Body, ShouldBeProblem, problem.BadRequest, "flat_fee")
 		})
 		Convey("Invalid percent_fee", func() {
 			form := url.Values{
 				"percent_fee":   []string{"-10"},
 			}
 			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			checkMalformed(t, w, "percent_fee")
+			So(w.Code, ShouldEqual, 400)
+			So(w.Body, ShouldBeProblem, problem.BadRequest, "percent_fee")
 		})
 		Convey("valid insert", func() {
 			fromKey, err := keypair.Random()
@@ -171,14 +176,4 @@ func TestActionsSetCommission(t *testing.T) {
 		})
 
 	})
-}
-
-func checkMalformed(t * testing.T, w *httptest.ResponseRecorder, fieldName string) {
-	So(w.Code, ShouldEqual, 400)
-	var p problem.P
-	err := json.Unmarshal(w.Body.Bytes(), &p)
-	assert.Nil(t, err)
-	val, ok := p.Extras["invalid_field"]
-	assert.True(t, ok)
-	assert.Equal(t, fieldName, val)
 }

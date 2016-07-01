@@ -35,7 +35,7 @@ func (cm *CommissionsManager) SetCommissions(env *xdr.TransactionEnvelope) (err 
 	}
 	env.OperationFees = make([]xdr.OperationFee, len(env.Tx.Operations))
 	for i, op := range env.Tx.Operations {
-		commission, err := cm.CountCommission(env.Tx.SourceAccount, op)
+		commission, err := cm.CalculateCommissionForOperation(env.Tx.SourceAccount, op)
 		if err != nil {
 			log.WithStack(err).WithError(err).Error("Failed to count commission")
 			return errors.New("failed to count commission")
@@ -45,7 +45,7 @@ func (cm *CommissionsManager) SetCommissions(env *xdr.TransactionEnvelope) (err 
 	return
 }
 
-func (cm *CommissionsManager) CountCommission(txSource xdr.AccountId, op xdr.Operation) (*xdr.OperationFee, error) {
+func (cm *CommissionsManager) CalculateCommissionForOperation(txSource xdr.AccountId, op xdr.Operation) (*xdr.OperationFee, error) {
 	opSource := txSource
 	if op.SourceAccount != nil {
 		opSource = *op.SourceAccount
@@ -53,10 +53,10 @@ func (cm *CommissionsManager) CountCommission(txSource xdr.AccountId, op xdr.Ope
 	switch op.Body.Type {
 	case xdr.OperationTypePayment:
 		payment := op.Body.MustPaymentOp()
-		return cm.countCommission(opSource, payment.Destination, payment.Amount, payment.Asset)
+		return cm.CalculateCommission(opSource, payment.Destination, payment.Amount, payment.Asset)
 	case xdr.OperationTypePathPayment:
 		payment := op.Body.MustPathPaymentOp()
-		return cm.countCommission(opSource, payment.Destination, payment.DestAmount, payment.DestAsset)
+		return cm.CalculateCommission(opSource, payment.Destination, payment.DestAmount, payment.DestAsset)
 	default:
 		return &xdr.OperationFee{
 			Type: xdr.OperationFeeTypeOpFeeNone,
@@ -95,20 +95,27 @@ func (cm *CommissionsManager) getCommission(sourceId, destinationId xdr.AccountI
 		log.WithStack(err).WithError(err).Error("Failed to GetHighestWeightCommission")
 		return nil, err
 	}
+	log.WithField("commissions", commissions).Debug("Got filtered commissions by weight")
+	histCommission := getSmallestFee(commissions, amount)
 
+	return histCommission, nil
+}
+
+func getSmallestFee(commissions []history.Commission, amount xdr.Int64) *history.Commission {
 	var histCommission *history.Commission
 	fee := xdr.Int64(math.MaxInt64)
 	for _, comm := range commissions {
-		newFee := countPercentFee(amount, xdr.Int64(comm.PercentFee)) + xdr.Int64(comm.FlatFee)
+		newFee := calculatePercentFee(amount, xdr.Int64(comm.PercentFee)) + xdr.Int64(comm.FlatFee)
 		if newFee <= fee {
+			fee = newFee
 			histCommission = new(history.Commission)
 			*histCommission = comm
 		}
 	}
-	return histCommission, nil
+	return histCommission
 }
 
-func (cm *CommissionsManager) countCommission(source, destination xdr.AccountId, amount xdr.Int64, asset xdr.Asset) (*xdr.OperationFee, error) {
+func (cm *CommissionsManager) CalculateCommission(source, destination xdr.AccountId, amount xdr.Int64, asset xdr.Asset) (*xdr.OperationFee, error) {
 	commission, err := cm.getCommission(source, destination, amount, asset)
 	if err != nil {
 		log.WithStack(err).WithError(err).Error("Failed to getCommission")
@@ -125,14 +132,14 @@ func (cm *CommissionsManager) countCommission(source, destination xdr.AccountId,
 		Type: xdr.OperationFeeTypeOpFeeCharged,
 		Fee: &xdr.OperationFeeFee{
 			Asset:          asset,
-			AmountToCharge: countPercentFee(amount, percent) + xdr.Int64(flatFee),
+			AmountToCharge: calculatePercentFee(amount, percent) + xdr.Int64(flatFee),
 			PercentFee:     &percent,
 			FlatFee:        &flatFee,
 		},
 	}, nil
 }
 
-func countPercentFee(paymentAmountI, percentI xdr.Int64) xdr.Int64 {
+func calculatePercentFee(paymentAmountI, percentI xdr.Int64) xdr.Int64 {
 	zero := xdr.Int64(0)
 	if percentI == zero {
 		return zero

@@ -89,5 +89,19 @@ func ShouldBeProblem(a interface{}, options ...interface{}) string {
 		return fmt.Sprintf("Mismatched problem status: %s expected, got %s", expected.Status, actual.Status)
 	}
 
+	// check extras for invalid field
+	if len(options) > 1 {
+		expectedName := options[1].(string)
+		hlog.WithField("extras", actual.Extras).Debug("Got problem with extras")
+		actualName, ok := actual.Extras["invalid_field"]
+		if !ok {
+			return fmt.Sprintf("Expected extras to have invalid_field")
+		}
+		if expectedName != actualName.(string) {
+			return fmt.Sprintf("Mismatched problem invalid field: %s expected, got %s", expectedName, actualName)
+		}
+
+	}
+
 	return ""
 }

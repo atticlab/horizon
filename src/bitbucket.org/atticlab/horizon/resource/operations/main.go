@@ -114,16 +114,16 @@ type Fee struct {
 
 type CreateAccount struct {
 	Base
-	Fee             Fee `json:"fee"`
-	AccountType 	int32  `json:"account_type"`
-	Funder          string `json:"funder"`
-	Account         string `json:"account"`
+	Fee         Fee    `json:"fee"`
+	AccountType int32  `json:"account_type"`
+	Funder      string `json:"funder"`
+	Account     string `json:"account"`
 }
 
 type Payment struct {
 	Base
 	base.Asset
-	Fee    Fee `json:"fee"`
+	Fee    Fee    `json:"fee"`
 	From   string `json:"from"`
 	To     string `json:"to"`
 	Amount string `json:"amount"`
@@ -176,7 +176,7 @@ type SetOptions struct {
 	MasterKeyWeight *int   `json:"master_key_weight,omitempty"`
 	SignerKey       string `json:"signer_key,omitempty"`
 	SignerWeight    *int   `json:"signer_weight,omitempty"`
-	SignerType    	*int   `json:"signer_type,omitempty"`
+	SignerType      *int   `json:"signer_type,omitempty"`
 
 	SetFlags    []int    `json:"set_flags,omitempty"`
 	SetFlagsS   []string `json:"set_flags_s,omitempty"`
@@ -215,5 +215,5 @@ type AccountMerge struct {
 
 type Inflation struct {
 	Base
-	Fee  Fee `json:"fee"`
+	Fee Fee `json:"fee"`
 }
