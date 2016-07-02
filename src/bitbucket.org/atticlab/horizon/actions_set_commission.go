@@ -4,9 +4,10 @@ import (
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/render/problem"
-	"net/http"
 	"github.com/go-errors/errors"
+	"net/http"
 )
 
 // Inserts new Commission if CommissionId is 0, otherwise - tries to update
@@ -24,7 +25,14 @@ func (action *SetCommissionAction) JSON() {
 	action.Do(
 		action.requireAdminSignature,
 		action.loadCommission,
-		action.updateCommission)
+		action.updateCommission,
+		func() {
+			if action.Err == nil {
+				hal.Render(action.W, problem.P{
+					Status: 200,
+				})
+			}
+		})
 }
 
 func (action *SetCommissionAction) getOptionalAccountID(name string) string {
@@ -51,6 +59,9 @@ func (action *SetCommissionAction) getOptionalRawAccountType(name string) *int32
 }
 
 func (action *SetCommissionAction) loadCommission() {
+	if action.Err != nil {
+		return
+	}
 	action.ValidateBodyType()
 	action.CommissionKey.From = action.getOptionalAccountID("from")
 	action.CommissionKey.To = action.getOptionalAccountID("to")
