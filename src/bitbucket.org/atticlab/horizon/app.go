@@ -35,11 +35,11 @@ var version = ""
 
 // App represents the root of the state of a horizon instance.
 type App struct {
-	unsafeMode        bool
 	config            conf.Config
 	web               *Web
 	historyQ          *history.Q
 	coreQ             *core.Q
+	signersProvider core.SignersProvider
 	ctx               context.Context
 	cancel            func()
 	redis             *redis.Pool
@@ -178,6 +178,14 @@ func (a *App) AccountManager() *administration.AccountManager {
 // stellar core database.
 func (a *App) CoreQ() *core.Q {
 	return a.coreQ
+}
+
+func (a *App) SignersProvider() core.SignersProvider {
+	return a.signersProvider
+}
+
+func (a *App) SetSignersProvider(sig core.SignersProvider) {
+	a.signersProvider = sig
 }
 
 // UpdateLedgerState triggers a refresh of several metrics gauges, such as open

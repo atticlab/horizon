@@ -221,6 +221,7 @@ func (q *Q) InsertCommission(commission *Commission) (err error) {
 	if commission == nil {
 		return
 	}
+
 	insert := insertCommission.Values(commission.KeyHash, commission.KeyValue, commission.FlatFee, commission.PercentFee)
 	_, err = q.Exec(insert)
 	if err != nil {

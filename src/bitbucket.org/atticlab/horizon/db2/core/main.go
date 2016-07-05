@@ -76,6 +76,10 @@ type Q struct {
 	*db2.Repo
 }
 
+type SignersProvider interface {
+	SignersByAddress(dest interface{}, addy string) error
+}
+
 // PriceLevel represents an aggregation of offers to trade at a certain
 // price.
 type PriceLevel struct {

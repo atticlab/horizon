@@ -8,11 +8,12 @@ import (
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"github.com/go-errors/errors"
 	"net/http"
+	"bitbucket.org/atticlab/horizon/audit"
 )
 
 // Inserts new Commission if CommissionId is 0, otherwise - tries to update
 type SetCommissionAction struct {
-	Action
+	AdminAction
 	CommissionKey history.CommissionKey
 	FlatFee       int64
 	PercentFee    int64
@@ -23,9 +24,10 @@ type SetCommissionAction struct {
 // JSON format action handler
 func (action *SetCommissionAction) JSON() {
 	action.Do(
-		action.requireAdminSignature,
+		action.StartAdminAction,
 		action.loadCommission,
 		action.updateCommission,
+		action.FinishAdminAction,
 		func() {
 			if action.Err == nil {
 				hal.Render(action.W, problem.P{
@@ -86,7 +88,7 @@ func (action *SetCommissionAction) loadCommission() {
 	}
 	action.CommissionId = action.GetInt64("id")
 	action.Delete = action.GetBool("delete")
-	log.WithField("key", action.CommissionKey).Debug("got params")
+	action.Info.Subject = audit.SubjectCommission
 }
 
 func (action *SetCommissionAction) updateCommission() {
@@ -107,12 +109,14 @@ func (action *SetCommissionAction) updateCommission() {
 	}
 	commission.Id = action.CommissionId
 
+	action.Info.Meta = commission
 	if commission.Id == 0 {
 		if action.Delete {
 			action.Err = &problem.NotFound
 			return
 		}
 		log.WithField("commission", commission).Debug("Trying to insert commission")
+		action.Info.ActionPerformed = audit.ActionPerformedInsert
 		err = action.HistoryQ().InsertCommission(commission)
 		if err != nil {
 			log.WithField("commission", commission).WithError(err).Error("Failed to insert new commission")
@@ -123,9 +127,11 @@ func (action *SetCommissionAction) updateCommission() {
 
 	var updated bool
 	if action.Delete {
+		action.Info.ActionPerformed = audit.ActionPerformedDelete
 		log.WithField("commissionid", commission.Id).Debug("Trying to delete commission")
 		updated, err = action.HistoryQ().DeleteCommission(commission.Id)
 	} else {
+		action.Info.ActionPerformed = audit.ActionPerformedUpdate
 		log.WithField("commission", commission).Debug("Trying to update commission")
 		updated, err = action.HistoryQ().UpdateCommission(commission)
 	}

@@ -5,12 +5,14 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
+	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/resource"
 	"bitbucket.org/atticlab/horizon/resource/base"
 	"bitbucket.org/atticlab/horizon/test"
+	coreTest "bitbucket.org/atticlab/horizon/db2/core/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
@@ -25,20 +27,28 @@ func TestActionsSetCommission(t *testing.T) {
 	rh := NewRequestHelper(app)
 	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
 
+	signersProviderMock := coreTest.SignersProviderMock{}
+	app.SetSignersProvider(&signersProviderMock)
+	signer, err := keypair.Random()
+
+	Convey("Check signature", t, func() {
+		form := url.Values{}
+		w := rh.Post("/commission", form, test.RequestHelperNoop)
+		So(w.Code, ShouldEqual, 401)
+	})
 	Convey("Set commission Actions:", t, func() {
-		Convey("Check signature", func() {
-			app.unsafeMode = false
-			form := url.Values{
-			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
-			So(w.Code, ShouldEqual, 401)
-		})
-		app.unsafeMode = true
+		assert.Nil(t, err)
+		signersProviderMock.On("SignersByAddress", app.config.BankMasterKey).Return([]core.Signer{core.Signer{
+			Accountid:  "1",
+			Publickey:  signer.Address(),
+			Weight:     1,
+			SignerType: uint32(xdr.SignerTypeSignerAdmin),
+		}}, nil)
 		Convey("Invalid id", func() {
 			form := url.Values{
 				"id": []string{"1"},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 404)
 		})
 		Convey("Invalid asset", func() {
@@ -52,55 +62,55 @@ func TestActionsSetCommission(t *testing.T) {
 				"asset_code":   []string{asset.Code},
 				"asset_issuer": []string{asset.Issuer},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 400)
 			So(w.Body, ShouldBeProblem, problem.BadRequest, "asset_issuer")
 		})
 		Convey("Invalid from", func() {
 			form := url.Values{
-				"from":   []string{"random_str"},
+				"from": []string{"random_str"},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 400)
 			So(w.Body, ShouldBeProblem, problem.BadRequest, "from")
 		})
 		Convey("Invalid to", func() {
 			form := url.Values{
-				"to":   []string{"random_str"},
+				"to": []string{"random_str"},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 400)
 			So(w.Body, ShouldBeProblem, problem.BadRequest, "to")
 		})
 		Convey("Invalid from accountType", func() {
 			form := url.Values{
-				"from_type":   []string{"10"},
+				"from_type": []string{"10"},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 400)
 			So(w.Body, ShouldBeProblem, problem.BadRequest, "from_type")
 		})
 		Convey("Invalid to accountType", func() {
 			form := url.Values{
-				"to_type":   []string{"10"},
+				"to_type": []string{"10"},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 400)
 			So(w.Body, ShouldBeProblem, problem.BadRequest, "to_type")
 		})
 		Convey("Invalid flat_fee", func() {
 			form := url.Values{
-				"flat_fee":   []string{"-10"},
+				"flat_fee": []string{"-10"},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 400)
 			So(w.Body, ShouldBeProblem, problem.BadRequest, "flat_fee")
 		})
 		Convey("Invalid percent_fee", func() {
 			form := url.Values{
-				"percent_fee":   []string{"-10"},
+				"percent_fee": []string{"-10"},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 400)
 			So(w.Body, ShouldBeProblem, problem.BadRequest, "percent_fee")
 		})
@@ -133,7 +143,7 @@ func TestActionsSetCommission(t *testing.T) {
 				"flat_fee":     []string{strconv.FormatInt(int64(flatFee), 10)},
 				"percent_fee":  []string{strconv.FormatInt(int64(percentFee), 10)},
 			}
-			w := rh.Post("/commission", form, test.RequestHelperNoop)
+			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			log.WithField("Response", w.Body.String()).Debug("Got response")
 			check := func(w *httptest.ResponseRecorder) int64 {
 				So(w.Code, ShouldEqual, 200)
@@ -157,15 +167,15 @@ func TestActionsSetCommission(t *testing.T) {
 				flatFee = 99
 				form.Set("id", strconv.FormatInt(id, 10))
 				form.Set("flat_fee", strconv.FormatInt(int64(flatFee), 10))
-				updateW := rh.Post("/commission", form, test.RequestHelperNoop)
+				updateW := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 				check(updateW)
 			})
 			Convey("delete", func() {
 				deleteForm := url.Values{
-					"id": []string{strconv.FormatInt(id, 10)},
+					"id":     []string{strconv.FormatInt(id, 10)},
 					"delete": []string{"true"},
 				}
-				deleteW := rh.Post("/commission", deleteForm, test.RequestHelperNoop)
+				deleteW := rh.SignedPost(signer, "/commission", deleteForm, test.RequestHelperNoop)
 				So(deleteW.Code, ShouldEqual, 200)
 				var sts []history.Commission
 				err = app.historyQ.Commissions().ForAccount(from).Select(&sts)

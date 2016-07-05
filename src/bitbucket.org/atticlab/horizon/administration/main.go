@@ -28,3 +28,7 @@ type accountManager struct {
 	historyDb *history.Q
 	config    *conf.Config
 }
+
+func GetAdminActionSignatureBase(bodyString string, timeCreated string) string {
+	return "{method: 'post', body: '" + bodyString + "', timestamp: '" + timeCreated + "'}"
+}

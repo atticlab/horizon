@@ -29,6 +29,8 @@ func NewTestConfig() conf.Config {
 		StellarCoreDatabaseURL: test.StellarCoreDatabaseURL(),
 		RateLimit:              throttled.PerHour(1000),
 		LogLevel:               hlog.InfoLevel,
+		AdminSignatureValid:    60,
+		BankMasterKey: "GBIMZRVQ3W2OXPAK7RBP6XVAWRTPBRL7STFITRCL4QGXXQIFZPK3NDVJ", //SASDDOKKCWHKKRMZ7I3MA4WMI4F4PHG7LOYZGCRZ6WZNAI7TQIER2RTK
 	}
 }
 

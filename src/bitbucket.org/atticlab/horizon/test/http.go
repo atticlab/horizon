@@ -6,11 +6,13 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"bitbucket.org/atticlab/go-smart-base/keypair"
 )
 
 type RequestHelper interface {
 	Get(string, func(*http.Request)) *httptest.ResponseRecorder
 	Post(string, url.Values, func(*http.Request)) *httptest.ResponseRecorder
+	SignedPost(keypair.KP, string, url.Values, func(*http.Request)) *httptest.ResponseRecorder
 }
 
 type requestHelper struct {
@@ -59,6 +61,13 @@ func (r *requestHelper) Post(
 	body := strings.NewReader(form.Encode())
 	req, _ := http.NewRequest("POST", path, body)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return r.Execute(req, requestModFn)
+}
+
+func (r *requestHelper) SignedPost(signer keypair.KP, path string, form url.Values, requestModFn func(*http.Request)) *httptest.ResponseRecorder {
+	requestData := NewRequestData(signer, form)
+	requestData.Path = path
+	req := requestData.CreateRequest()
 	return r.Execute(req, requestModFn)
 }
 

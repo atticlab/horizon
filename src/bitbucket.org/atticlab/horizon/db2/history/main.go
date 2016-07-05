@@ -308,3 +308,12 @@ type CommissionQ struct {
 	parent *Q
 	sql    sq.SelectBuilder
 }
+
+type AuditLog struct {
+	Id        int64     `db:"id"`
+	Actor     string    `db:"actor"`      //public key of the actor, performing task
+	Subject   string    `db:"subject"`    //subject to change
+	Action    string    `db:"action"`     //action performed on subject
+	Meta      string    `db:"meta"`       //meta information about audit event
+	CreatedAt time.Time `db:"created_at"` // time log was created
+}

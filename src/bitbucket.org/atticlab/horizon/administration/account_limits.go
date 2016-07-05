@@ -40,13 +40,6 @@ func (m *accountManager) SetLimits(limit history.AccountLimits) error {
 		err = m.historyDb.UpdateAccountLimits(accLimits)
 	}
 
-	_ = m.historyDb.CreateAuditLogEntry(
-		"TODO: add invocer address",
-		address,
-		"Change account limit",
-		getSetLimitsMeta(limit),
-	)
-
 	return err
 
 }

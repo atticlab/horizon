@@ -116,7 +116,7 @@ func (action *AccountLimitsAction) loadResource() {
 }
 
 type LimitsSetAction struct {
-	Action
+	AdminAction
 	Limits   history.AccountLimits
 	Result   txsub.Result
 	Resource resource.AccountLimits
@@ -125,10 +125,11 @@ type LimitsSetAction struct {
 // JSON format action handler
 func (action *LimitsSetAction) JSON() {
 	action.Do(
-		action.requireAdminSignature,
+		action.StartAdminAction,
 		action.loadLimits,
 		action.updateLimits,
 		action.loadResource,
+		action.FinishAdminAction,
 
 		func() {
 			hal.Render(action.W, action.Resource)

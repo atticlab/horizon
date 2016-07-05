@@ -259,8 +259,13 @@ func initConfig() {
 	if viper.GetBool("ingest") && viper.GetString("bank-master-key") == "" {
 		log.Fatal("Invalid config: bank-master-key is blank. Please set the BANK_MASTER_KEY environment variable.")
 	}
-	if viper.GetBool("ingest") && viper.GetString("bank-commission-key") == "" {
+	if viper.GetString("bank-commission-key") == "" {
 		log.Fatal("Invalid config: bank-commission-key is blank. Please set the BANK_COMMISSION_KEY environment variable.")
+	}
+
+	adminSigValid :=  viper.GetInt("admin-sig-valid")
+	if adminSigValid == 0 {
+		adminSigValid = 60
 	}
 
 	config = conf.Config{
@@ -282,6 +287,7 @@ func initConfig() {
 		BankMasterKey:             viper.GetString("bank-master-key"),
 		BankCommissionKey:         viper.GetString("bank-commission-key"),
 		AnonymousUserRestrictions: getAnonymousUserRestrictions(),
+		AdminSignatureValid:       adminSigValid,
 	}
 }
 

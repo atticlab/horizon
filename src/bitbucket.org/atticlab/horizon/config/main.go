@@ -28,4 +28,6 @@ type Config struct {
 	BankMasterKey             string
 	BankCommissionKey         string
 	AnonymousUserRestrictions AnonymousUserRestrictions
+	// time admin signature valid in seconds
+	AdminSignatureValid       int
 }
