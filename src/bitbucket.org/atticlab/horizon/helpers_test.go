@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/PuerkitoBio/throttled"
+	conf "bitbucket.org/atticlab/horizon/config"
 	hlog "bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/test"
-	conf "bitbucket.org/atticlab/horizon/config"
+	"github.com/PuerkitoBio/throttled"
+	"time"
 )
 
 func NewTestApp() *App {
@@ -28,9 +29,9 @@ func NewTestConfig() conf.Config {
 		DatabaseURL:            test.DatabaseURL(),
 		StellarCoreDatabaseURL: test.StellarCoreDatabaseURL(),
 		RateLimit:              throttled.PerHour(1000),
-		LogLevel:               hlog.InfoLevel,
-		AdminSignatureValid:    60,
-		BankMasterKey: "GBIMZRVQ3W2OXPAK7RBP6XVAWRTPBRL7STFITRCL4QGXXQIFZPK3NDVJ", //SASDDOKKCWHKKRMZ7I3MA4WMI4F4PHG7LOYZGCRZ6WZNAI7TQIER2RTK
+		LogLevel:               hlog.DebugLevel,
+		AdminSignatureValid:    time.Duration(60) * time.Second,
+		BankMasterKey:          "GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R", //SB4HOLTEVQDTJSLQCCIXXYCURZUHNT3HEFJ5GNPNBCWIVFBVA3FBG4Q3
 	}
 }
 

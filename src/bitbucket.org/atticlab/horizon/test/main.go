@@ -85,7 +85,6 @@ func DatabaseURL() string {
 // scenario is in the scenarios subfolder of this package and are a pair of
 // sql files, one per database.
 func LoadScenario(scenarioName string) {
-	panic("DO NOT LOAD NOT UPDATED SCENARIOS")
 	loadScenario(scenarioName, true)
 }
 

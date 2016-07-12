@@ -3,18 +3,20 @@ package horizon
 import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/admin"
 	"bitbucket.org/atticlab/horizon/db2/core"
+	coreTest "bitbucket.org/atticlab/horizon/db2/core/test"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/test"
+	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	coreTest "bitbucket.org/atticlab/horizon/db2/core/test"
 	"net/url"
 	"testing"
 	"time"
-	"encoding/json"
+	"golang.org/x/net/context"
 )
 
 func TestAdminAction(t *testing.T) {
@@ -32,8 +34,9 @@ func TestAdminAction(t *testing.T) {
 
 		signersProviderMock := coreTest.SignersProviderMock{}
 
-		action := AdminAction{}
+		action := Action{}
 		action.App = app
+		action.Ctx = context.Background()
 
 		bodyData := url.Values{
 			"data": []string{"random_data"},
@@ -46,8 +49,6 @@ func TestAdminAction(t *testing.T) {
 			Weight:     1,
 			SignerType: uint32(xdr.SignerTypeSignerAdmin),
 		}
-		action.Info.ActionPerformed = "testring"
-		action.Info.Subject = "admin_action"
 		Convey("Valid request", func() {
 			err := app.HistoryQ().DeleteAuditLog()
 			assert.Nil(t, err)
@@ -56,6 +57,8 @@ func TestAdminAction(t *testing.T) {
 			signersProviderMock.On("SignersByAddress", app.config.BankMasterKey).Return([]core.Signer{coreSigner}, nil)
 			action.R = requestData.CreateRequest()
 			action.StartAdminAction()
+			action.adminAction.GetAuditInfo().ActionPerformed = "testring"
+			action.adminAction.GetAuditInfo().Subject = "admin_action"
 			// make sure we can word with db
 			key := history.CommissionKey{}
 			hash, _ := key.Hash()
@@ -66,7 +69,7 @@ func TestAdminAction(t *testing.T) {
 				PercentFee: int64(2000),
 			}
 			meta := commission
-			action.Info.Meta = &meta
+			action.adminAction.GetAuditInfo().Meta = &meta
 			app.HistoryQ().InsertCommission(&commission)
 			action.FinishAdminAction()
 			So(action.Err, ShouldBeNil)
@@ -79,13 +82,13 @@ func TestAdminAction(t *testing.T) {
 			logs, err := app.HistoryQ().GetAllAuditLogs()
 			assert.Nil(t, err)
 			assert.Equal(t, 1, len(logs))
-			assert.Equal(t, action.Info.ActorPublicKey.Address(), logs[0].Actor)
-			assert.Equal(t, string(action.Info.Subject), logs[0].Subject)
-			assert.Equal(t, string(action.Info.ActionPerformed), logs[0].Action)
+			assert.Equal(t, action.adminAction.GetAuditInfo().ActorPublicKey.Address(), logs[0].Actor)
+			assert.Equal(t, string(action.adminAction.GetAuditInfo().Subject), logs[0].Subject)
+			assert.Equal(t, string(action.adminAction.GetAuditInfo().ActionPerformed), logs[0].Action)
 			var storedMeta history.Commission
 			err = json.Unmarshal([]byte(logs[0].Meta), &storedMeta)
 			assert.Nil(t, err)
-			assert.Equal(t, action.Info.Meta, &storedMeta)
+			assert.Equal(t, action.adminAction.GetAuditInfo().Meta, &storedMeta)
 			err = app.HistoryQ().DeleteAuditLog()
 			assert.Nil(t, err)
 			err = app.HistoryQ().DeleteCommissions()
@@ -100,6 +103,8 @@ func TestAdminAction(t *testing.T) {
 			action.R = requestData.CreateRequest()
 			log.Debug("Starting admin action")
 			action.StartAdminAction()
+			action.adminAction.GetAuditInfo().ActionPerformed = "testring"
+			action.adminAction.GetAuditInfo().Subject = "admin_action"
 			key := history.CommissionKey{}
 			hash, _ := key.Hash()
 			commission := history.Commission{
@@ -133,7 +138,7 @@ func TestAdminAction(t *testing.T) {
 				action.StartAdminAction()
 				action.FinishAdminAction()
 				So(action.Err, ShouldNotBeNil)
-				So(action.Err, ShouldEqual, &Unauthorized)
+				So(action.Err, ShouldEqual, &admin.Unauthorized)
 			})
 			Convey("Signer not set", func() {
 				requestData.PublicKey = ""
@@ -141,7 +146,7 @@ func TestAdminAction(t *testing.T) {
 				action.StartAdminAction()
 				action.FinishAdminAction()
 				So(action.Err, ShouldNotBeNil)
-				So(action.Err, ShouldEqual, &Unauthorized)
+				So(action.Err, ShouldEqual, &admin.Unauthorized)
 			})
 			Convey("Signature expired", func() {
 				requestData.Timestamp = requestData.Timestamp - int64(time.Duration(app.config.AdminSignatureValid)*time.Second*2)
@@ -149,7 +154,7 @@ func TestAdminAction(t *testing.T) {
 				action.StartAdminAction()
 				action.FinishAdminAction()
 				So(action.Err, ShouldNotBeNil)
-				So(action.Err, ShouldEqual, &Unauthorized)
+				So(action.Err, ShouldEqual, &admin.Unauthorized)
 			})
 			Convey("Signature does not match content", func() {
 				bodyData.Add("new_random_key", "new_random_value")
@@ -158,7 +163,7 @@ func TestAdminAction(t *testing.T) {
 				action.StartAdminAction()
 				action.FinishAdminAction()
 				So(action.Err, ShouldNotBeNil)
-				So(action.Err, ShouldEqual, &Unauthorized)
+				So(action.Err, ShouldEqual, &admin.Unauthorized)
 			})
 			Convey("Signer is not admin", func() {
 				newSigner, err := keypair.Random()
@@ -174,7 +179,7 @@ func TestAdminAction(t *testing.T) {
 				action.StartAdminAction()
 				action.FinishAdminAction()
 				So(action.Err, ShouldNotBeNil)
-				So(action.Err, ShouldEqual, &Unauthorized)
+				So(action.Err, ShouldEqual, &admin.Unauthorized)
 			})
 
 		})

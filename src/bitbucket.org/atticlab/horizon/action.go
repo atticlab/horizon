@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"bitbucket.org/atticlab/horizon/actions"
+	"bitbucket.org/atticlab/horizon/admin"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
@@ -25,8 +26,45 @@ type Action struct {
 	App *App
 	Log *log.Entry
 
-	hq *history.Q
-	cq *core.Q
+	hq              *history.Q
+	cq              *core.Q
+	signersProvider core.SignersProvider
+	adminAction     admin.AdminActionInterface
+}
+
+func (action *Action) SetSignersProvider(signersProvider core.SignersProvider) {
+	action.signersProvider = signersProvider
+}
+
+func (action *Action) SignersProvider() core.SignersProvider {
+	if action.signersProvider == nil {
+		if action.App.SignersProvider() != nil {
+			action.signersProvider = action.App.SignersProvider()
+		} else {
+			action.signersProvider = action.CoreQ()
+		}
+	}
+	return action.signersProvider
+}
+
+// Starts admin action. defer action.FinishAdminAction() must be called after each call of StartAdminAction
+func (action *Action) StartAdminAction() {
+	action.adminAction = admin.NewAdminAction(action.R, action.HistoryQ(), action.SignersProvider(), &action.App.config)
+	err := action.adminAction.StartAction()
+	if err != nil {
+		action.Err = err
+	}
+}
+
+// Finishes admin action.
+func (action *Action) FinishAdminAction() {
+	if action.adminAction == nil {
+		return
+	}
+	err := action.adminAction.FinishAction(action.Err != nil)
+	if err != nil {
+		action.Err = err
+	}
 }
 
 // CoreQ provides access to queries that access the stellar core database.

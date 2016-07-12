@@ -3,7 +3,6 @@ package horizon
 import (
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2/history"
-	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"github.com/go-errors/errors"
@@ -13,7 +12,7 @@ import (
 
 // Inserts new Commission if CommissionId is 0, otherwise - tries to update
 type SetCommissionAction struct {
-	AdminAction
+	Action
 	CommissionKey history.CommissionKey
 	FlatFee       int64
 	PercentFee    int64
@@ -23,17 +22,15 @@ type SetCommissionAction struct {
 
 // JSON format action handler
 func (action *SetCommissionAction) JSON() {
+	defer action.FinishAdminAction()
 	action.Do(
 		action.StartAdminAction,
 		action.loadCommission,
 		action.updateCommission,
-		action.FinishAdminAction,
 		func() {
-			if action.Err == nil {
-				hal.Render(action.W, problem.P{
-					Status: 200,
-				})
-			}
+			hal.Render(action.W, problem.P{
+				Status: 200,
+			})
 		})
 }
 
@@ -61,9 +58,7 @@ func (action *SetCommissionAction) getOptionalRawAccountType(name string) *int32
 }
 
 func (action *SetCommissionAction) loadCommission() {
-	if action.Err != nil {
-		return
-	}
+	action.Log.Error("Loading commission params")
 	action.ValidateBodyType()
 	action.CommissionKey.From = action.getOptionalAccountID("from")
 	action.CommissionKey.To = action.getOptionalAccountID("to")
@@ -88,17 +83,14 @@ func (action *SetCommissionAction) loadCommission() {
 	}
 	action.CommissionId = action.GetInt64("id")
 	action.Delete = action.GetBool("delete")
-	action.Info.Subject = audit.SubjectCommission
+	action.adminAction.GetAuditInfo().Subject = audit.SubjectCommission
 }
 
 func (action *SetCommissionAction) updateCommission() {
-	if action.Err != nil {
-		return
-	}
-	log.Debug("Updating commission")
+	action.Log.Debug("Updating commission")
 	commission, err := history.NewCommission(action.CommissionKey, action.FlatFee, action.PercentFee)
 	if err != nil {
-		log.WithStack(err).WithError(err).Error("Failed to create new commission")
+		action.Log.WithStack(err).WithError(err).Error("Failed to create new commission")
 		action.Err = &problem.P{
 			Type:   "invalid_commission_key",
 			Title:  "Invalid commission key",
@@ -109,17 +101,17 @@ func (action *SetCommissionAction) updateCommission() {
 	}
 	commission.Id = action.CommissionId
 
-	action.Info.Meta = commission
+	action.adminAction.GetAuditInfo().Meta = commission
 	if commission.Id == 0 {
 		if action.Delete {
 			action.Err = &problem.NotFound
 			return
 		}
-		log.WithField("commission", commission).Debug("Trying to insert commission")
-		action.Info.ActionPerformed = audit.ActionPerformedInsert
+		action.Log.WithField("commission", commission).Debug("Trying to insert commission")
+		action.adminAction.GetAuditInfo().ActionPerformed = audit.ActionPerformedInsert
 		err = action.HistoryQ().InsertCommission(commission)
 		if err != nil {
-			log.WithField("commission", commission).WithError(err).Error("Failed to insert new commission")
+			action.Log.WithField("commission", commission).WithError(err).Error("Failed to insert new commission")
 			action.Err = &problem.ServerError
 		}
 		return
@@ -127,17 +119,17 @@ func (action *SetCommissionAction) updateCommission() {
 
 	var updated bool
 	if action.Delete {
-		action.Info.ActionPerformed = audit.ActionPerformedDelete
-		log.WithField("commissionid", commission.Id).Debug("Trying to delete commission")
+		action.adminAction.GetAuditInfo().ActionPerformed = audit.ActionPerformedDelete
+		action.Log.WithField("commissionid", commission.Id).Debug("Trying to delete commission")
 		updated, err = action.HistoryQ().DeleteCommission(commission.Id)
 	} else {
-		action.Info.ActionPerformed = audit.ActionPerformedUpdate
-		log.WithField("commission", commission).Debug("Trying to update commission")
+		action.adminAction.GetAuditInfo().ActionPerformed = audit.ActionPerformedUpdate
+		action.Log.WithField("commission", commission).Debug("Trying to update commission")
 		updated, err = action.HistoryQ().UpdateCommission(commission)
 	}
 
 	if err != nil {
-		log.WithField("commission", commission).WithField("delete", action.Delete).WithError(err).Error("Failed to update/delete commission")
+		action.Log.WithField("commission", commission).WithField("delete", action.Delete).WithError(err).Error("Failed to update/delete commission")
 		action.Err = &problem.ServerError
 		return
 	}

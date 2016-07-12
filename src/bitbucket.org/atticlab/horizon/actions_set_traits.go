@@ -1,107 +1,109 @@
 package horizon
 
 import (
-	"bitbucket.org/atticlab/horizon/administration"
-	"bitbucket.org/atticlab/horizon/resource"
+	"bitbucket.org/atticlab/horizon/audit"
+	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/render/problem"
-	"net/http"
-	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/resource"
+	"database/sql"
 )
 
-//TODO CHECK!!
 // SetTraitsAction changes traits for specified account
 type SetTraitsAction struct {
-	AdminAction
+	Action
 	Address  string
-	Traits   map[string]string
+	BlockIn  *bool
+	BlockOut *bool
 	Result   error
 	Resource resource.AccountTraits
 }
 
 // JSON format action handler
 func (action *SetTraitsAction) JSON() {
+	defer action.FinishAdminAction()
 	action.Do(
 		action.StartAdminAction,
 		action.loadParams,
 		action.updateTraits,
 		action.loadResource,
-		action.FinishAdminAction,
-
 		func() {
 			hal.Render(action.W, action.Resource)
 		})
 }
 
 func (action *SetTraitsAction) loadParams() {
-	if action.Err != nil {
-		return
-	}
 	action.Address = action.GetAddress("account_id")
-	action.Traits = make(map[string]string)
-
-	// TODO: move all validation logic here
-	blockIncoming := action.GetString("block_incoming_payments")
-	if len(blockIncoming) > 0 {
-		action.Traits["block_incoming_payments"] = blockIncoming
-	}
-
-	blockOutcoming := action.GetString("block_outcoming_payments")
-	if len(blockOutcoming) > 0 {
-		action.Traits["block_outcoming_payments"] = blockOutcoming
-	}
+	action.BlockIn = action.GetOptionalBool("block_incoming_payments")
+	action.BlockOut = action.GetOptionalBool("block_outcoming_payments")
 }
 
 func (action *SetTraitsAction) updateTraits() {
-	if action.Err == nil {
+	action.adminAction.GetAuditInfo().Subject = audit.SubjectTraits
+	// 1. Check if account exists
+	var acc history.Account
+	err := action.HistoryQ().AccountByAddress(&acc, action.Address)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			action.Err = &problem.NotFound
+			return
+		}
+		action.Log.WithStack(err).WithError(err).Error("Failed to load account by address")
+		action.Err = &problem.ServerError
 		return
 	}
-	result := (*action.App.AccountManager()).SetTraits(action.Address, action.Traits)
 
-	switch err := result.(type) {
-	case administration.AccountNotFoundError:
-		println("Sup")
-		action.Err = &problem.P{
-			Type:   "account_not_found",
-			Title:  "Account not found",
-			Status: http.StatusNotFound,
-			Detail: "Horizon could not set traits for account, because it wasn't found.",
-			Extras: map[string]interface{}{
-				"account_id": action.Address,
-			},
+	// 2. Try get traits for account
+	var accTraits history.AccountTraits
+	var isNew = false
+	err = action.HistoryQ().GetAccountTraits(&accTraits, acc.ID)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			action.Err = &problem.ServerError
+			action.Log.WithStack(err).WithError(err).Error("Failed to get account traits")
+			return
 		}
-	case administration.InvalidFieldsError:
-		println("Soap")
-		action.Err = &problem.P{
-			Type:   "malformed_request",
-			Title:  "Malformed request",
-			Status: http.StatusBadRequest,
-			Detail: "Request contains some invalid fields. See 'Extras' for details.",
-			Extras: extractErrors(err.Errors),
-		}
-	default:
-		action.Err = err
+		isNew = true
+		accTraits.ID = acc.ID
+		accTraits.BlockIncomingPayments = false
+		accTraits.BlockOutcomingPayments = false
+	}
+
+	// 3. Set traits
+	if action.BlockIn != nil {
+		accTraits.BlockIncomingPayments = *action.BlockIn
+	}
+
+	if action.BlockOut != nil {
+		accTraits.BlockOutcomingPayments = *action.BlockOut
+	}
+
+	action.adminAction.GetAuditInfo().Meta = accTraits
+	// 4. Persist changes
+	if isNew {
+		err = action.HistoryQ().CreateAccountTraits(accTraits)
+		action.adminAction.GetAuditInfo().ActionPerformed = audit.ActionPerformedInsert
+	} else {
+		err = action.HistoryQ().UpdateAccountTraits(accTraits)
+		action.adminAction.GetAuditInfo().ActionPerformed = audit.ActionPerformedUpdate
+	}
+
+	if err != nil {
+		action.Log.WithStack(err).WithError(err).Error("Failed to insert/update account traits")
+		action.Err = &problem.ServerError
 	}
 }
 
 func (action *SetTraitsAction) loadResource() {
-	if action.Err != nil {
-		return
-	}
 	var traits history.AccountTraits
-	action.Err = (*action.HistoryQ()).GetAccountTraitsByAddress(&traits, action.Address)
+	err := action.HistoryQ().GetAccountTraitsByAddress(&traits, action.Address)
 
-	if action.Err == nil {
+	if err == nil {
 		action.Resource.Populate(action.Ctx, action.Address, traits)
 		return
 	}
-}
 
-func extractErrors(errors map[string]error) map[string]interface{} {
-	result := make(map[string]interface{})
-	for key, err := range errors {
-		result[key] = err.Error()
-	}
-
-	return result
+	action.Log.WithStack(err).WithError(err).Error("Failed to GetAccountTraitsByAddress")
+	action.Err = &problem.ServerError
 }

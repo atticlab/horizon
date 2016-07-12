@@ -10,7 +10,9 @@ import (
 type AdminActionSubject string
 
 const (
-	SubjectCommission AdminActionSubject = "commission"
+	SubjectCommission    AdminActionSubject = "commission"
+	SubjectTraits        AdminActionSubject = "traits"
+	SubjectAccountLimits AdminActionSubject = "account_limits"
 )
 
 type ActionPerformed string
@@ -29,7 +31,7 @@ type AdminActionInfo struct {
 }
 
 func (info *AdminActionInfo) IsValid() bool {
-	return info.ActorPublicKey != nil && info.Subject != "" && info.ActionPerformed != ""
+	return info.ActorPublicKey != nil && info.ActorPublicKey.Address() != "" && info.Subject != "" && info.ActionPerformed != ""
 }
 
 func (info *AdminActionInfo) ToHistory() *history.AuditLog {

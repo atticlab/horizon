@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"time"
 )
 
 var app *horizon.App
@@ -287,7 +288,7 @@ func initConfig() {
 		BankMasterKey:             viper.GetString("bank-master-key"),
 		BankCommissionKey:         viper.GetString("bank-commission-key"),
 		AnonymousUserRestrictions: getAnonymousUserRestrictions(),
-		AdminSignatureValid:       adminSigValid,
+		AdminSignatureValid:       time.Duration(adminSigValid) * time.Second,
 	}
 }
 

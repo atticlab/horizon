@@ -30,6 +30,7 @@ func TestActionsSetCommission(t *testing.T) {
 	signersProviderMock := coreTest.SignersProviderMock{}
 	app.SetSignersProvider(&signersProviderMock)
 	signer, err := keypair.Random()
+	assert.Nil(t, err)
 
 	Convey("Check signature", t, func() {
 		form := url.Values{}
@@ -37,7 +38,6 @@ func TestActionsSetCommission(t *testing.T) {
 		So(w.Code, ShouldEqual, 401)
 	})
 	Convey("Set commission Actions:", t, func() {
-		assert.Nil(t, err)
 		signersProviderMock.On("SignersByAddress", app.config.BankMasterKey).Return([]core.Signer{core.Signer{
 			Accountid:  "1",
 			Publickey:  signer.Address(),
@@ -48,6 +48,7 @@ func TestActionsSetCommission(t *testing.T) {
 			form := url.Values{
 				"id": []string{"1"},
 			}
+			log.Error("Invalid ID TEST")
 			w := rh.SignedPost(signer, "/commission", form, test.RequestHelperNoop)
 			So(w.Code, ShouldEqual, 404)
 		})

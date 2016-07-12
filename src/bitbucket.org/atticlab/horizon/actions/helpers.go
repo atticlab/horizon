@@ -45,21 +45,30 @@ func (base *Base) GetString(name string) string {
 	return base.R.URL.Query().Get(name)
 }
 
-func (base *Base) GetBool(name string) bool {
+func (base *Base) GetOptionalBool(name string) *bool {
 	if base.Err != nil {
-		return false
+		return nil
 	}
 
 	asStr := base.GetString(name)
 	if asStr == "" {
-		return false
+		return nil
 	}
 
 	result, err := strconv.ParseBool(asStr)
 	if err != nil {
-		return false
+		base.SetInvalidField(name, err)
+		return nil
 	}
-	return result
+	return &result
+}
+
+func (base *Base) GetBool(name string) bool {
+	result := base.GetOptionalBool(name)
+	if result != nil {
+		return *result
+	}
+	return false
 }
 
 // GetInt64 retrieves an int64 from the action parameter of the given name.
