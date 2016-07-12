@@ -170,6 +170,7 @@ type Operation struct {
 	Type             xdr.OperationType `db:"type"`
 	DetailsString    null.String       `db:"details"`
 	SourceAccount    string            `db:"source_account"`
+	ClosedAt         time.Time   	   `db:"closed_at"`
 }
 
 // OperationsQ is a helper struct to aid in configuring queries that loads

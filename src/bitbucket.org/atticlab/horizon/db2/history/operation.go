@@ -137,6 +137,8 @@ var selectOperation = sq.Select(
 		"hop.type, " +
 		"hop.details, " +
 		"hop.source_account, " +
-		"ht.transaction_hash").
+		"ht.transaction_hash, " +
+		"hl.closed_at").
 	From("history_operations hop").
-	LeftJoin("history_transactions ht ON ht.id = hop.transaction_id")
+	LeftJoin("history_transactions ht ON ht.id = hop.transaction_id").
+	LeftJoin("history_ledgers hl ON hl.sequence = ht.ledger_sequence")

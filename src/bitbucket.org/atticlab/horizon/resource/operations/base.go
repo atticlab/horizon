@@ -17,6 +17,7 @@ func (this *Base) Populate(ctx context.Context, row history.Operation) {
 	this.PT = row.PagingToken()
 	this.SourceAccount = row.SourceAccount
 	this.populateType(row)
+	this.ClosedAt = row.ClosedAt
 
 	lb := hal.LinkBuilder{httpx.BaseURL(ctx)}
 	self := fmt.Sprintf("/operations/%d", row.ID)

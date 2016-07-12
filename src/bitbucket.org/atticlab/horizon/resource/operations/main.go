@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"time"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/render/hal"
@@ -102,6 +103,7 @@ type Base struct {
 	SourceAccount string `json:"source_account"`
 	Type          string `json:"type"`
 	TypeI         int32  `json:"type_i"`
+	ClosedAt      time.Time `json:"closed_at"`	  
 }
 
 type CreateAccount struct {
