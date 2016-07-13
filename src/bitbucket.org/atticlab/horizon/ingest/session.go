@@ -380,6 +380,14 @@ func (is *Session) ingestOperation() {
 			return
 		}
 
+		if destinationType == xdr.AccountTypeAccountAnonymousUser {
+			is.Err = is.Ingestion.Account(is.Cursor.OperationID(), to)
+			if is.Err != nil {
+				log.Error("Failed to ingest anonymous account created by payment!")
+				return
+			}
+		}
+
 		log.Info(
 			fmt.Printf("Payment from: %s(%s), to: %s(%s), amount: %s %s, at: %s",
 				from,
