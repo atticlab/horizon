@@ -10,6 +10,7 @@ import (
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/resource"
 	"bitbucket.org/atticlab/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 )
 
 // This file contains the actions:
@@ -167,18 +168,18 @@ func (action *TransactionCreateAction) loadResource() {
 		return
 	}
 
-	if action.Result.Err == txsub.ErrTimeout {
+	if action.Result.Err == results.ErrTimeout {
 		action.Err = &problem.Timeout
 		return
 	}
 
-	if action.Result.Err == txsub.ErrCanceled {
+	if action.Result.Err == results.ErrCanceled {
 		action.Err = &problem.Timeout
 		return
 	}
 
 	switch err := action.Result.Err.(type) {
-	case *txsub.RestrictedTransactionError:
+	case *results.RestrictedTransactionError:
 		rcr := resource.TransactionResultCodes{}
 		rcr.Populate(action.Ctx, &err.FailedTransactionError)
 
@@ -197,7 +198,7 @@ func (action *TransactionCreateAction) loadResource() {
 				"additional_errors": err.AdditionalErrors,
 			},
 		}
-	case *txsub.FailedTransactionError:
+	case *results.FailedTransactionError:
 		rcr := resource.TransactionResultCodes{}
 		rcr.Populate(action.Ctx, err)
 
@@ -215,7 +216,7 @@ func (action *TransactionCreateAction) loadResource() {
 				"result_codes": rcr,
 			},
 		}
-	case *txsub.MalformedTransactionError:
+	case *results.MalformedTransactionError:
 		action.Err = &problem.P{
 			Type:   "transaction_malformed",
 			Title:  "Transaction Malformed",
@@ -229,21 +230,21 @@ func (action *TransactionCreateAction) loadResource() {
 				"envelope_xdr": err.EnvelopeXDR,
 			},
 		}
-	case *txsub.RestrictedForAccountTypeError:
+	case *results.RestrictedForAccountTypeError:
 		action.Err = &problem.P{
 			Type:   "transaction_restricted_account_types",
 			Title:  "Transaction Restricted For Specified Account Types",
 			Status: http.StatusForbidden,
 			Detail: action.Result.Err.Error(),
 		}
-	case *txsub.ExceededLimitError:
+	case *results.ExceededLimitError:
 		action.Err = &problem.P{
 			Type:   "transaction_restricted_limits_exceeded",
 			Title:  "Payment Limits Exceeded",
 			Status: http.StatusForbidden,
 			Detail: action.Result.Err.Error(),
 		}
-	case *txsub.RestrictedForAccountError:
+	case *results.RestrictedForAccountError:
 		action.Err = &problem.P{
 			Type:   "transaction_restricted_for_account",
 			Title:  "Transaction Restricted For This Account",

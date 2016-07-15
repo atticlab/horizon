@@ -10,13 +10,14 @@ import (
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 )
 
 // VerifyAccountTypesForPayment performs account types check for payment operation
 func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 	if !contains(typeRestrictions[from.AccountType], to.AccountType) {
 		reason := fmt.Sprintf("Payments from %s to %s are restricted.", from.AccountType.String(), to.AccountType.String())
-		return &RestrictedForAccountTypeError{Reason: reason}
+		return &results.RestrictedForAccountTypeError{Reason: reason}
 	}
 
 	return nil
@@ -38,13 +39,13 @@ func (sub *submitter) VerifyRestrictions(from string, to string) error {
 
 	// Check restrictions
 	if errSource != nil && sourceTraits.BlockOutcomingPayments {
-		return &RestrictedForAccountError{
+		return &results.RestrictedForAccountError{
 			Reason:  "Outcoming payments for this account are restricted by administrator.",
 			Address: from,
 		}
 	}
 	if errDest != nil && destTraits.BlockIncomingPayments {
-		return &RestrictedForAccountError{
+		return &results.RestrictedForAccountError{
 			Reason:  "Incoming payments for this account are restricted by administrator.",
 			Address: to,
 		}
@@ -72,7 +73,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 				amount.String(xdr.Int64(limits.MaxOperationOut*amount.One)),
 				opAsset,
 			)
-			return &ExceededLimitError{Description: description}
+			return &results.ExceededLimitError{Description: description}
 		}
 		hasLimits = true
 	}
@@ -107,7 +108,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 			amount.String(payment.Amount),
 			amount.String(xdr.Int64(limits.DailyMaxOut*amount.One)),
 		)
-		return &ExceededLimitError{Description: description}
+		return &results.ExceededLimitError{Description: description}
 	}
 	if hasLimits && limits.MonthlyMaxOut >= 0 && monthlyOutcome+opAmount > limits.MonthlyMaxOut*amount.One {
 		description := fmt.Sprintf(
@@ -116,7 +117,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 			amount.String(payment.Amount),
 			amount.String(xdr.Int64(limits.MonthlyMaxOut*amount.One)),
 		)
-		return &ExceededLimitError{Description: description}
+		return &results.ExceededLimitError{Description: description}
 	}
 
 	if sender.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
@@ -128,7 +129,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxDailyOutcome)),
 			)
-			return &ExceededLimitError{Description: description}
+			return &results.ExceededLimitError{Description: description}
 		}
 
 		// 2. Check monthly outcome
@@ -139,7 +140,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxMonthlyOutcome)),
 			)
-			return &ExceededLimitError{Description: description}
+			return &results.ExceededLimitError{Description: description}
 		}
 	}
 
@@ -159,7 +160,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualOutcome)),
 			)
-			return &ExceededLimitError{Description: description}
+			return &results.ExceededLimitError{Description: description}
 		}
 	}
 
@@ -186,7 +187,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 				amount.String(xdr.Int64(limits.MaxOperationIn*amount.One)),
 				opAsset,
 			)
-			return &ExceededLimitError{Description: description}
+			return &results.ExceededLimitError{Description: description}
 		}
 		hasLimits = true
 	}
@@ -226,7 +227,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 			amount.String(xdr.Int64(limits.DailyMaxIn*amount.One)),
 			opAsset,
 		)
-		return &ExceededLimitError{Description: description}
+		return &results.ExceededLimitError{Description: description}
 	}
 	if hasLimits && limits.MonthlyMaxIn >= 0 && monthlyIncome+opAmount > limits.MonthlyMaxIn*amount.One {
 		description := fmt.Sprintf(
@@ -236,7 +237,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 			amount.String(xdr.Int64(limits.MonthlyMaxIn*amount.One)),
 			opAsset,
 		)
-		return &ExceededLimitError{Description: description}
+		return &results.ExceededLimitError{Description: description}
 	}
 
 	if opAsset == "EUAH" && !bankAgent(receiver.AccountType) {
@@ -259,7 +260,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxBalance)),
 			)
-			return &ExceededLimitError{Description: description}
+			return &results.ExceededLimitError{Description: description}
 		}
 
 		// 2.Check max annual income
@@ -272,7 +273,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 				amount.String(payment.Amount),
 				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualIncome)),
 			)
-			return &ExceededLimitError{Description: description}
+			return &results.ExceededLimitError{Description: description}
 		}
 	}
 

@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/commissions"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
-	"bitbucket.org/atticlab/horizon/commissions"
 )
 
 const (
@@ -81,7 +82,7 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	}
 
 	cm := commissions.New(sub.coreDb, sub.historyDb)
-	err = cm.SetCommissions(&tx);
+	err = cm.SetCommissions(&tx)
 	if err != nil {
 		log.WithField("Error", err).Error("Failed to set commissions")
 		result.Err = err
@@ -138,7 +139,7 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 
 	switch cresp.Status {
 	case StatusError:
-		result.Err = &FailedTransactionError{cresp.Error}
+		result.Err = &results.FailedTransactionError{cresp.Error}
 	case StatusPending, StatusDuplicate:
 		//noop.  A nil Err indicates success
 	default:
@@ -171,7 +172,7 @@ func (sub *submitter) checkTransaction(tx *xdr.TransactionEnvelope) error {
 			return err
 		}
 
-		return &RestrictedTransactionError{FailedTransactionError{resEnv}, additional}
+		return &results.RestrictedTransactionError{results.FailedTransactionError{resEnv}, additional}
 	}
 	return nil
 }
@@ -193,7 +194,7 @@ func (sub *submitter) checkOperation(op xdr.Operation, tx *xdr.TransactionEnvelo
 		err = sub.coreDb.AccountByAddress(&sourceAcc, source)
 		if err == sql.ErrNoRows {
 			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
-			err = ErrNoAccount
+			err = results.ErrNoAccount
 			return
 		}
 		if err != nil {
@@ -263,40 +264,8 @@ func (sub *submitter) checkOperation(op xdr.Operation, tx *xdr.TransactionEnvelo
 		}
 		opResult = paymentOpResult(xdr.PaymentResultCodePaymentSuccess)
 	default:
-		opResult, err = getSuccessResult(op.Body.Type)
+		opResult, err = results.GetSuccessResult(op.Body.Type)
 	}
-	return
-}
-
-func getSuccessResult(opType xdr.OperationType) (opResult xdr.OperationResult, err error) {
-	var res interface{}
-	switch opType {
-	case xdr.OperationTypeCreateAccount:
-		res = xdr.CreateAccountResult{xdr.CreateAccountResultCodeCreateAccountSuccess}
-	case xdr.OperationTypePathPayment:
-		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
-	case xdr.OperationTypeManageOffer:
-		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
-	case xdr.OperationTypeCreatePassiveOffer:
-		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
-	case xdr.OperationTypeSetOptions:
-		res = xdr.SetOptionsResult{xdr.SetOptionsResultCodeSetOptionsSuccess}
-	case xdr.OperationTypeChangeTrust:
-		res = xdr.ChangeTrustResult{xdr.ChangeTrustResultCodeChangeTrustSuccess}
-	case xdr.OperationTypeAllowTrust:
-		res = xdr.AllowTrustResult{xdr.AllowTrustResultCodeAllowTrustSuccess}
-	case xdr.OperationTypeAccountMerge:
-		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
-	case xdr.OperationTypeInflation:
-		res = xdr.PaymentResult{xdr.PaymentResultCodePaymentSuccess}
-	case xdr.OperationTypeManageData:
-		res = xdr.ManageDataResult{xdr.ManageDataResultCodeManageDataSuccess}
-	default:
-		err = &MalformedTransactionError{"unknown_operation"}
-		return
-	}
-	opR, _ := xdr.NewOperationResultTr(opType, res)
-	opResult, err = xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
 	return
 }
 
@@ -310,7 +279,7 @@ func paymentOpResult(code xdr.PaymentResultCode) xdr.OperationResult {
 func parseTransaction(envelope string) (tx xdr.TransactionEnvelope, err error) {
 	err = xdr.SafeUnmarshalBase64(envelope, &tx)
 	if err != nil {
-		err = &MalformedTransactionError{envelope}
+		err = &results.MalformedTransactionError{envelope}
 	}
 	return tx, err
 }
@@ -319,7 +288,7 @@ func writeTransaction(tx *xdr.TransactionEnvelope) (*string, error) {
 	res, err := xdr.MarshalBase64(tx)
 	if err != nil {
 		log.WithField("Erorr", err).Error("Failed to marshal tx")
-		err = &MalformedTransactionError{}
+		err = &results.MalformedTransactionError{}
 		return nil, err
 	}
 	return &res, nil

@@ -2,6 +2,12 @@
 	"version": 0,
 	"dependencies": [
 		{
+			"importpath": "bitbucket.org/atticlab/go-smart-base",
+			"repository": "https://bitbucket.org/atticlab/go-smart-base",
+			"revision": "85514e93bc9958a7cc5903c1870f0a79fe731685",
+			"branch": "feature/administrative_op"
+		},
+		{
 			"importpath": "github.com/BurntSushi/toml",
 			"repository": "https://github.com/BurntSushi/toml",
 			"revision": "056c9bc7be7190eaa7715723883caffa5f8fa3e4",
@@ -93,6 +99,12 @@
 			"importpath": "github.com/jmoiron/sqlx",
 			"repository": "https://github.com/jmoiron/sqlx",
 			"revision": "ad7f2641d00865a3d5b860ccdade6f8e63dbdae6",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/joho/godotenv",
+			"repository": "https://github.com/joho/godotenv",
+			"revision": "",
 			"branch": "master"
 		},
 		{
@@ -240,17 +252,6 @@
 			"importpath": "github.com/spf13/viper",
 			"repository": "https://github.com/spf13/viper",
 			"revision": "db7ff930a189b98d602179d9001d33345f42b8c7",
-			"branch": "master"
-		},
-		{
-			"importpath": "bitbucket.org/atticlab/go-smart-base",
-			"repository": "https://bitbucket.org/atticlab/go-smart-base",
-			"revision": "43c373cca4dbdc50f9f23d315511995dc4ed0492",
-			"branch": "feature/commission"
-		},
-		{
-			"importpath": "github.com/joho/godotenv",
-			"repository": "https://github.com/joho/godotenv",
 			"branch": "master"
 		},
 		{

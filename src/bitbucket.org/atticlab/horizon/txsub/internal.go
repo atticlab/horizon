@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/go-smart-base/strkey"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"golang.org/x/net/context"
 )
 
@@ -19,7 +20,7 @@ func extractEnvelopeInfo(ctx context.Context, env string, passphrase string) (re
 	err = xdr.SafeUnmarshalBase64(env, &tx)
 
 	if err != nil {
-		err = &MalformedTransactionError{env}
+		err = &results.MalformedTransactionError{env}
 		return
 	}
 

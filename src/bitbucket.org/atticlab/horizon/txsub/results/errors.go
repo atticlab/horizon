@@ -1,4 +1,4 @@
-package txsub
+package results
 
 import (
 	"errors"
