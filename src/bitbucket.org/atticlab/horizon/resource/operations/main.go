@@ -114,6 +114,14 @@ type Fee struct {
 	PercentFee    *string `json:"percent_fee,omitempty"`
 }
 
+type Fee struct {
+	Type          string  `json:"type"`
+	TypeI         int32   `json:"type_i"`
+	AmountCharged *string `json:"amount_changed,omitempty"`
+	FlatFee       *string `json:"flat_fee,omitempty"`
+	PercentFee    *string `json:"percent_fee,omitempty"`
+}
+
 type CreateAccount struct {
 	Base
 	Fee         Fee    `json:"fee"`
