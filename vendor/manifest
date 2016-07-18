@@ -2,18 +2,6 @@
 	"version": 0,
 	"dependencies": [
 		{
-			"importpath": "ssh://bitbucket.org/atticlab/ed25519",
-			"repository": "ssh://bitbucket.org/atticlab/ed25519",
-			"revision": "7c40215003972e97d0f07a85519b35acfd5f4a25",
-			"branch": "master"
-		},
-		{
-			"importpath": "ssh://bitbucket.org/atticlab/go-smart-base",
-			"repository": "ssh://bitbucket.org/atticlab/go-smart-base",
-			"revision": "c06bf3e5b166d83de370412c0ac6fcf7ab6f153e",
-			"branch": "dev"
-		},
-		{
 			"importpath": "github.com/BurntSushi/toml",
 			"repository": "https://github.com/BurntSushi/toml",
 			"revision": "056c9bc7be7190eaa7715723883caffa5f8fa3e4",
