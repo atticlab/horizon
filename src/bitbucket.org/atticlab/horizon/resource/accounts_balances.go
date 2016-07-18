@@ -14,7 +14,7 @@ func (this *MultiAssetBalances) Populate(
 	ctx context.Context,
 	ct []core.Trustline,
 ) (err error) {
-	var assetsMap map[base.Asset][]AccountBalance
+	var assetsMap = make(map[base.Asset][]AccountBalance)
 	for _, tl := range ct {
 		assetType, err := assets.String(tl.Assettype)
 		if err != nil {
