@@ -2,7 +2,8 @@ package core
 
 import (
 	"errors"
-
+	"strings"
+	
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	sq "github.com/lann/squirrel"
 )
@@ -42,6 +43,20 @@ func (q *Q) TrustlinesByAddress(dest interface{}, addy string) error {
 	sql := selectTrustline.Where("accountid = ?", addy)
 	return q.Select(dest, sql)
 }
+
+// TrustlinesByAddresses loads all trustlines for all `addresses`
+func (q *Q) TrustlinesByAddresses(dest interface{}, addresses []string) error {
+	if len(addresses) < 1 {
+		return  errors.New("Empty request")
+	}
+	addrInterface := make([]interface{}, len(addresses))
+	for i, v := range addresses {
+    	addrInterface[i] = v
+	}
+	sql := selectTrustline.Where("accountid in (?"+ strings.Repeat(",?", len(addresses)-1) +")", addrInterface...)
+	return q.Select(dest, sql)
+}
+
 
 // TrustlineByAddressAndAsset loads all trustlines for `addy`
 func (q *Q) TrustlineByAddressAndAsset(dest interface{}, addy string, assetCode string, issuer string) error {

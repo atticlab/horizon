@@ -97,6 +97,8 @@ func initWebActions(app *App) {
 	r.Get("/accounts/:account_id/trades", &TradeIndexAction{})
 	r.Get("/accounts/:account_id/data/:key", &DataShowAction{})
 
+	r.Post("/balances", &AccountShowBalancesAction{})
+
 	// transaction history actions
 	r.Get("/transactions", &TransactionIndexAction{})
 	r.Get("/transactions/:id", &TransactionShowAction{})

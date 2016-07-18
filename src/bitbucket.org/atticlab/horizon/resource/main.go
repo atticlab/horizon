@@ -51,6 +51,20 @@ type Account struct {
 	Data                 map[string]string `json:"data"`
 }
 
+type AccountBalance struct {
+	AccountId string `json:"account_id"`
+	Balance string `json:"balance"`
+	Limit   string `json:"limit,omitempty"`
+}
+
+type MultiAccountAssetBalances struct {
+	Asset		base.Asset			`json:"asset"`
+	Balances	[]AccountBalance	`json:"balances"`
+}
+type MultiAssetBalances struct {
+	Assets	[]MultiAccountAssetBalances	`json:"assets"`
+}
+
 // AccountStatistics is the detailed income/outcome statistics of an account
 type AccountStatistics struct {
 	Links struct {

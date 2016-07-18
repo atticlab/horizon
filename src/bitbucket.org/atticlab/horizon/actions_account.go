@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/resource"
+	"encoding/json"
 )
 
 // This file contains the actions:
@@ -216,5 +217,54 @@ func (action *AccountStatisticsAction) loadResource() {
 		action.Ctx,
 		action.Statistics,
 		action.HistoryRecord,
+	)
+}
+
+// AccountShowBalancesAction renders a account balances for multiple address.
+type AccountShowBalancesAction struct{
+	Action
+	Addresses      []string
+	HistoryRecord  history.Account
+	CoreData       []core.AccountData
+	CoreRecord     core.Account
+	CoreSigners    []core.Signer
+	CoreTrustlines []core.Trustline
+	Resource       resource.MultiAssetBalances
+}
+
+// JSON is a method for actions.JSON
+func (action *AccountShowBalancesAction) JSON() {
+	action.Do(
+		action.loadParams,
+		action.loadRecord,
+		action.loadResource,
+		func() {
+			hal.Render(action.W, action.Resource)
+		},
+	)
+}
+
+func (action *AccountShowBalancesAction) loadParams() {
+	decoder := json.NewDecoder(action.R.Body)
+	var addresses []string 
+	action.Err = decoder.Decode(&addresses)
+	if action.Err != nil{
+		return
+	}
+	action.Addresses = addresses
+}
+
+func (action *AccountShowBalancesAction) loadRecord() {
+	action.Err = action.CoreQ().
+		TrustlinesByAddresses(&action.CoreTrustlines, action.Addresses)
+	if action.Err != nil {
+		return
+	}
+}
+
+func (action *AccountShowBalancesAction) loadResource() {
+	action.Err = action.Resource.Populate(
+		action.Ctx,
+		action.CoreTrustlines,
 	)
 }
