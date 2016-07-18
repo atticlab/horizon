@@ -17,5 +17,5 @@ CREATE TABLE audit_log (
 
 -- +migrate Down
 
-DROP TABLE account_blacklist;
+DROP TABLE account_traits;
 DROP TABLE audit_log;

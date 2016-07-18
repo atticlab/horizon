@@ -3,6 +3,7 @@ package helpers
 
 import (
     "time"
+	"strconv"
 )
 
 // SameWeek resturns true if both of the timestamps are within the same week 
@@ -20,4 +21,13 @@ func MaxDate(t1 time.Time, t2 time.Time) time.Time{
     }
     
     return t2
+}
+
+// Tries to parse timestamp, if fails return zero time
+func ParseTimestamp(data string) time.Time {
+	i, err := strconv.ParseInt(data, 10, 64)
+	if err != nil {
+		return time.Time{}
+	}
+	return time.Unix(i, 0)
 }

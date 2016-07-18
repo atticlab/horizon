@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 )
 
-func TestOfferActions(t *testing.T) {
+func _TestOfferActions(t *testing.T) {
 	test.LoadScenario("trades")
 	app := NewTestApp()
 	defer app.Close()

@@ -13,6 +13,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/participants"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/resource/operations"
 	"github.com/spf13/viper"
 )
 
@@ -379,6 +380,14 @@ func (is *Session) ingestOperation() {
 			return
 		}
 
+		if destinationType == xdr.AccountTypeAccountAnonymousUser {
+			is.Err = is.Ingestion.Account(is.Cursor.OperationID(), to)
+			if is.Err != nil {
+				log.Error("Failed to ingest anonymous account created by payment!")
+				return
+			}
+		}
+
 		log.Info(
 			fmt.Printf("Payment from: %s(%s), to: %s(%s), amount: %s %s, at: %s",
 				from,
@@ -596,6 +605,12 @@ func getAssetCode(a xdr.Asset) (string, error) {
 	return code, err
 }
 
+func (is *Session) feeDetails(xdrFee xdr.OperationFee) map[string]interface{} {
+	fee := operations.Fee{}
+	fee.Populate(xdrFee)
+	return fee.ToMap()
+}
+
 // assetDetails sets the details for `a` on `result` using keys with `prefix`
 func (is *Session) assetDetails(result map[string]interface{}, a xdr.Asset, prefix string) error {
 	var (
@@ -624,6 +639,9 @@ func (is *Session) operationDetails() map[string]interface{} {
 	details := map[string]interface{}{}
 	c := is.Cursor
 	source := c.OperationSourceAccount()
+
+	fee := c.Transaction().Envelope.OperationFees[c.OperationOrder()-1]
+	details["fee"] = is.feeDetails(fee)
 
 	switch c.OperationType() {
 	case xdr.OperationTypeCreateAccount:

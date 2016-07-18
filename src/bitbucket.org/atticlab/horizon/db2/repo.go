@@ -28,6 +28,11 @@ func (r *Repo) Begin() error {
 	return nil
 }
 
+// Checks if repo is bound to transaction
+func (r *Repo) IsStarted() bool {
+	return r.tx != nil
+}
+
 // Clone clones the receiver, returning a new instance backed by the same
 // context and db. The result will not be bound to any transaction that the
 // source is currently within.

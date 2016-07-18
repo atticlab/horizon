@@ -292,3 +292,29 @@ type AccountTraits struct {
 	BlockIncomingPayments  bool `db:"block_incoming_payments"`
 	BlockOutcomingPayments bool `db:"block_outcoming_payments"`
 }
+
+type Commission struct {
+	Id         int64  `db:"id"`
+	KeyHash    string `db:"key_hash"`
+	KeyValue   string `db:"key_value"`
+	FlatFee    int64  `db:"flat_fee"`
+	PercentFee int64  `db:"percent_fee"`
+	weight     int
+}
+
+// CommissionQ is a helper struct to aid in configuring queries that loads
+// slices of Commission.
+type CommissionQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
+
+type AuditLog struct {
+	Id        int64     `db:"id"`
+	Actor     string    `db:"actor"`      //public key of the actor, performing task
+	Subject   string    `db:"subject"`    //subject to change
+	Action    string    `db:"action"`     //action performed on subject
+	Meta      string    `db:"meta"`       //meta information about audit event
+	CreatedAt time.Time `db:"created_at"` // time log was created
+}

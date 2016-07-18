@@ -8,9 +8,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
-	"github.com/rcrowley/go-metrics"
 	"bitbucket.org/atticlab/go-smart-base/build"
+	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
@@ -21,8 +20,8 @@ import (
 	"bitbucket.org/atticlab/horizon/pump"
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/txsub"
-	"bitbucket.org/atticlab/horizon/administration"
-	conf "bitbucket.org/atticlab/horizon/config"
+	"github.com/garyburd/redigo/redis"
+	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"gopkg.in/tylerb/graceful.v1"
@@ -39,6 +38,7 @@ type App struct {
 	web               *Web
 	historyQ          *history.Q
 	coreQ             *core.Q
+	signersProvider   core.SignersProvider
 	ctx               context.Context
 	cancel            func()
 	redis             *redis.Pool
@@ -46,7 +46,6 @@ type App struct {
 	horizonVersion    string
 	networkPassphrase string
 	submitter         *txsub.System
-	accountManager	  *administration.AccountManager
 	pump              *pump.Pump
 	paths             paths.Finder
 	friendbot         *friendbot.Bot
@@ -168,15 +167,18 @@ func (a *App) CoreRepo(ctx context.Context) *db2.Repo {
 	return &db2.Repo{DB: a.coreQ.Repo.DB, Ctx: ctx}
 }
 
-// AccountManager returns a new account manager instance.
-func (a *App) AccountManager() *administration.AccountManager {
-	return a.accountManager
-}
-
 // CoreQ returns a helper object for performing sql queries aginst the
 // stellar core database.
 func (a *App) CoreQ() *core.Q {
 	return a.coreQ
+}
+
+func (a *App) SignersProvider() core.SignersProvider {
+	return a.signersProvider
+}
+
+func (a *App) SetSignersProvider(sig core.SignersProvider) {
+	a.signersProvider = sig
 }
 
 // UpdateLedgerState triggers a refresh of several metrics gauges, such as open

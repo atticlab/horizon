@@ -3,10 +3,10 @@
 package core
 
 import (
-	"github.com/guregu/null"
 	"bitbucket.org/atticlab/go-smart-base/strkey"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
+	"github.com/guregu/null"
 )
 
 // Account is a row of data from the `accounts` table
@@ -19,7 +19,7 @@ type Account struct {
 	HomeDomain    null.String
 	Thresholds    xdr.Thresholds
 	Flags         xdr.AccountFlags
-	AccountType	  xdr.AccountType `db:"accounttype"`
+	AccountType   xdr.AccountType `db:"accounttype"`
 }
 
 type AccountData struct {
@@ -76,6 +76,10 @@ type Q struct {
 	*db2.Repo
 }
 
+type SignersProvider interface {
+	SignersByAddress(dest interface{}, addy string) error
+}
+
 // PriceLevel represents an aggregation of offers to trade at a certain
 // price.
 type PriceLevel struct {
@@ -92,10 +96,10 @@ type SequenceProvider struct {
 
 // Signer is a row of data from the `signers` table from stellar-core
 type Signer struct {
-	Accountid string
-	Publickey string
-	Weight    int32
-	SignerType 	uint32
+	Accountid  string
+	Publickey  string
+	Weight     int32
+	SignerType uint32
 }
 
 // Transaction is row of data from the `txhistory` table from stellar-core

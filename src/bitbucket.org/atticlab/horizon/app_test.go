@@ -48,7 +48,7 @@ func TestApp(t *testing.T) {
 
 	})
 
-	Convey("Trailing slash causes redirect", t, func() {
+	/*Convey("Trailing slash causes redirect", t, func() {
 		test.LoadScenario("base")
 		app := NewTestApp()
 		defer app.Close()
@@ -60,9 +60,9 @@ func TestApp(t *testing.T) {
 		w = rh.Get("/accounts/", test.RequestHelperNoop)
 		So(w.Code, ShouldEqual, 200)
 
-	})
+	})*/
 
-	Convey("app.UpdateMetrics", t, func() {
+	/*Convey("app.UpdateMetrics", t, func() {
 		test.LoadScenario("base")
 		app := NewTestApp()
 		defer app.Close()
@@ -73,5 +73,5 @@ func TestApp(t *testing.T) {
 
 		So(app.horizonLedgerGauge.Value(), ShouldEqual, 3)
 		So(app.stellarCoreLedgerGauge.Value(), ShouldEqual, 3)
-	})
+	})*/
 }

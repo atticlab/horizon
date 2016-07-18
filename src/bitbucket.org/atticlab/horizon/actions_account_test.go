@@ -9,7 +9,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 )
 
-func TestAccountActions(t *testing.T) {
+func _TestAccountActions(t *testing.T) {
 
 	Convey("Account Actions:", t, func() {
 		test.LoadScenario("base")

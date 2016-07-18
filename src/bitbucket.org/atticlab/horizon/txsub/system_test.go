@@ -11,7 +11,7 @@ import (
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
 )
 
-func TestTxsub(t *testing.T) {
+func _TestTxsub(t *testing.T) {
 	Convey("txsub.System", t, func() {
 		ctx := test.Context()
 		submitter := &MockSubmitter{}

@@ -9,13 +9,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Sirupsen/logrus"
-	"github.com/jmoiron/sqlx"
+	"bitbucket.org/atticlab/go-smart-base/hash"
+	"bitbucket.org/atticlab/go-smart-base/keypair"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 	hlog "bitbucket.org/atticlab/horizon/log"
 	tdb "bitbucket.org/atticlab/horizon/test/db"
+	"github.com/Sirupsen/logrus"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // StaticMockServer is a test helper that records it's last request
@@ -122,4 +129,48 @@ func StellarCoreDatabase() *sqlx.DB {
 func StellarCoreDatabaseURL() string {
 	return tdb.StellarCoreURL()
 
+}
+
+// Used to create http.Request with signature
+type RequestData struct {
+	Path        string
+	Signature   string
+	PublicKey   string
+	EncodedForm string
+	Timestamp   int64
+}
+
+func GetAdminActionSignatureBase(bodyString string, timeCreated string) string {
+	return "{method: 'post', body: '" + bodyString + "', timestamp: '" + timeCreated + "'}"
+}
+
+// Used to create valid RequestData
+func NewRequestData(signer keypair.KP, form url.Values) RequestData {
+	r := RequestData{
+		PublicKey: signer.Address(),
+		Timestamp: time.Now().Unix(),
+	}
+	r.EncodedForm = form.Encode()
+	signatureBase := GetAdminActionSignatureBase(r.EncodedForm, strconv.FormatInt(r.Timestamp, 10))
+	hashBase := hash.Hash([]byte(signatureBase))
+	xdrSig, err := signer.SignDecorated(hashBase[:])
+	if err != nil {
+		hlog.Panic("Failed to sign")
+	}
+	r.Signature, err = xdr.MarshalBase64(xdrSig)
+	if err != nil {
+		hlog.Panic("Failed to marshal sign")
+	}
+	return r
+}
+
+// Creates http request from RequestData
+func (r *RequestData) CreateRequest() *http.Request {
+	body := strings.NewReader(r.EncodedForm)
+	req, _ := http.NewRequest("POST", r.Path, body)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-AuthPublicKey", r.PublicKey)
+	req.Header.Set("X-AuthSignature", r.Signature)
+	req.Header.Set("X-AuthTimestamp", strconv.FormatInt(r.Timestamp, 10))
+	return req
 }

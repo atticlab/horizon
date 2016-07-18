@@ -9,7 +9,9 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
+	"errors"
 )
 
 const (
@@ -43,6 +45,32 @@ func (base *Base) GetString(name string) string {
 	return base.R.URL.Query().Get(name)
 }
 
+func (base *Base) GetOptionalBool(name string) *bool {
+	if base.Err != nil {
+		return nil
+	}
+
+	asStr := base.GetString(name)
+	if asStr == "" {
+		return nil
+	}
+
+	result, err := strconv.ParseBool(asStr)
+	if err != nil {
+		base.SetInvalidField(name, err)
+		return nil
+	}
+	return &result
+}
+
+func (base *Base) GetBool(name string) bool {
+	result := base.GetOptionalBool(name)
+	if result != nil {
+		return *result
+	}
+	return false
+}
+
 // GetInt64 retrieves an int64 from the action parameter of the given name.
 // Populates err if the value is not a valid int64
 func (base *Base) GetInt64(name string) int64 {
@@ -66,27 +94,36 @@ func (base *Base) GetInt64(name string) int64 {
 	return asI64
 }
 
+func (base *Base) GetInt32(name string) int32 {
+	result := base.GetInt32Pointer(name)
+	if result == nil {
+		return 0
+	}
+	return *result
+}
+
 // GetInt32 retrieves an int32 from the action parameter of the given name.
 // Populates err if the value is not a valid int32
-func (base *Base) GetInt32(name string) int32 {
+func (base *Base) GetInt32Pointer(name string) *int32 {
 	if base.Err != nil {
-		return 0
+		return nil
 	}
 
 	asStr := base.GetString(name)
 
 	if asStr == "" {
-		return 0
+		return nil
 	}
 
 	asI64, err := strconv.ParseInt(asStr, 10, 32)
 
 	if err != nil {
 		base.SetInvalidField(name, err)
-		return 0
+		return nil
 	}
 
-	return int32(asI64)
+	result := int32(asI64)
+	return &result
 }
 
 // GetPagingParams returns the cursor/order/limit triplet that is the
@@ -142,29 +179,87 @@ func (base *Base) GetAddress(name string) (result string) {
 	return result
 }
 
-// GetAccountID retireves an xdr.AccountID by attempting to decode a stellar
-// address at the provided name.
 func (base *Base) GetAccountID(name string) (result xdr.AccountId) {
-	raw, err := strkey.Decode(strkey.VersionByteAccountID, base.GetString(name))
-
 	if base.Err != nil {
 		return
 	}
 
+	accountId := base.GetOptionalAccountID(name)
+	if base.Err != nil {
+		return
+	}
+
+	if accountId == nil {
+		base.SetInvalidField(name, errors.New("can not be empty"))
+		return
+	}
+	result = *accountId
+	return
+}
+
+func (base *Base) GetOptionalAccountType(name string) (result *xdr.AccountType) {
+	if base.Err != nil {
+		return
+	}
+	rawType := base.GetInt32Pointer(name)
+	if rawType == nil {
+		return nil
+	}
+
+	if !xdr.AccountTypeAccountAnonymousUser.ValidEnum(*rawType) {
+		base.SetInvalidField(name, errors.New("invalid value for account type"))
+		return
+	}
+	accountType := xdr.AccountType(*rawType)
+	return &accountType
+}
+
+// GetAccountID retireves an xdr.AccountID by attempting to decode a stellar
+// address at the provided name.
+func (base *Base) GetOptionalAccountID(name string) (result *xdr.AccountId) {
+	if base.Err != nil {
+		return nil
+	}
+
+	strData := base.GetString(name)
+	if strData == "" {
+		return nil
+	}
+	raw, err := strkey.Decode(strkey.VersionByteAccountID, strData)
+
+	if base.Err != nil {
+		return nil
+	}
+
 	if err != nil {
 		base.SetInvalidField(name, err)
-		return
+		return nil
 	}
 
 	var key xdr.Uint256
 	copy(key[:], raw)
 
-	result, err = xdr.NewAccountId(xdr.CryptoKeyTypeKeyTypeEd25519, key)
+	rawResult, err := xdr.NewAccountId(xdr.CryptoKeyTypeKeyTypeEd25519, key)
 	if err != nil {
 		base.SetInvalidField(name, err)
-		return
+		return nil
 	}
 
+	return &rawResult
+}
+
+func (base *Base) GetPositiveAmount(name string) (result xdr.Int64) {
+	if base.Err != nil {
+		return 0
+	}
+	result = base.GetAmount(name)
+	if base.Err != nil {
+		return 0
+	}
+
+	if result <= 0 {
+		base.SetInvalidField(name, errors.New("must be positive"))
+	}
 	return
 }
 
@@ -172,8 +267,12 @@ func (base *Base) GetAccountID(name string) (result xdr.AccountId) {
 // the string at the provided name in accordance with the stellar client
 // conventions
 func (base *Base) GetAmount(name string) (result xdr.Int64) {
-	var err error
-	result, err = amount.Parse(base.GetString("destination_amount"))
+	if base.Err != nil {
+		return 0
+	}
+	strAmount := base.GetString(name)
+	log.WithField("strAmount", strAmount).WithField("name", name).Debug("Got raw amount")
+	result, err := amount.Parse(strAmount)
 
 	if err != nil {
 		base.SetInvalidField(name, err)
@@ -250,6 +349,7 @@ func (base *Base) GetAsset(prefix string) (result xdr.Asset) {
 // SetInvalidField establishes an error response triggered by an invalid
 // input field from the user.
 func (base *Base) SetInvalidField(name string, reason error) {
+	log.WithField("name", name).WithError(reason).Info("Setting invalid field")
 	br := problem.BadRequest
 
 	br.Extras = map[string]interface{}{}

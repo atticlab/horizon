@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestHistoryAccount(t *testing.T) {
+func _TestHistoryAccount(t *testing.T) {
 	tt := test.Start(t).Scenario("base")
 	defer tt.Finish()
 	db := tt.HorizonRepo()

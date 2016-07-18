@@ -6,7 +6,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 )
 
-func TestCursor(t *testing.T) {
+func _TestCursor(t *testing.T) {
 	tt := test.Start(t).ScenarioWithoutHorizon("kahuna")
 	defer tt.Finish()
 

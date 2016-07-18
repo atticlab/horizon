@@ -26,6 +26,21 @@ var AccountTypeNames = map[xdr.AccountType]string{
 	xdr.AccountTypeAccountBank:              "bank",
 }
 
+func PopulateAccountType(accountType xdr.AccountType) (typeI int32, typ string) {
+	var ok bool
+	typeI = int32(accountType)
+	typ, ok = AccountTypeNames[accountType]
+	if !ok {
+		typ = "unknown"
+	}
+	return
+}
+
+func PopulateAccountTypeP(accountType xdr.AccountType) (*int32, *string) {
+	accTypeI, accType := PopulateAccountType(accountType)
+	return &accTypeI, &accType
+}
+
 // Account is the summary of an account
 type Account struct {
 	Links struct {
@@ -326,6 +341,20 @@ type AccountLimitsEntry struct {
 	MaxOperationIn  int64  `json:"max_operation_in"`
 	DailyMaxIn      int64  `json:"daily_max_in"`
 	MonthlyMaxIn    int64  `json:"monthly_max_in"`
+}
+
+type Commission struct {
+	Id               int64       `json:"id"`
+	From             *string     `json:"from,omitempty"`
+	To               *string     `json:"to,omitempty"`
+	FromAccountType  *string     `json:"from_account_type,omitempty"`
+	FromAccountTypeI *int32      `json:"from_account_type_i,omitempty"`
+	ToAccountType    *string     `json:"to_account_type,omitempty"`
+	ToAccountTypeI   *int32      `json:"to_account_type_i,omitempty"`
+	Asset            *base.Asset `json:"asset,omitempty"`
+	FlatFee          string      `json:"flat_fee"`
+	PercentFee       string      `json:"percent_fee"`
+	Weight           int         `json:"weight"`
 }
 
 // NewEffect returns a resource of the appropriate sub-type for the provided

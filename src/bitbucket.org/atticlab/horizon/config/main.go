@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/PuerkitoBio/throttled"
 	"github.com/Sirupsen/logrus"
+	"time"
 )
 
 // Config is the configuration for horizon.  It get's populated by the
@@ -28,4 +29,6 @@ type Config struct {
 	BankMasterKey             string
 	BankCommissionKey         string
 	AnonymousUserRestrictions AnonymousUserRestrictions
+	// time admin signature valid in seconds
+	AdminSignatureValid       time.Duration
 }

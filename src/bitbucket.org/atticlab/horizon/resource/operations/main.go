@@ -106,16 +106,26 @@ type Base struct {
 	ClosedAt      time.Time `json:"closed_at"`	  
 }
 
+type Fee struct {
+	Type          string  `json:"type"`
+	TypeI         int32   `json:"type_i"`
+	AmountCharged *string `json:"amount_changed,omitempty"`
+	FlatFee       *string `json:"flat_fee,omitempty"`
+	PercentFee    *string `json:"percent_fee,omitempty"`
+}
+
 type CreateAccount struct {
 	Base
-	AccountType 	int32  `json:"account_type"`
-	Funder          string `json:"funder"`
-	Account         string `json:"account"`
+	Fee         Fee    `json:"fee"`
+	AccountType int32  `json:"account_type"`
+	Funder      string `json:"funder"`
+	Account     string `json:"account"`
 }
 
 type Payment struct {
 	Base
 	base.Asset
+	Fee    Fee    `json:"fee"`
 	From   string `json:"from"`
 	To     string `json:"to"`
 	Amount string `json:"amount"`
@@ -123,6 +133,7 @@ type Payment struct {
 
 type PathPayment struct {
 	Payment
+	Fee               Fee          `json:"fee"`
 	Path              []base.Asset `json:"path"`
 	SourceMax         string       `json:"source_max"`
 	SourceAssetType   string       `json:"source_asset_type"`
@@ -134,12 +145,14 @@ type PathPayment struct {
 // for the horizon API.
 type ManageData struct {
 	Base
+	Fee   Fee    `json:"fee"`
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
 type ManageOffer struct {
 	Base
+	Fee                Fee        `json:"fee"`
 	OfferID            int64      `json:"offer_id"`
 	Amount             string     `json:"amount"`
 	Price              string     `json:"price"`
@@ -158,13 +171,14 @@ type CreatePassiveOffer struct {
 
 type SetOptions struct {
 	Base
+	Fee           Fee    `json:"fee"`
 	HomeDomain    string `json:"home_domain,omitempty"`
 	InflationDest string `json:"inflation_dest,omitempty"`
 
 	MasterKeyWeight *int   `json:"master_key_weight,omitempty"`
 	SignerKey       string `json:"signer_key,omitempty"`
 	SignerWeight    *int   `json:"signer_weight,omitempty"`
-	SignerType    	*int   `json:"signer_type,omitempty"`
+	SignerType      *int   `json:"signer_type,omitempty"`
 
 	SetFlags    []int    `json:"set_flags,omitempty"`
 	SetFlagsS   []string `json:"set_flags_s,omitempty"`
@@ -179,6 +193,7 @@ type SetOptions struct {
 type ChangeTrust struct {
 	Base
 	base.Asset
+	Fee     Fee    `json:"fee"`
 	Limit   string `json:"limit"`
 	Trustee string `json:"trustee"`
 	Trustor string `json:"trustor"`
@@ -187,6 +202,7 @@ type ChangeTrust struct {
 type AllowTrust struct {
 	Base
 	base.Asset
+	Fee       Fee    `json:"fee"`
 	Trustee   string `json:"trustee"`
 	Trustor   string `json:"trustor"`
 	Authorize bool   `json:"authorize"`
@@ -194,10 +210,12 @@ type AllowTrust struct {
 
 type AccountMerge struct {
 	Base
+	Fee     Fee    `json:"fee"`
 	Account string `json:"account"`
 	Into    string `json:"into"`
 }
 
 type Inflation struct {
 	Base
+	Fee Fee `json:"fee"`
 }
