@@ -79,6 +79,10 @@ type RestrictedTransactionError struct {
 	AdditionalErrors []string
 }
 
+func (err *RestrictedTransactionError) Error() string {
+	return "tx violates some restrictions"
+}
+
 // MalformedTransactionError represent an error that occurred because
 // a TransactionEnvelope could not be decoded from the provided data.
 type MalformedTransactionError struct {

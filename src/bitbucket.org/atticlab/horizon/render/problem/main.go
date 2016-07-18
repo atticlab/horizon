@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-errors/errors"
 	"bitbucket.org/atticlab/horizon/context/requestid"
 	"bitbucket.org/atticlab/horizon/log"
+	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
 
@@ -214,5 +214,17 @@ var (
 		Status: http.StatusUnsupportedMediaType,
 		Detail: "The request has an unsupported content type. Presently, the " +
 			"only supported content type is application/x-www-form-urlencoded.",
+	}
+
+	// UnsupportedMediaType is a well-known problem type.  Use it as a shortcut
+	// in your actions.
+	TransactionRestricted = P{
+		Type:   "transaction_restricted",
+		Title:  "Transaction Restricted",
+		Status: http.StatusBadRequest,
+		Detail: "The transaction violates some of the restrictions. " +
+			"The `extras.result_codes` and `extras.additional_errors` fields on this response contain further " +
+			"details.  Descriptions of each code can be found at: " +
+			"https://www.stellar.org/developers/learn/concepts/list-of-operations.html",
 	}
 )
