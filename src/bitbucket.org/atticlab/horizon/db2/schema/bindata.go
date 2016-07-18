@@ -212,7 +212,7 @@ func migrations6_account_traitsSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/6_account_traits.sql", size: 522, mode: os.FileMode(420), modTime: time.Unix(1468844108, 0)}
+	info := bindataFileInfo{name: "migrations/6_account_traits.sql", size: 522, mode: os.FileMode(420), modTime: time.Unix(1468848466, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -272,7 +272,7 @@ func migrations9_commissionSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/9_commission.sql", size: 802, mode: os.FileMode(420), modTime: time.Unix(1468844108, 0)}
+	info := bindataFileInfo{name: "migrations/9_commission.sql", size: 802, mode: os.FileMode(420), modTime: time.Unix(1468848466, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
