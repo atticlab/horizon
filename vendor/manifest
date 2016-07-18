@@ -2,6 +2,18 @@
 	"version": 0,
 	"dependencies": [
 		{
+			"importpath": "ssh://bitbucket.org/atticlab/ed25519",
+			"repository": "ssh://bitbucket.org/atticlab/ed25519",
+			"revision": "7c40215003972e97d0f07a85519b35acfd5f4a25",
+			"branch": "master"
+		},
+		{
+			"importpath": "ssh://bitbucket.org/atticlab/go-smart-base",
+			"repository": "ssh://bitbucket.org/atticlab/go-smart-base",
+			"revision": "c06bf3e5b166d83de370412c0ac6fcf7ab6f153e",
+			"branch": "dev"
+		},
+		{
 			"importpath": "github.com/BurntSushi/toml",
 			"repository": "https://github.com/BurntSushi/toml",
 			"revision": "056c9bc7be7190eaa7715723883caffa5f8fa3e4",
@@ -17,12 +29,6 @@
 			"importpath": "github.com/Sirupsen/logrus",
 			"repository": "https://github.com/Sirupsen/logrus",
 			"revision": "fe6f2b03125e4fcafb21406381010e363a072c80",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/agl/ed25519",
-			"repository": "https://github.com/agl/ed25519",
-			"revision": "278e1ec8e8a6e017cd07577924d6766039146ced",
 			"branch": "master"
 		},
 		{
@@ -84,6 +90,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/howeyc/gopass",
+			"repository": "https://github.com/howeyc/gopass",
+			"revision": "66487b23f2880ba32e185121d2cd51a338ea069a",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/inconshreveable/mousetrap",
 			"repository": "https://github.com/inconshreveable/mousetrap",
 			"revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
@@ -93,6 +105,12 @@
 			"importpath": "github.com/jmoiron/sqlx",
 			"repository": "https://github.com/jmoiron/sqlx",
 			"revision": "ad7f2641d00865a3d5b860ccdade6f8e63dbdae6",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/joho/godotenv",
+			"repository": "https://github.com/joho/godotenv",
+			"revision": "",
 			"branch": "master"
 		},
 		{
@@ -240,17 +258,6 @@
 			"importpath": "github.com/spf13/viper",
 			"repository": "https://github.com/spf13/viper",
 			"revision": "db7ff930a189b98d602179d9001d33345f42b8c7",
-			"branch": "master"
-		},
-		{
-			"importpath": "bitbucket.org/atticlab/go-smart-base",
-			"repository": "https://bitbucket.org/atticlab/go-smart-base",
-			"revision": "8876f94049201fa116c1e0ea23c0608f69cf8fd5",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/joho/godotenv",
-			"repository": "https://github.com/joho/godotenv",
 			"branch": "master"
 		},
 		{
