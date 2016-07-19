@@ -182,6 +182,15 @@ func (action *TransactionCreateAction) loadResource() {
 	case *results.RestrictedTransactionError:
 		rcr := resource.TransactionResultCodes{}
 		rcr.Populate(action.Ctx, &err.FailedTransactionError)
+		extras := map[string]interface{}{
+			"envelope_xdr":      action.Result.EnvelopeXDR,
+			"result_xdr":        err.ResultXDR,
+			"result_codes":      rcr,
+			"additional_errors": err.AdditionalErrors,
+		}
+		if err.TransactionErrorInfo != nil {
+			extras["tx_error_info"] = *err.TransactionErrorInfo
+		}
 
 		action.Err = &problem.P{
 			Type:   "transaction_restricted",
@@ -191,12 +200,7 @@ func (action *TransactionCreateAction) loadResource() {
 				"The `extras.result_codes` and `extras.additional_errors` fields on this response contain further " +
 				"details.  Descriptions of each code can be found at: " +
 				"https://www.stellar.org/developers/learn/concepts/list-of-operations.html",
-			Extras: map[string]interface{}{
-				"envelope_xdr":      action.Result.EnvelopeXDR,
-				"result_xdr":        err.ResultXDR,
-				"result_codes":      rcr,
-				"additional_errors": err.AdditionalErrors,
-			},
+			Extras: extras,
 		}
 	case *results.FailedTransactionError:
 		rcr := resource.TransactionResultCodes{}

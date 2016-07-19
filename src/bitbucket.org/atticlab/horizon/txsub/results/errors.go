@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/admin"
 	"bitbucket.org/atticlab/horizon/codes"
 )
 
@@ -71,12 +72,55 @@ func (fte *FailedTransactionError) OperationResultCodes() (result []string, err 
 	return
 }
 
+type AdditionalErrorInfo map[string]string
+
+func AdditionalErrorInfoError(err error) AdditionalErrorInfo {
+	return AdditionalErrorInfoStrError(err.Error())
+}
+
+func AdditionalErrorInfoStrError(err string) AdditionalErrorInfo {
+	details := make(map[string]string)
+	details["error"] = err
+	return AdditionalErrorInfo(details)
+}
+
+func AdditionalErrorInfoInvField(err admin.InvalidFieldError) AdditionalErrorInfo {
+	details := AdditionalErrorInfoError(err.Reason)
+	details["invalid_field"] = err.FieldName
+	return details
+}
+
 // RestrictedTransactionError represent an error that occurred because
 // horizon rejected the transaction.  ResultXDR is a base64
 // encoded TransactionResult struct
 type RestrictedTransactionError struct {
 	FailedTransactionError
-	AdditionalErrors []string
+	AdditionalErrors []AdditionalErrorInfo
+	TransactionErrorInfo *AdditionalErrorInfo
+}
+
+func NewRestrictedTransactionErrorTx(code xdr.TransactionResultCode, txError AdditionalErrorInfo) (*RestrictedTransactionError, error) {
+	restricted, err := newRestrictedTransactionErrorOp(code, []xdr.OperationResult{}, []AdditionalErrorInfo{})
+	if err != nil {
+		return nil, err
+	}
+	restricted.TransactionErrorInfo = &txError
+	return restricted, err
+}
+
+func NewRestrictedTransactionErrorOp(code xdr.TransactionResultCode, operationResults interface{}, additionalErrors []AdditionalErrorInfo) (*RestrictedTransactionError, error) {
+	return newRestrictedTransactionErrorOp(code, operationResults, additionalErrors)
+}
+
+func newRestrictedTransactionErrorOp(code xdr.TransactionResultCode, operationResults interface{}, additionalErrors []AdditionalErrorInfo) (*RestrictedTransactionError, error) {
+	var xdrResult xdr.TransactionResult
+	xdrResult.Result, _ = xdr.NewTransactionResultResult(code, operationResults)
+	resEnv, err := xdr.MarshalBase64(xdrResult)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RestrictedTransactionError{FailedTransactionError{resEnv}, additionalErrors, nil}, nil
 }
 
 // MalformedTransactionError represent an error that occurred because

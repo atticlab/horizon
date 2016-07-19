@@ -10,7 +10,6 @@ import (
 	"database/sql"
 )
 
-// Inserts new Commission if CommissionId is 0, otherwise - tries to update
 type CalculateCommissionAction struct {
 	Action
 	source      xdr.AccountId

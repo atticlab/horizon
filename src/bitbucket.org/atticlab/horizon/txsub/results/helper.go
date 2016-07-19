@@ -84,3 +84,17 @@ func GetSuccessResult(opType xdr.OperationType) (opResult xdr.OperationResult, e
 	opResult, err = xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
 	return
 }
+
+func NewPaymentOpResult(code xdr.PaymentResultCode) xdr.OperationResult {
+	pr, _ := xdr.NewPaymentResult(code, nil)
+	opR, _ := xdr.NewOperationResultTr(xdr.OperationTypePayment, pr)
+	opResult, _ := xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
+	return opResult
+}
+
+func NewAdminOpResult(code xdr.AdministrativeResultCode) xdr.OperationResult {
+	pr, _ := xdr.NewAdministrativeResult(code, nil)
+	opR, _ := xdr.NewOperationResultTr(xdr.OperationTypeAdministrative, pr)
+	opResult, _ := xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
+	return opResult
+}

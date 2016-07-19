@@ -22,6 +22,7 @@ var TypeNames = map[xdr.OperationType]string{
 	xdr.OperationTypeAccountMerge:       "account_merge",
 	xdr.OperationTypeInflation:          "inflation",
 	xdr.OperationTypeManageData:         "manage_data",
+	xdr.OperationTypeAdministrative:     "administrative",
 }
 
 // New creates a new operation resource, finding the appropriate type to use
@@ -81,6 +82,9 @@ func New(
 		e := ManageData{Base: base}
 		err = row.UnmarshalDetails(&e)
 		result = e
+	case xdr.OperationTypeAdministrative:
+		e := Administrative{Base: base}
+		err = row.UnmarshalDetails(&e)
 	default:
 		result = base
 	}
@@ -146,6 +150,11 @@ type ManageData struct {
 	Fee   Fee    `json:"fee"`
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type Administrative struct {
+	Base
+	Details interface{}
 }
 
 type ManageOffer struct {

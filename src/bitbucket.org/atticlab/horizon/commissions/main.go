@@ -38,8 +38,7 @@ func (cm *CommissionsManager) SetCommissions(env *xdr.TransactionEnvelope) (err 
 	for i, op := range env.Tx.Operations {
 		commission, err := cm.CalculateCommissionForOperation(env.Tx.SourceAccount, op)
 		if err != nil {
-			log.WithStack(err).WithError(err).Error("Failed to count commission")
-			return errors.New("failed to count commission")
+			return err
 		}
 		env.OperationFees[i] = *commission
 	}

@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/horizon/test"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
+	subResults "bitbucket.org/atticlab/horizon/txsub/results"
 )
 
 func _TestTxsub(t *testing.T) {
@@ -27,7 +28,7 @@ func _TestTxsub(t *testing.T) {
 			NetworkPassphrase: build.TestNetwork.Passphrase,
 		}
 
-		noResults := Result{Err: ErrNoResults}
+		noResults := Result{Err: subResults.ErrNoResults}
 		successTx := Result{
 			Hash:           "2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d",
 			LedgerSequence: 2,
@@ -36,7 +37,7 @@ func _TestTxsub(t *testing.T) {
 		}
 
 		badSeq := SubmissionResult{
-			Err: ErrBadSequence,
+			Err: subResults.ErrBadSequence,
 		}
 
 		sequences.Results = map[string]uint64{

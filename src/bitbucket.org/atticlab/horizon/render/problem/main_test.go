@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	ge "github.com/go-errors/errors"
-	. "github.com/smartystreets/goconvey/convey"
 	"bitbucket.org/atticlab/horizon/context/requestid"
 	"bitbucket.org/atticlab/horizon/test"
+	ge "github.com/go-errors/errors"
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/net/context"
 )
 

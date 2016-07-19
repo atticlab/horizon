@@ -1,4 +1,4 @@
-package txsub
+package validator
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 )
 
 // VerifyAccountTypesForPayment performs account types check for payment operation
-func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
+func (v *LimitsValidator) verifyAccountTypesForPayment(from core.Account, to core.Account) error {
 	if !contains(typeRestrictions[from.AccountType], to.AccountType) {
 		reason := fmt.Sprintf("Payments from %s to %s are restricted.", from.AccountType.String(), to.AccountType.String())
 		return &results.RestrictedForAccountTypeError{Reason: reason}
@@ -24,15 +24,15 @@ func VerifyAccountTypesForPayment(from core.Account, to core.Account) error {
 }
 
 // VerifyRestrictions checks traits of the involved accounts
-func (sub *submitter) VerifyRestrictions(from string, to string) error {
+func (v *LimitsValidator) verifyRestrictions(from string, to string) error {
 	// Get account traits
 	var sourceTraits, destTraits history.AccountTraits
-	errSource := sub.historyDb.GetAccountTraitsByAddress(&sourceTraits, from)
+	errSource := v.historyDb.GetAccountTraitsByAddress(&sourceTraits, from)
 	if errSource != nil && errSource != sql.ErrNoRows {
 		return errSource
 	}
 
-	errDest := sub.historyDb.GetAccountTraitsByAddress(&destTraits, to)
+	errDest := v.historyDb.GetAccountTraitsByAddress(&destTraits, to)
 	if errDest != nil && errDest != sql.ErrNoRows {
 		return errDest
 	}
@@ -55,7 +55,7 @@ func (sub *submitter) VerifyRestrictions(from string, to string) error {
 }
 
 // VerifyLimitsForSender checks limits for sender
-func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
+func (v *LimitsValidator) verifyLimitsForSender(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
 	opAmount := int64(payment.Amount)
 	opAsset, err := assets.Code(payment.Asset)
 	if err != nil {
@@ -64,7 +64,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 
 	var limits history.AccountLimits
 	hasLimits := false
-	err = sub.historyDb.GetAccountLimits(&limits, sender.Accountid, opAsset)
+	err = v.historyDb.GetAccountLimits(&limits, sender.Accountid, opAsset)
 	if err == nil {
 		if limits.MaxOperationOut >= 0 && opAmount > limits.MaxOperationOut*amount.One {
 			description := fmt.Sprintf(
@@ -84,7 +84,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 	}
 
 	var stats map[xdr.AccountType]history.AccountStatistics
-	err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
+	err = v.historyDb.GetStatisticsByAccountAndAsset(&stats, sender.Accountid, opAsset)
 	if err != nil {
 		return err
 	}
@@ -122,23 +122,23 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 
 	if sender.AccountType == xdr.AccountTypeAccountAnonymousUser && opAsset == "EUAH" {
 		// 1. Check daily outcome
-		if dailyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxDailyOutcome {
+		if dailyOutcome+opAmount > v.config.AnonymousUserRestrictions.MaxDailyOutcome {
 			description := fmt.Sprintf(
 				"Daily outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per day",
 				amount.String(xdr.Int64(dailyOutcome)),
 				amount.String(payment.Amount),
-				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxDailyOutcome)),
+				amount.String(xdr.Int64(v.config.AnonymousUserRestrictions.MaxDailyOutcome)),
 			)
 			return &results.ExceededLimitError{Description: description}
 		}
 
 		// 2. Check monthly outcome
-		if monthlyOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxMonthlyOutcome {
+		if monthlyOutcome+opAmount > v.config.AnonymousUserRestrictions.MaxMonthlyOutcome {
 			description := fmt.Sprintf(
 				"Monthly outcoming payments limit for anonymous user exceeded: %s + %s out of %s UAH per month",
 				amount.String(xdr.Int64(monthlyOutcome)),
 				amount.String(payment.Amount),
-				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxMonthlyOutcome)),
+				amount.String(xdr.Int64(v.config.AnonymousUserRestrictions.MaxMonthlyOutcome)),
 			)
 			return &results.ExceededLimitError{Description: description}
 		}
@@ -153,12 +153,12 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 			xdr.AccountTypeAccountMerchant,
 		)
 
-		if annualOutcome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualOutcome {
+		if annualOutcome+opAmount > v.config.AnonymousUserRestrictions.MaxAnnualOutcome {
 			description := fmt.Sprintf(
 				"Annual outcoming payments limit for user exceeded: %s + %s out of %s UAH per year",
 				amount.String(xdr.Int64(annualOutcome)),
 				amount.String(payment.Amount),
-				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualOutcome)),
+				amount.String(xdr.Int64(v.config.AnonymousUserRestrictions.MaxAnnualOutcome)),
 			)
 			return &results.ExceededLimitError{Description: description}
 		}
@@ -168,7 +168,7 @@ func (sub *submitter) VerifyLimitsForSender(sender core.Account, receiver core.A
 }
 
 // VerifyLimitsForReceiver checks limits  and restrictions for receiver
-func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
+func (v *LimitsValidator) verifyLimitsForReceiver(sender core.Account, receiver core.Account, payment xdr.PaymentOp) error {
 	opAsset, err := assets.Code(payment.Asset)
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 
 	var limits history.AccountLimits
 	hasLimits := false
-	err = sub.historyDb.GetAccountLimits(&limits, receiver.Accountid, opAsset)
+	err = v.historyDb.GetAccountLimits(&limits, receiver.Accountid, opAsset)
 	if err == nil {
 		if limits.MaxOperationIn >= 0 && opAmount > limits.MaxOperationIn*amount.One {
 			description := fmt.Sprintf(
@@ -197,7 +197,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 		return nil
 	}
 	var stats map[xdr.AccountType]history.AccountStatistics
-	err = sub.historyDb.GetStatisticsByAccountAndAsset(&stats, receiver.Accountid, opAsset)
+	err = v.historyDb.GetStatisticsByAccountAndAsset(&stats, receiver.Accountid, opAsset)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 	if opAsset == "EUAH" && !bankAgent(receiver.AccountType) {
 		// 1. Check max balance
 		var trustline core.Trustline
-		err = sub.coreDb.TrustlineByAddressAndAsset(&trustline, receiver.Accountid, opAsset, sub.config.BankMasterKey)
+		err = v.coreDb.TrustlineByAddressAndAsset(&trustline, receiver.Accountid, opAsset, v.config.BankMasterKey)
 		if err == sql.ErrNoRows {
 			// let's suppose the balance is zero and let core throw error
 			trustline.Balance = 0
@@ -253,12 +253,12 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 			}
 		}
 
-		if int64(trustline.Balance)+opAmount > sub.config.AnonymousUserRestrictions.MaxBalance {
+		if int64(trustline.Balance)+opAmount > v.config.AnonymousUserRestrictions.MaxBalance {
 			description := fmt.Sprintf(
 				"User's max balance exceeded: %s + %s out of %s UAH.",
 				amount.String(trustline.Balance),
 				amount.String(payment.Amount),
-				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxBalance)),
+				amount.String(xdr.Int64(v.config.AnonymousUserRestrictions.MaxBalance)),
 			)
 			return &results.ExceededLimitError{Description: description}
 		}
@@ -266,12 +266,12 @@ func (sub *submitter) VerifyLimitsForReceiver(sender core.Account, receiver core
 		// 2.Check max annual income
 		annualIncome := sumAnnualIncome(stats)
 
-		if annualIncome+opAmount > sub.config.AnonymousUserRestrictions.MaxAnnualIncome {
+		if annualIncome+opAmount > v.config.AnonymousUserRestrictions.MaxAnnualIncome {
 			description := fmt.Sprintf(
 				"User's max annual income limit exceeded: %s + %s out of %s UAH per year",
 				amount.String(xdr.Int64(annualIncome)),
 				amount.String(payment.Amount),
-				amount.String(xdr.Int64(sub.config.AnonymousUserRestrictions.MaxAnnualIncome)),
+				amount.String(xdr.Int64(v.config.AnonymousUserRestrictions.MaxAnnualIncome)),
 			)
 			return &results.ExceededLimitError{Description: description}
 		}

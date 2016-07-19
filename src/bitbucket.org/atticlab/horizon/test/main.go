@@ -12,8 +12,11 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/hash"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/config"
 	hlog "bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/test/db"
 	tdb "bitbucket.org/atticlab/horizon/test/db"
+	"github.com/PuerkitoBio/throttled"
 	"github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
@@ -173,4 +176,15 @@ func (r *RequestData) CreateRequest() *http.Request {
 	req.Header.Set("X-AuthSignature", r.Signature)
 	req.Header.Set("X-AuthTimestamp", strconv.FormatInt(r.Timestamp, 10))
 	return req
+}
+
+func NewTestConfig() config.Config {
+	return config.Config{
+		DatabaseURL:            db.HorizonURL(),
+		StellarCoreDatabaseURL: db.StellarCoreURL(),
+		RateLimit:              throttled.PerHour(1000),
+		LogLevel:               hlog.DebugLevel,
+		AdminSignatureValid:    time.Duration(60) * time.Second,
+		BankMasterKey:          "GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R", //SB4HOLTEVQDTJSLQCCIXXYCURZUHNT3HEFJ5GNPNBCWIVFBVA3FBG4Q3
+	}
 }

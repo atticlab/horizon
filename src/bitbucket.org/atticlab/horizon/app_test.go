@@ -10,7 +10,7 @@ import (
 
 func TestApp(t *testing.T) {
 	Convey("NewApp establishes the app in its context", t, func() {
-		app, err := NewApp(NewTestConfig())
+		app, err := NewApp(test.NewTestConfig())
 		So(err, ShouldBeNil)
 		defer app.Close()
 
@@ -20,7 +20,7 @@ func TestApp(t *testing.T) {
 	})
 
 	Convey("NewApp panics if the provided config's SentryDSN is invalid", t, func() {
-		config := NewTestConfig()
+		config := test.NewTestConfig()
 		config.SentryDSN = "Not a url"
 
 		So(func() {

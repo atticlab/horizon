@@ -1,7 +1,6 @@
 package txsub
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -13,7 +12,9 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"bitbucket.org/atticlab/horizon/txsub/validator"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
@@ -34,13 +35,19 @@ func NewDefaultSubmitter(
 	historyDb *history.Q,
 	config *conf.Config,
 ) Submitter {
-	return &submitter{
+	sub := submitter{
 		http:      h,
 		coreURL:   url,
 		coreDb:    coreDb,
 		historyDb: historyDb,
 		config:    config,
+		Log:       log.WithField("service", "submitter"),
 	}
+	sub.validators = []validator.ValidatorInterface{
+		//validator.NewLimitsValidator(sub.coreDb, sub.historyDb, sub.config),
+		validator.NewAdministrativeValidator(sub.historyDb),
+	}
+	return &sub
 }
 
 // coreSubmissionResponse is the json response from stellar-core's tx endpoint
@@ -54,11 +61,13 @@ type coreSubmissionResponse struct {
 // submits directly to the configured stellar-core instance using the
 // configured http client.
 type submitter struct {
-	http      *http.Client
-	coreURL   string
-	coreDb    *core.Q
-	historyDb *history.Q
-	config    *conf.Config
+	http       *http.Client
+	coreURL    string
+	coreDb     *core.Q
+	historyDb  *history.Q
+	config     *conf.Config
+	validators []validator.ValidatorInterface
+	Log        *log.Entry
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
@@ -68,6 +77,7 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	defer func() { result.Duration = time.Since(start) }()
 
 	// parse tx
+	sub.Log.Debug("Parsing tx")
 	tx, err := parseTransaction(env)
 	if err != nil {
 		result.Err = err
@@ -75,6 +85,7 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	}
 
 	// check constraints for tx
+	sub.Log.Debug("Checking tx")
 	err = sub.checkTransaction(&tx)
 	if err != nil {
 		result.Err = err
@@ -85,7 +96,7 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	err = cm.SetCommissions(&tx)
 	if err != nil {
 		log.WithField("Error", err).Error("Failed to set commissions")
-		result.Err = err
+		result.Err = &problem.ServerError
 		return
 	}
 
@@ -151,129 +162,51 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 
 // checkAccountTypes Parse tx and check account types
 func (sub *submitter) checkTransaction(tx *xdr.TransactionEnvelope) error {
-
-	additional := make([]string, len(tx.Tx.Operations))
-	var xdrResult xdr.TransactionResult
-	operationResults := make([]xdr.OperationResult, len(tx.Tx.Operations))
-	allowTx := true
-	for i := 0; i < len(tx.Tx.Operations); i++ {
-		op := tx.Tx.Operations[i]
-		opRes, err := sub.checkOperation(op, tx)
-		operationResults[i] = opRes
+	for _, v := range sub.validators {
+		result, err := v.CheckTransaction(tx)
+		// failed to validate
 		if err != nil {
-			additional[i] = err.Error()
-			allowTx = false
-		}
-	}
-	if !allowTx {
-		xdrResult.Result, _ = xdr.NewTransactionResultResult(xdr.TransactionResultCodeTxFailed, operationResults)
-		resEnv, err := xdr.MarshalBase64(xdrResult)
-		if err != nil {
-			return err
+			sub.Log.WithStack(err).WithError(err).Error("Failed to validate tx")
+			return &problem.ServerError
 		}
 
-		return &results.RestrictedTransactionError{results.FailedTransactionError{resEnv}, additional}
+		// invalid tx
+		if result != nil {
+			return result
+		}
+
+		additional := make([]results.AdditionalErrorInfo, len(tx.Tx.Operations))
+		operationResults := make([]xdr.OperationResult, len(tx.Tx.Operations))
+		allowTx := true
+		for i, op := range tx.Tx.Operations {
+			operationResults[i], additional[i], err = v.CheckOperation(tx.Tx.SourceAccount.Address(), &op)
+			// failed to validate
+			if err != nil {
+				sub.Log.WithStack(err).WithError(err).Error("Failed to validate op")
+				return &problem.ServerError
+			}
+
+			sub.Log.WithField("opType", op.Body.Type).WithField("opResult", operationResults[i].MustTr().Type).Debug("Checking if operation is successful")
+			isSuccess, err := results.IsSuccessful(operationResults[i])
+			if err != nil {
+				sub.Log.WithField("opType", op.Body.Type).WithError(err).Debug("Failed to check if operation IsSuccessful")
+				return &problem.ServerError
+			}
+			if !isSuccess {
+				allowTx = false
+			}
+		}
+		if !allowTx {
+			restricted, err := results.NewRestrictedTransactionErrorOp(xdr.TransactionResultCodeTxFailed, operationResults, additional)
+			if err != nil {
+				sub.Log.WithStack(err).WithError(err).Error("Failed to create NewRestrictedTransactionErrorOp")
+				return &problem.ServerError
+			}
+			return restricted
+		}
+
 	}
 	return nil
-}
-
-// checkAccountTypes Parse tx and check account types
-func (sub *submitter) checkOperation(op xdr.Operation, tx *xdr.TransactionEnvelope) (opResult xdr.OperationResult, err error) {
-	switch op.Body.Type {
-	case xdr.OperationTypePayment:
-		payment := op.Body.MustPaymentOp()
-		destination := payment.Destination.Address()
-		var source string
-		if len(op.SourceAccount.Address()) > 0 {
-			source = op.SourceAccount.Address()
-		} else {
-			source = tx.Tx.SourceAccount.Address()
-		}
-
-		var sourceAcc core.Account
-		err = sub.coreDb.AccountByAddress(&sourceAcc, source)
-		if err == sql.ErrNoRows {
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
-			err = results.ErrNoAccount
-			return
-		}
-		if err != nil {
-			return
-		}
-
-		var destinationAcc core.Account
-		err = sub.coreDb.AccountByAddress(&destinationAcc, destination)
-		if err == sql.ErrNoRows {
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNoDestination)
-			err = nil
-			destinationAcc.Accountid = destination
-			destinationAcc.AccountType = 0
-			return
-		}
-		if err != nil {
-			log.WithStack(err).
-				WithField("err", err.Error()).
-				Error("destAccError")
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
-
-			return
-		}
-
-		// 1. Check account types
-		err = VerifyAccountTypesForPayment(sourceAcc, destinationAcc)
-		if err != nil {
-			log.WithStack(err).
-				WithField("err", err.Error()).
-				Error("VerifyAccountTypesForPaymentError")
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
-			return
-		}
-
-		// 2. Check restrictions for accounts
-		err = sub.VerifyRestrictions(source, destination)
-		if err != nil {
-			log.WithStack(err).
-				WithField("err", err.Error()).
-				Error("VerifyRestrictionsError")
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
-			return
-		}
-
-		// 3. Check restrictions for sender
-		err = sub.VerifyLimitsForSender(sourceAcc, destinationAcc, payment)
-		if err != nil {
-			log.WithStack(err).
-				WithField("err", err.Error()).
-				Error("VerifyLimitsForSenderError")
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentSrcNotAuthorized)
-			return
-		}
-
-		// 4. Check restrictions for receiver
-		err = sub.VerifyLimitsForReceiver(sourceAcc, destinationAcc, payment)
-		if err == sql.ErrNoRows {
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNoTrust)
-		}
-		if err != nil {
-			log.WithStack(err).
-				WithField("err", err.Error()).
-				Error("VerifyLimitsForReceiverError")
-
-			opResult = paymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
-			return
-		}
-		opResult = paymentOpResult(xdr.PaymentResultCodePaymentSuccess)
-	default:
-		opResult, err = results.GetSuccessResult(op.Body.Type)
-	}
-	return
-}
-
-func paymentOpResult(code xdr.PaymentResultCode) xdr.OperationResult {
-	pr := xdr.PaymentResult{code}
-	opR, _ := xdr.NewOperationResultTr(xdr.OperationTypePayment, pr)
-	opResult, _ := xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
-	return opResult
 }
 
 func parseTransaction(envelope string) (tx xdr.TransactionEnvelope, err error) {

@@ -307,6 +307,21 @@ func (q *Q) CommissionByKey(keys map[string]CommissionKey) (resultingCommissions
 	return resultingCommissions, nil
 }
 
+func (q *Q) CommissionById(id int64) (*Commission, error) {
+	sql := selectCommission.Where("com.id = ?", id)
+	var storedCommissions []Commission
+	err := q.Select(&storedCommissions, sql)
+	if err != nil {
+		log.Error("Failed to get commission by key: " + err.Error())
+		return nil, err
+	}
+
+	if len(storedCommissions) == 0 {
+		return nil, nil
+	}
+	return &storedCommissions[0], nil
+}
+
 func (q *Q) DeleteCommissions() error {
 	_, err := q.Exec(delete)
 	return err
