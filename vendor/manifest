@@ -20,6 +20,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/agl/ed25519",
+			"repository": "https://github.com/agl/ed25519",
+			"revision": "278e1ec8e8a6e017cd07577924d6766039146ced",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/codegangsta/negroni",
 			"repository": "https://github.com/codegangsta/negroni",
 			"revision": "c7477ad8e330bef55bf1ebe300cf8aa67c492d1b",
