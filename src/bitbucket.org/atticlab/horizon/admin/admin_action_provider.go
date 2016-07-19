@@ -34,6 +34,8 @@ func (p *AdminActionProvider) CreateNewParser(data map[string]interface{}) (Admi
 			return NewSetCommissionAction(adminAction), nil
 		case SubjectAccountLimits:
 			return NewSetLimitsAction(adminAction), nil
+		case SubjectTraits:
+			return NewSetTraitsAction(adminAction), nil
 		default:
 			return nil, errors.New("unknown admin action")
 		}

@@ -69,5 +69,24 @@ func TestAdminActionProvider(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			})
 		})
+		Convey("Set traits action", func() {
+			action, err := actionProvider.CreateNewParser(map[string]interface{} {
+				string(SubjectTraits): map[string]interface{}{},
+			})
+			So(err, ShouldBeNil)
+			switch action.(type) {
+			case *SetTraitsAction:
+			//ok
+			default:
+				//not ok
+				assert.Fail(t, "Expected SetTraitsAction")
+			}
+			Convey("Invalid type", func() {
+				_, err := actionProvider.CreateNewParser(map[string]interface{} {
+					string(SubjectTraits): "random_data",
+				})
+				So(err, ShouldNotBeNil)
+			})
+		})
 	})
 }
