@@ -303,13 +303,6 @@ func (is *Session) ingestEffects() {
 	is.Err = effects.Finish()
 }
 
-func (is *Session) ingestAdministrativeOp() {
-	if is.Err != nil {
-		return
-	}
-
-}
-
 // ingestLedger ingests the current ledger
 func (is *Session) ingestLedger() {
 	if is.Err != nil {
@@ -803,8 +796,13 @@ func (is *Session) operationDetails() map[string]interface{} {
 			details["value"] = nil
 		}
 	case xdr.OperationTypeAdministrative:
-		c.Operation().Body.MustAdminOp()
-		// TODO: store audit logs here
+		op := c.Operation().Body.MustAdminOp()
+		var adminOpDetails map[string]interface{}
+		err := json.Unmarshal([]byte(op.OpData), &adminOpDetails)
+		if err != nil {
+			log.WithField("tx_hash", c.Transaction().TransactionHash).WithError(err).Error("Failed to unmarshal admin op details")
+		}
+		details["details"] = adminOpDetails
 	default:
 		panic(fmt.Errorf("Unknown operation type: %s", c.OperationType()))
 	}

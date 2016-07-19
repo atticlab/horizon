@@ -85,6 +85,7 @@ func New(
 	case xdr.OperationTypeAdministrative:
 		e := Administrative{Base: base}
 		err = row.UnmarshalDetails(&e)
+		result = e
 	default:
 		result = base
 	}
@@ -154,7 +155,7 @@ type ManageData struct {
 
 type Administrative struct {
 	Base
-	Details interface{}
+	Details map[string]interface{} `json:"details"`
 }
 
 type ManageOffer struct {
