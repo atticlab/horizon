@@ -319,3 +319,19 @@ type AuditLog struct {
 	Meta      string    `db:"meta"`       //meta information about audit event
 	CreatedAt time.Time `db:"created_at"` // time log was created
 }
+
+type Asset struct {
+	Id          int64  `db:"id"`
+	Type        int    `db:"type"`
+	Code        string `db:"code"`
+	Issuer      string `db:"issuer"`
+	IsAnonymous bool   `db:"is_anonymous"`
+}
+
+// AssetQ is a helper struct to aid in configuring queries that loads
+// slices of Assets.
+type AssetQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}

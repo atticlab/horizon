@@ -102,12 +102,9 @@ func (action *SetCommissionAction) loadParams() {
 	action.CommissionKey.To = action.GetOptionalAddress("to")
 	action.CommissionKey.FromType = action.GetOptionalRawAccountType("from_type")
 	action.CommissionKey.ToType = action.GetOptionalRawAccountType("to_type")
-	if action.GetString("asset_type") != "" {
-		xdrAsset := action.GetAsset("")
-		if action.Err != nil {
-			return
-		}
-		action.CommissionKey.Asset = assets.ToBaseAsset(xdrAsset)
+	xdrAsset := action.GetOptionalAsset("")
+	if xdrAsset != nil {
+		action.CommissionKey.Asset = assets.ToBaseAsset(*xdrAsset)
 	}
 	action.FlatFee = action.GetInt64("flat_fee")
 	if action.FlatFee < 0 {

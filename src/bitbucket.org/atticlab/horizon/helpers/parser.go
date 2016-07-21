@@ -177,16 +177,7 @@ func GetOptionalAccountID(base ParserInterface, name string) *xdr.AccountId {
 		return nil
 	}
 
-	raw, err := strkey.Decode(strkey.VersionByteAccountID, strData)
-	if err != nil {
-		base.SetInvalidField(name, err)
-		return nil
-	}
-
-	var key xdr.Uint256
-	copy(key[:], raw)
-
-	result, err := xdr.NewAccountId(xdr.CryptoKeyTypeKeyTypeEd25519, key)
+	result, err := ParseAccountId(strData)
 	if err != nil {
 		base.SetInvalidField(name, err)
 		return nil
@@ -290,6 +281,17 @@ func GetAsset(base ParserInterface, prefix string) (result xdr.Asset) {
 		panic(err)
 	}
 	return
+}
+
+func GetOptionalAsset(base ParserInterface, prefix string) (result *xdr.Asset) {
+	if base.GetString(prefix + "asset_type") == "" {
+		return nil
+	}
+	asset := GetAsset(base, prefix)
+	if base.HasError() {
+		return nil
+	}
+	return &asset
 }
 
 func GetOptionalRawAccountType(base ParserInterface, name string) *int32 {

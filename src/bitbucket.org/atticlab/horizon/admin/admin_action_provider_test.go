@@ -31,6 +31,12 @@ func TestAdminActionProvider(t *testing.T) {
 			})
 			So(err, ShouldNotBeNil)
 		})
+		Convey("Invalid type", func() {
+			_, err := actionProvider.CreateNewParser(map[string]interface{} {
+				string(SubjectAccountLimits): "random_data",
+			})
+			So(err, ShouldNotBeNil)
+		})
 		Convey("Create commission set action", func() {
 			action, err := actionProvider.CreateNewParser(map[string]interface{} {
 				string(SubjectCommission): map[string]interface{}{},
@@ -43,12 +49,6 @@ func TestAdminActionProvider(t *testing.T) {
 				//not ok
 				assert.Fail(t, "Expected SetCommissionAction")
 			}
-			Convey("Invalid type", func() {
-				_, err := actionProvider.CreateNewParser(map[string]interface{} {
-					string(SubjectCommission): "random_data",
-				})
-				So(err, ShouldNotBeNil)
-			})
 		})
 		Convey("Create limits set action", func() {
 			action, err := actionProvider.CreateNewParser(map[string]interface{} {
@@ -62,12 +62,6 @@ func TestAdminActionProvider(t *testing.T) {
 				//not ok
 				assert.Fail(t, "Expected SetLimitsAction")
 			}
-			Convey("Invalid type", func() {
-				_, err := actionProvider.CreateNewParser(map[string]interface{} {
-					string(SubjectAccountLimits): "random_data",
-				})
-				So(err, ShouldNotBeNil)
-			})
 		})
 		Convey("Set traits action", func() {
 			action, err := actionProvider.CreateNewParser(map[string]interface{} {
@@ -81,12 +75,20 @@ func TestAdminActionProvider(t *testing.T) {
 				//not ok
 				assert.Fail(t, "Expected SetTraitsAction")
 			}
-			Convey("Invalid type", func() {
-				_, err := actionProvider.CreateNewParser(map[string]interface{} {
-					string(SubjectTraits): "random_data",
-				})
-				So(err, ShouldNotBeNil)
+		})
+
+		Convey("Manage assets action", func() {
+			action, err := actionProvider.CreateNewParser(map[string]interface{} {
+				string(SubjectAsset): map[string]interface{}{},
 			})
+			So(err, ShouldBeNil)
+			switch action.(type) {
+			case *ManageAssetsAction:
+			//ok
+			default:
+				//not ok
+				assert.Fail(t, "Expected ManageAssetsAction")
+			}
 		})
 	})
 }

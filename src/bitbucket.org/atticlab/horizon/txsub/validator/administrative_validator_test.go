@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-func TestAdminActionProvider(t *testing.T) {
+func TestAdministrativeValidator(t *testing.T) {
 	tt := test.Start(t).Scenario("base")
 	defer tt.Finish()
 
@@ -42,7 +42,7 @@ func TestAdminActionProvider(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(res, ShouldBeNil)
 			for _, op := range newTxE.Tx.Operations {
-				opResult, additionalInfo, err := adminVal.CheckOperation(newTxE.Tx.SourceAccount.Address(), &op)
+				opResult, additionalInfo, err := adminVal.CheckOperation(newTxE.Tx.SourceAccount, &op)
 				So(err, ShouldBeNil)
 				So(additionalInfo, ShouldBeNil)
 				opInner := opResult.MustTr()
@@ -79,7 +79,7 @@ func TestAdminActionProvider(t *testing.T) {
 			res, err := adminVal.CheckTransaction(&newTxE)
 			So(err, ShouldBeNil)
 			So(res, ShouldBeNil)
-			opResult, additionalInfo, err := adminVal.CheckOperation(newTxE.Tx.SourceAccount.Address(), &newTxE.Tx.Operations[0])
+			opResult, additionalInfo, err := adminVal.CheckOperation(newTxE.Tx.SourceAccount, &newTxE.Tx.Operations[0])
 			So(err, ShouldBeNil)
 			So(additionalInfo, ShouldBeNil)
 			So(opResult.MustTr().MustAdminResult().Code, ShouldEqual, xdr.AdministrativeResultCodeAdministrativeSuccess)

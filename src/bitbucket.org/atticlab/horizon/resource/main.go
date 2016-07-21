@@ -123,6 +123,12 @@ type AccountThresholds struct {
 // Asset represents a single asset
 type Asset base.Asset
 
+type HistoryAsset struct {
+	Asset
+	ID          int64 `json:"id"`
+	IsAnonymous bool  `json:"is_anonymous"`
+}
+
 // Balance represents an account's holdings for a single currency type
 type Balance struct {
 	Balance string `json:"balance"`

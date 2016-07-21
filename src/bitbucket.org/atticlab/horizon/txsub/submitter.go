@@ -46,6 +46,7 @@ func NewDefaultSubmitter(
 	sub.validators = []validator.ValidatorInterface{
 		//validator.NewLimitsValidator(sub.coreDb, sub.historyDb, sub.config),
 		validator.NewAdministrativeValidator(sub.historyDb),
+		validator.NewAssetsValidator(sub.historyDb, sub.config),
 	}
 	return &sub
 }
@@ -179,7 +180,7 @@ func (sub *submitter) checkTransaction(tx *xdr.TransactionEnvelope) error {
 		operationResults := make([]xdr.OperationResult, len(tx.Tx.Operations))
 		allowTx := true
 		for i, op := range tx.Tx.Operations {
-			operationResults[i], additional[i], err = v.CheckOperation(tx.Tx.SourceAccount.Address(), &op)
+			operationResults[i], additional[i], err = v.CheckOperation(tx.Tx.SourceAccount, &op)
 			// failed to validate
 			if err != nil {
 				sub.Log.WithStack(err).WithError(err).Error("Failed to validate op")

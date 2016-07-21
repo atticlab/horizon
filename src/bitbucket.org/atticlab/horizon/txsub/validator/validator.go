@@ -9,5 +9,5 @@ type ValidatorInterface interface {
 	// validates transaction. If tx is invalid returns results.RestrictedTransactionError
 	CheckTransaction(tx *xdr.TransactionEnvelope) (*results.RestrictedTransactionError, error)
 	// validates operation
-	CheckOperation(sourceAccount string, op *xdr.Operation) (result xdr.OperationResult, additionalInfo results.AdditionalErrorInfo, err error)
+	CheckOperation(sourceAccount xdr.AccountId, op *xdr.Operation) (result xdr.OperationResult, additionalInfo results.AdditionalErrorInfo, err error)
 }

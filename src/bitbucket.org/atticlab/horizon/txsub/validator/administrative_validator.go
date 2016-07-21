@@ -21,7 +21,7 @@ type AdministrativeValidator struct {
 
 func NewAdministrativeValidator(historyDb *history.Q) *AdministrativeValidator {
 	return &AdministrativeValidator{
-		log:       log.WithField("service", "limits_validator"),
+		log:       log.WithField("service", "administrative_validator"),
 		historyDb: historyDb,
 	}
 }
@@ -39,7 +39,7 @@ func (v *AdministrativeValidator) CheckTransaction(tx *xdr.TransactionEnvelope) 
 }
 
 // checkAccountTypes Parse tx and check account types
-func (v *AdministrativeValidator) CheckOperation(source string, op *xdr.Operation) (opResult xdr.OperationResult, additionalInfo results.AdditionalErrorInfo, err error) {
+func (v *AdministrativeValidator) CheckOperation(source xdr.AccountId, op *xdr.Operation) (opResult xdr.OperationResult, additionalInfo results.AdditionalErrorInfo, err error) {
 	if op.Body.Type != xdr.OperationTypeAdministrative {
 		opResult, err := results.GetSuccessResult(op.Body.Type)
 		if err != nil {

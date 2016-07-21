@@ -127,6 +127,8 @@ func initWebActions(app *App) {
 	r.Post("/friendbot", &FriendbotAction{})
 	r.Get("/friendbot", &FriendbotAction{})
 
+	r.Get("/assets", &AssetIndexAction{})
+
 	r.NotFound(&NotFoundAction{})
 }
 

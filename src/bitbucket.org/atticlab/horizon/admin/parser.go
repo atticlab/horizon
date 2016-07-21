@@ -73,8 +73,8 @@ func (p *AdminAction) GetOptionalRawAccountType(name string) *int32 {
 	return helpers.GetOptionalRawAccountType(p, name)
 }
 
-func (p *AdminAction) GetAsset(name string) xdr.Asset {
-	return helpers.GetAsset(p, name)
+func (p *AdminAction) GetAsset(prefix string) xdr.Asset {
+	return helpers.GetAsset(p, prefix)
 }
 
 func (p *AdminAction) GetInt64(name string) int64 {
@@ -91,4 +91,8 @@ func (p *AdminAction) GetAddress(name string) string {
 
 func (p *AdminAction) GetOptionalBool(name string) *bool {
 	return helpers.GetOptionalBool(p, name)
+}
+
+func (p *AdminAction) GetOptionalAsset(prefix string) *xdr.Asset {
+	return helpers.GetOptionalAsset(p, prefix)
 }

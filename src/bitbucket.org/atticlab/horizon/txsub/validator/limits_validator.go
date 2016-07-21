@@ -31,18 +31,17 @@ func (v *LimitsValidator) CheckTransaction(tx *xdr.TransactionEnvelope) (error) 
 }
 
 // checkAccountTypes Parse tx and check account types
-func (v *LimitsValidator) CheckOperation(source string, op *xdr.Operation) (opResult xdr.OperationResult, additionalInfo results.AdditionalErrorInfo, err error) {
+func (v *LimitsValidator) CheckOperation(source xdr.AccountId, op *xdr.Operation) (opResult xdr.OperationResult, additionalInfo results.AdditionalErrorInfo, err error) {
 	switch op.Body.Type {
 	case xdr.OperationTypePayment:
 		payment := op.Body.MustPaymentOp()
 		destination := payment.Destination.Address()
-		var source string
-		if len(op.SourceAccount.Address()) > 0 {
-			source = op.SourceAccount.Address()
+		if op.SourceAccount != nil {
+			source = *op.SourceAccount
 		}
 
 		var sourceAcc core.Account
-		err = v.coreDb.AccountByAddress(&sourceAcc, source)
+		err = v.coreDb.AccountByAddress(&sourceAcc, source.Address())
 		if err == sql.ErrNoRows {
 			opResult = results.NewPaymentOpResult(xdr.PaymentResultCodePaymentNotAuthorized)
 			err = results.ErrNoAccount
@@ -81,7 +80,7 @@ func (v *LimitsValidator) CheckOperation(source string, op *xdr.Operation) (opRe
 		}
 
 		// 2. Check restrictions for accounts
-		err = v.verifyRestrictions(source, destination)
+		err = v.verifyRestrictions(source.Address(), destination)
 		if err != nil {
 			log.WithStack(err).
 				WithField("err", err.Error()).

@@ -33,7 +33,7 @@ func IsSuccessful(opResult xdr.OperationResult) (isSuccess bool, err error) {
 	case xdr.OperationTypeInflation:
 		code = int32(inner.MustInflationResult().Code)
 	case xdr.OperationTypeManageData:
-		code = int32(inner.MustCreateAccountResult().Code)
+		code = int32(inner.MustManageDataResult().Code)
 	case xdr.OperationTypeAdministrative:
 		code = int32(inner.MustAdminResult().Code)
 	default:
@@ -92,9 +92,55 @@ func NewPaymentOpResult(code xdr.PaymentResultCode) xdr.OperationResult {
 	return opResult
 }
 
+func NewPathPaymentOpResult(code xdr.PathPaymentResultCode) xdr.OperationResult {
+	pr, _ := xdr.NewPathPaymentResult(code, nil)
+	opR, _ := xdr.NewOperationResultTr(xdr.OperationTypePathPayment, pr)
+	opResult, _ := xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
+	return opResult
+}
+
 func NewAdminOpResult(code xdr.AdministrativeResultCode) xdr.OperationResult {
 	pr, _ := xdr.NewAdministrativeResult(code, nil)
 	opR, _ := xdr.NewOperationResultTr(xdr.OperationTypeAdministrative, pr)
 	opResult, _ := xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
 	return opResult
+}
+
+func GetMalformedOpResult(opType xdr.OperationType) (opResult xdr.OperationResult, err error) {
+	var res interface{}
+	switch opType {
+	case xdr.OperationTypeCreateAccount:
+		res, err = xdr.NewCreateAccountResult(xdr.CreateAccountResultCodeCreateAccountMalformed, nil)
+	case xdr.OperationTypePayment:
+		res, err = xdr.NewPaymentResult(xdr.PaymentResultCodePaymentMalformed, nil)
+	case xdr.OperationTypePathPayment:
+		res, err = xdr.NewPathPaymentResult(xdr.PathPaymentResultCodePathPaymentMalformed, nil)
+	case xdr.OperationTypeManageOffer:
+		res, err = xdr.NewManageOfferResult(xdr.ManageOfferResultCodeManageOfferMalformed, nil)
+	case xdr.OperationTypeCreatePassiveOffer:
+		res, err = xdr.NewManageOfferResult(xdr.ManageOfferResultCodeManageOfferMalformed, nil)
+	case xdr.OperationTypeSetOptions:
+		err = &MalformedTransactionError{"OperationTypeSetOptions can't be malformed"}
+	case xdr.OperationTypeChangeTrust:
+		res, err = xdr.NewChangeTrustResult(xdr.ChangeTrustResultCodeChangeTrustMalformed, nil)
+	case xdr.OperationTypeAllowTrust:
+		res, err = xdr.NewAllowTrustResult(xdr.AllowTrustResultCodeAllowTrustMalformed, nil)
+	case xdr.OperationTypeAccountMerge:
+		res, err = xdr.NewAccountMergeResult(xdr.AccountMergeResultCodeAccountMergeMalformed, xdr.Int64(0))
+	case xdr.OperationTypeInflation:
+		err = &MalformedTransactionError{"OperationTypeInflation can't be malformed"}
+	case xdr.OperationTypeManageData:
+		err = &MalformedTransactionError{"OperationTypeManageData can't be malformed"}
+	case xdr.OperationTypeAdministrative:
+		res, err = xdr.NewAdministrativeResult(xdr.AdministrativeResultCodeAdministrativeMalformed, nil)
+	default:
+		err = &MalformedTransactionError{"unknown_operation"}
+	}
+	if err != nil {
+		log.Error("Failed to get Malformedful result")
+		return
+	}
+	opR, _ := xdr.NewOperationResultTr(opType, res)
+	opResult, err = xdr.NewOperationResult(xdr.OperationResultCodeOpInner, opR)
+	return
 }

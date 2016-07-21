@@ -8,17 +8,18 @@ const (
 	SubjectCommission    AdminActionSubject = "commission"
 	SubjectTraits        AdminActionSubject = "traits"
 	SubjectAccountLimits AdminActionSubject = "account_limits"
+	SubjectAsset         AdminActionSubject = "asset"
 )
 
 type InvalidFieldError struct {
 	FieldName string
-	Reason error
+	Reason    error
 }
 
 func InvalidField(name string, reason error) *InvalidFieldError {
-	return &InvalidFieldError {
+	return &InvalidFieldError{
 		FieldName: name,
-		Reason: reason,
+		Reason:    reason,
 	}
 }
 

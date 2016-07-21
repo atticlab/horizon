@@ -3,20 +3,24 @@ package cache
 
 import (
 	"github.com/golang/groupcache/lru"
-	"bitbucket.org/atticlab/horizon/db2"
+	"time"
 )
 
-// HistoryAccount provides a cached lookup of history_account_id values from
-// account addresses.
-type HistoryAccount struct {
-	db     *db2.Repo
+type Cache struct {
 	cached *lru.Cache
+	entryLifeTime *time.Duration
 }
 
-// NewHistoryAccount initializes a new instance of `HistoryAccount`
-func NewHistoryAccount(db *db2.Repo) *HistoryAccount {
-	return &HistoryAccount{
-		db:     db,
-		cached: lru.New(100),
+func NewCache(maxEntries int, entryLifeTime *time.Duration) *Cache {
+	return &Cache{
+		cached: lru.New(maxEntries),
+		entryLifeTime: entryLifeTime,
 	}
+}
+
+func (c *Cache) IsEntryAlive(timeAdded time.Time) bool {
+	if c.entryLifeTime == nil {
+		return true
+	}
+	return timeAdded.Add(*c.entryLifeTime).After(time.Now())
 }
