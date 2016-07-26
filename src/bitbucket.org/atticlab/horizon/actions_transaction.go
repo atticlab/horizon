@@ -251,11 +251,11 @@ func (action *TransactionCreateAction) loadResource() {
 	case *results.RestrictedForAccountError:
 		action.Err = &problem.P{
 			Type:   "transaction_restricted_for_account",
-			Title:  "Transaction Restricted For This Account",
+			Title:  "Transaction Restricted For Account",
 			Status: http.StatusForbidden,
 			Detail: err.Reason,
 			Extras: map[string]interface{}{
-				"address": err.Address,
+				"reason": err.Reason,
 			},
 		}
 	default:

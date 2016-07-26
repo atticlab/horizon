@@ -131,7 +131,7 @@ func TestActionsSetCommission(t *testing.T) {
 			check := func(action AdminAction) int64 {
 				So(action.Err, ShouldBeNil)
 				var sts []history.Commission
-				err = action.HistoryQ().Commissions().ForAccount(from).Select(&sts)
+				err = historyQ.Commissions().ForAccount(from).Select(&sts)
 				assert.Nil(t, err)
 				assert.Equal(t, 1, len(sts))
 				st := sts[0]
@@ -172,11 +172,11 @@ func TestActionsSetCommission(t *testing.T) {
 				deleteAction.Apply()
 				So(deleteAction.Err, ShouldBeNil)
 				var sts []history.Commission
-				err = deleteAction.HistoryQ().Commissions().ForAccount(from).Select(&sts)
+				err = historyQ.Commissions().ForAccount(from).Select(&sts)
 				assert.Nil(t, err)
 				assert.Equal(t, 0, len(sts))
 			})
-			action.HistoryQ().DeleteCommissions()
+			historyQ.DeleteCommissions()
 		})
 
 	})

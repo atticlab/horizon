@@ -14,7 +14,6 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/results"
-	"bitbucket.org/atticlab/horizon/txsub/validator"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
@@ -35,20 +34,7 @@ func NewDefaultSubmitter(
 	historyDb *history.Q,
 	config *conf.Config,
 ) Submitter {
-	sub := submitter{
-		http:      h,
-		coreURL:   url,
-		coreDb:    coreDb,
-		historyDb: historyDb,
-		config:    config,
-		Log:       log.WithField("service", "submitter"),
-	}
-	sub.validators = []validator.ValidatorInterface{
-		//validator.NewLimitsValidator(sub.coreDb, sub.historyDb, sub.config),
-		validator.NewAdministrativeValidator(sub.historyDb),
-		validator.NewAssetsValidator(sub.historyDb, sub.config),
-	}
-	return &sub
+	return createSubmitter(h, url, coreDb, historyDb, config)
 }
 
 // coreSubmissionResponse is the json response from stellar-core's tx endpoint
@@ -62,13 +48,32 @@ type coreSubmissionResponse struct {
 // submits directly to the configured stellar-core instance using the
 // configured http client.
 type submitter struct {
-	http       *http.Client
-	coreURL    string
-	coreDb     *core.Q
-	historyDb  *history.Q
-	config     *conf.Config
-	validators []validator.ValidatorInterface
-	Log        *log.Entry
+	http      *http.Client
+	coreURL   string
+	coreDb    *core.Q
+	historyDb *history.Q
+	config    *conf.Config
+	Log       *log.Entry
+
+	defaultTxValidator TransactionValidatorInterface
+}
+
+func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config) *submitter {
+	return &submitter{
+		http:      h,
+		coreURL:   url,
+		coreDb:    coreDb,
+		historyDb: historyDb,
+		config:    config,
+		Log:       log.WithField("service", "submitter"),
+	}
+}
+
+func (sub *submitter) getTxValidator() TransactionValidatorInterface {
+	if sub.defaultTxValidator == nil {
+		sub.defaultTxValidator = NewTransactionValidator(sub.historyDb, sub.coreDb, sub.config)
+	}
+	return sub.defaultTxValidator
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
@@ -87,12 +92,13 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 
 	// check constraints for tx
 	sub.Log.Debug("Checking tx")
-	err = sub.checkTransaction(&tx)
+	err = sub.getTxValidator().CheckTransaction(&tx)
 	if err != nil {
 		result.Err = err
 		return
 	}
 
+	sub.Log.Debug("Setting commission")
 	cm := commissions.New(sub.coreDb, sub.historyDb)
 	err = cm.SetCommissions(&tx)
 	if err != nil {
@@ -108,6 +114,7 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	}
 
 	env = *updatedEnv
+	sub.Log.Debug("Commission was set")
 
 	// construct the request
 	u, err := url.Parse(sub.coreURL)
@@ -159,55 +166,6 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	}
 
 	return
-}
-
-// checkAccountTypes Parse tx and check account types
-func (sub *submitter) checkTransaction(tx *xdr.TransactionEnvelope) error {
-	for _, v := range sub.validators {
-		result, err := v.CheckTransaction(tx)
-		// failed to validate
-		if err != nil {
-			sub.Log.WithStack(err).WithError(err).Error("Failed to validate tx")
-			return &problem.ServerError
-		}
-
-		// invalid tx
-		if result != nil {
-			return result
-		}
-
-		additional := make([]results.AdditionalErrorInfo, len(tx.Tx.Operations))
-		operationResults := make([]xdr.OperationResult, len(tx.Tx.Operations))
-		allowTx := true
-		for i, op := range tx.Tx.Operations {
-			operationResults[i], additional[i], err = v.CheckOperation(tx.Tx.SourceAccount, &op)
-			// failed to validate
-			if err != nil {
-				sub.Log.WithStack(err).WithError(err).Error("Failed to validate op")
-				return &problem.ServerError
-			}
-
-			sub.Log.WithField("opType", op.Body.Type).WithField("opResult", operationResults[i].MustTr().Type).Debug("Checking if operation is successful")
-			isSuccess, err := results.IsSuccessful(operationResults[i])
-			if err != nil {
-				sub.Log.WithField("opType", op.Body.Type).WithError(err).Debug("Failed to check if operation IsSuccessful")
-				return &problem.ServerError
-			}
-			if !isSuccess {
-				allowTx = false
-			}
-		}
-		if !allowTx {
-			restricted, err := results.NewRestrictedTransactionErrorOp(xdr.TransactionResultCodeTxFailed, operationResults, additional)
-			if err != nil {
-				sub.Log.WithStack(err).WithError(err).Error("Failed to create NewRestrictedTransactionErrorOp")
-				return &problem.ServerError
-			}
-			return restricted
-		}
-
-	}
-	return nil
 }
 
 func parseTransaction(envelope string) (tx xdr.TransactionEnvelope, err error) {

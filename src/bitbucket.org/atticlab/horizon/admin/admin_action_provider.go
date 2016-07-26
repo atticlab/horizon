@@ -7,12 +7,16 @@ import (
 	"github.com/go-errors/errors"
 )
 
-type AdminActionProvider struct {
-	log      *log.Entry
-	historyQ *history.Q
+type AdminActionProviderInterface interface {
+	CreateNewParser(data map[string]interface{}) (AdminActionInterface, error)
 }
 
-func NewAdminActionProvider(historyQ *history.Q) *AdminActionProvider {
+type AdminActionProvider struct {
+	log      *log.Entry
+	historyQ history.QInterface
+}
+
+func NewAdminActionProvider(historyQ history.QInterface) *AdminActionProvider {
 	return &AdminActionProvider{
 		log:      log.WithField("service", "admin_action_provider"),
 		historyQ: historyQ,

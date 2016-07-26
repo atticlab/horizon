@@ -78,6 +78,18 @@ func AdditionalErrorInfoError(err error) AdditionalErrorInfo {
 	return AdditionalErrorInfoStrError(err.Error())
 }
 
+func (err AdditionalErrorInfo) GetData() map[string]string {
+	return map[string]string(err)
+}
+
+func (err AdditionalErrorInfo) GetError() string {
+	return err.GetData()["error"]
+}
+
+func (err AdditionalErrorInfo) GetInvalidField() string {
+	return err.GetData()["invalid_field"]
+}
+
 func AdditionalErrorInfoStrError(err string) AdditionalErrorInfo {
 	details := make(map[string]string)
 	details["error"] = err
@@ -99,6 +111,11 @@ type RestrictedTransactionError struct {
 	TransactionErrorInfo *AdditionalErrorInfo
 }
 
+type OperationResult struct {
+	Result xdr.OperationResult
+	Info AdditionalErrorInfo
+}
+
 func NewRestrictedTransactionErrorTx(code xdr.TransactionResultCode, txError AdditionalErrorInfo) (*RestrictedTransactionError, error) {
 	restricted, err := newRestrictedTransactionErrorOp(code, []xdr.OperationResult{}, []AdditionalErrorInfo{})
 	if err != nil {
@@ -108,7 +125,13 @@ func NewRestrictedTransactionErrorTx(code xdr.TransactionResultCode, txError Add
 	return restricted, err
 }
 
-func NewRestrictedTransactionErrorOp(code xdr.TransactionResultCode, operationResults interface{}, additionalErrors []AdditionalErrorInfo) (*RestrictedTransactionError, error) {
+func NewRestrictedTransactionErrorOp(code xdr.TransactionResultCode, opResults []OperationResult) (*RestrictedTransactionError, error) {
+	operationResults := make([]xdr.OperationResult, len(opResults))
+	additionalErrors := make([]AdditionalErrorInfo, len(opResults))
+	for i := range opResults {
+		operationResults[i] = opResults[i].Result
+		additionalErrors[i] = opResults[i].Info
+	}
 	return newRestrictedTransactionErrorOp(code, operationResults, additionalErrors)
 }
 
@@ -156,7 +179,6 @@ func (err *ExceededLimitError) Error() string {
 // RestrictedForAccountError represent an error that occurred because
 // operation is restricted for specified accounts
 type RestrictedForAccountError struct {
-	Address string
 	Reason  string
 }
 

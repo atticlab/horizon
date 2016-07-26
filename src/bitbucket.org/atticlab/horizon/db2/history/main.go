@@ -182,8 +182,57 @@ type OperationsQ struct {
 	sql    sq.SelectBuilder
 }
 
-// Q is a helper struct on which to hang common queries against a history
+// QInterface is a helper struct on which to hang common queries against a history
 // portion of the horizon database.
+type QInterface interface {
+	// Account limits
+	// GetAccountLimits returns limits row by account and asset.
+	GetAccountLimits(dest interface{}, address string, assetCode string) error
+	// Inserts new account limits instance
+	CreateAccountLimits(limits AccountLimits) error
+	// Updates account's limits
+	UpdateAccountLimits(limits AccountLimits) error
+
+	// Account statistics
+	// GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
+	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error
+
+	// Account traits
+	// Returns account traits instance by history.account id
+	GetAccountTraits(dest interface{}, id int64) error
+	// GetAccountTraitsByAddress returns traits for specified account
+	GetAccountTraitsByAddress(dest interface{}, accountID string) error
+	// Inserts new instance of account traits
+	CreateAccountTraits(traits AccountTraits) error
+	// Updates account traits
+	UpdateAccountTraits(traits AccountTraits) error
+
+	// Asset
+	// Returns asset for specified xdr.Asset
+	Asset(dest interface{}, asset xdr.Asset) error
+	// Deletes asset from db by id
+	DeleteAsset(id int64) (bool, error)
+	// updates asset
+	UpdateAsset(asset *Asset) (bool, error)
+	// inserts asset
+	InsertAsset(asset *Asset) (err error)
+
+	// Account
+	// AccountByAddress loads a row from `history_accounts`, by address
+	AccountByAddress(dest interface{}, addy string) error
+
+	// Commission
+	// selects commission by id
+	CommissionById(id int64) (*Commission, error)
+	// Inserts new commission
+	InsertCommission(commission *Commission) (err error)
+	// Deletes commission
+	DeleteCommission(id int64) (bool, error)
+	// update commission
+	UpdateCommission(commission *Commission) (bool, error)
+}
+
+// Q is default implementation of QInterface
 type Q struct {
 	*db2.Repo
 }

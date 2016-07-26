@@ -324,15 +324,6 @@ func getAnonymousUserRestrictions() conf.AnonymousUserRestrictions {
 	}
 	restrictions.MaxAnnualOutcome = value
 
-	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-annual-income"))
-	if err != nil {
-		log.Fatalf(
-			"Could not parse restrictions-anonymous-user-max-annual-income: %v",
-			viper.GetString("restrictions-anonymous-user-max-annual-income"),
-		)
-	}
-	restrictions.MaxAnnualIncome = value
-
 	value, err = parseAmount(viper.GetString("restrictions-anonymous-user-max-balance"))
 	if err != nil {
 		log.Fatalf(

@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"os"
 )
 
 // StaticMockServer is a test helper that records it's last request
@@ -74,6 +75,31 @@ func ContextWithLogBuffer() (context.Context, *bytes.Buffer) {
 // DEPRECATED:  use `Horizon()` from test/db package
 func Database() *sqlx.DB {
 	return tdb.Horizon()
+}
+
+// Returns default bank master key seed.
+func BankMasterSeedStr() string {
+	bankMasterKeySeed := os.Getenv("BANK_MASTER_KEY_SEED")
+
+	if bankMasterKeySeed == "" {
+		hlog.Panic("BANK_MASTER_KEY_SEED must be set for tests")
+	}
+
+	return bankMasterKeySeed
+}
+
+func BankMasterSeed() *keypair.Full {
+	raw := BankMasterSeedStr()
+	bankKP, err := keypair.Parse(raw)
+	if err != nil {
+		hlog.WithStack(err).Panic("Failed to parse BANK_MASTER_KEY_SEED")
+	}
+
+	bankFull, ok := bankKP.(*keypair.Full)
+	if !ok {
+		hlog.Panic("BANK_MASTER_KEY_SEED must be valid seed")
+	}
+	return bankFull
 }
 
 // DatabaseURL returns the database connection the url any test

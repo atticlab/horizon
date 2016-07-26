@@ -13,18 +13,18 @@ var historyAssetCache *Cache
 // xdr.Asset.
 type HistoryAsset struct {
 	Cache
-	db *history.Q
+	history history.QInterface
 }
 
 // NewHistoryAsset initializes a new instance of `HistoryAsset`
-func NewHistoryAsset(db *history.Q) *HistoryAsset {
+func NewHistoryAsset(db history.QInterface) *HistoryAsset {
 	if historyAssetCache == nil {
 		lifeTime := time.Duration(10)*time.Minute
 		historyAssetCache = NewCache(100, &lifeTime)
 	}
 	return &HistoryAsset{
 		Cache: *historyAssetCache,
-		db:    db,
+		history:    db,
 	}
 }
 
@@ -48,7 +48,7 @@ func (c *HistoryAsset) Get(asset xdr.Asset) (*history.Asset, error) {
 	}
 
 	var result history.Asset
-	err := c.db.Asset(&result, asset)
+	err := c.history.Asset(&result, asset)
 	elem := historyAssetElem{
 		Asset:     &result,
 		timeAdded: time.Now(),

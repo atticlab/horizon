@@ -22,10 +22,10 @@ type AdminAction struct {
 	rawData map[string]interface{}
 	Log     *log.Entry
 
-	hq *history.Q
+	hq history.QInterface
 }
 
-func (action *AdminAction) HistoryQ() *history.Q {
+func (action *AdminAction) HistoryQ() history.QInterface {
 	return action.hq
 }
 
@@ -33,7 +33,7 @@ func (action *AdminAction) GetError() error {
 	return action.Err
 }
 
-func NewAdminAction(data map[string]interface{}, hq *history.Q) AdminAction {
+func NewAdminAction(data map[string]interface{}, hq history.QInterface) AdminAction {
 	return AdminAction{
 		rawData: data,
 		Log:     log.WithField("service", "admin_action"),
