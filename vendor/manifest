@@ -3,7 +3,7 @@
 	"dependencies": [
 		{
 			"importpath": "bitbucket.org/atticlab/go-smart-base",
-			"repository": "https://bitbucket.org/atticlab/go-smart-base",
+			"repository": "ssh://bitbucket.org/atticlab/go-smart-base",
 			"revision": "5baf6f516b561d38cc7dd47cb2dd8a56587a5d7e",
 			"branch": "feature/administrative_op"
 		},
