@@ -5,6 +5,5 @@ type AnonymousUserRestrictions struct {
 	MaxDailyOutcome   int64
 	MaxMonthlyOutcome int64
 	MaxAnnualOutcome  int64
-	MaxAnnualIncome   int64
 	MaxBalance        int64
 }

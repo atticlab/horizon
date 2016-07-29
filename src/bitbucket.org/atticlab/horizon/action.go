@@ -47,26 +47,6 @@ func (action *Action) SignersProvider() core.SignersProvider {
 	return action.signersProvider
 }
 
-// Starts admin action. defer action.FinishAdminAction() must be called after each call of StartAdminAction
-func (action *Action) StartAdminAction() {
-	action.adminAction = admin.NewAdminAction(action.R, action.HistoryQ(), action.SignersProvider(), &action.App.config)
-	err := action.adminAction.StartAction()
-	if err != nil {
-		action.Err = err
-	}
-}
-
-// Finishes admin action.
-func (action *Action) FinishAdminAction() {
-	if action.adminAction == nil {
-		return
-	}
-	err := action.adminAction.FinishAction(action.Err != nil)
-	if err != nil {
-		action.Err = err
-	}
-}
-
 // CoreQ provides access to queries that access the stellar core database.
 func (action *Action) CoreQ() *core.Q {
 	if action.cq == nil {

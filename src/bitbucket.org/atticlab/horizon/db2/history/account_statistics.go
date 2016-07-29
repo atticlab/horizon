@@ -1,7 +1,6 @@
 package history
 
 import (
-	"fmt"
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
@@ -55,88 +54,75 @@ func (q *Q) GetStatisticsByAccount(dest *[]AccountStatistics, addy string) error
 	return err
 }
 
+func (q *Q) CreateStats(stats AccountStatistics) error {
+	sql := CreateAccountStatisticsTemplate.Values(
+		stats.Account,
+		stats.AssetCode,
+		int16(stats.CounterpartyType),
+		stats.DailyIncome,
+		stats.DailyOutcome,
+		stats.WeeklyIncome,
+		stats.WeeklyOutcome,
+		stats.MonthlyIncome,
+		stats.MonthlyOutcome,
+		stats.AnnualIncome,
+		stats.AnnualOutcome,
+		stats.UpdatedAt,
+	)
+
+	_, err := q.Exec(sql)
+	return err
+}
+
 // GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
-func (q *Q) GetStatisticsByAccountAndAsset(dest *map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error {
+func (q *Q) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error {
 	sql := SelectAccountStatisticsTemplate.Where("a.address = ? AND a.asset_code = ?", addy, assetCode)
 	var stats []AccountStatistics
 	err := q.Select(&stats, sql)
-
-	if err == nil {
-		now := time.Now()
-		result := make(map[xdr.AccountType]AccountStatistics)
-		for _, stat := range stats {
-			// Erase obsolete data from result. Don't save, to avoid conflicts with ingester's thread
-			stat.ClearObsoleteStats(now)
-			result[xdr.AccountType(stat.CounterpartyType)] = stat
-		}
-
-		*dest = result
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	for _, stat := range stats {
+		// Erase obsolete data from result. Don't save, to avoid conflicts with ingester's thread
+		stat.ClearObsoleteStats(now)
+		dest[xdr.AccountType(stat.CounterpartyType)] = stat
 	}
 
-	return err
+	return nil
 }
 
 // ClearObsoleteStats checks last update time and erases obsolete data
 func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
-	if stats.UpdatedAt.Year() < now.Year() {
-
-		log.Info(
-			fmt.Sprintf(
-				"account_statistics: Ereasing obsolete stats for %s - %s (YEAR).",
-				stats.Account,
-				stats.AssetCode,
-			))
-
+	isYear := stats.UpdatedAt.Year() < now.Year()
+	if isYear {
 		stats.AnnualIncome = 0
 		stats.AnnualOutcome = 0
-		stats.MonthlyIncome = 0
-		stats.MonthlyOutcome = 0
-		stats.WeeklyIncome = 0
-		stats.WeeklyOutcome = 0
-		stats.DailyIncome = 0
-		stats.DailyOutcome = 0
-
-		stats.UpdatedAt = now
-	} else if stats.UpdatedAt.Month() < now.Month() {
-
-		log.Info(
-			fmt.Sprintf(
-				"account_statistics: Ereasing obsolete stats for %s - %s (MONTH).",
-				stats.Account,
-				stats.AssetCode,
-			))
+	}
+	isMonth := isYear || stats.UpdatedAt.Month() < now.Month()
+	if isMonth {
 
 		stats.MonthlyIncome = 0
 		stats.MonthlyOutcome = 0
+	}
+	isWeek := isMonth || !helpers.SameWeek(stats.UpdatedAt, now)
+	if isWeek {
 		stats.WeeklyIncome = 0
 		stats.WeeklyOutcome = 0
-		stats.DailyIncome = 0
-		stats.DailyOutcome = 0
+	}
+	isDay := isWeek || stats.UpdatedAt.Day() < now.Day()
+	if isDay {
 
-		stats.UpdatedAt = now
-	} else if !helpers.SameWeek(stats.UpdatedAt, now) {
-
-		log.Info(
-			fmt.Sprintf(
-				"account_statistics: Ereasing obsolete stats for %s - %s (WEEK).",
-				stats.Account,
-				stats.AssetCode,
-			))
-
-		stats.WeeklyIncome = 0
-		stats.WeeklyOutcome = 0
-		stats.DailyIncome = 0
-		stats.DailyOutcome = 0
-
-		stats.UpdatedAt = now
-	} else if stats.UpdatedAt.Day() < now.Day() {
-
-		log.Info(
-			fmt.Sprintf(
-				"account_statistics: Ereasing obsolete stats for %s - %s (DAY).",
-				stats.Account,
-				stats.AssetCode,
-			))
+		log.WithFields(
+			log.F{
+				"account":           stats.Account,
+				"asset":             stats.AssetCode,
+				"counterparty_type": stats.CounterpartyType,
+				"year":              isYear,
+				"month":             isMonth,
+				"week":              isWeek,
+				"day":               isDay,
+			}).Info("account_statistics: Ereasing obsolete stats")
 
 		stats.DailyIncome = 0
 		stats.DailyOutcome = 0

@@ -1,6 +1,7 @@
 package txsub
 
 import (
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 	"sync"
@@ -80,7 +81,7 @@ func (s *submissionList) Clean(ctx context.Context, maxAge time.Duration) (int, 
 
 	for _, os := range s.submissions {
 		if time.Since(os.SubmittedAt) > maxAge {
-			r := Result{Err: ErrTimeout}
+			r := Result{Err: results.ErrTimeout}
 			delete(s.submissions, os.Hash)
 			for _, l := range os.Listeners {
 				l <- r

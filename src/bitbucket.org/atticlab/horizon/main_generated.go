@@ -6,35 +6,14 @@ import (
 )
 
 // ServeHTTPC is a method for web.Handler
-func (action MetricsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action DataShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action OffersByAccountAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action EffectIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action NotFoundAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action OrderBookShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action PathIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -42,20 +21,6 @@ func (action OrderBookShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *
 
 // ServeHTTPC is a method for web.Handler
 func (action TradeIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action SetCommissionAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action SetTraitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -83,28 +48,14 @@ func (action TransactionCreateAction) ServeHTTPC(c web.C, w http.ResponseWriter,
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action LimitsSetAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action NotFoundAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action PathIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action AccountLimitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action CalculateCommissionAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action AccountTraitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -118,14 +69,77 @@ func (action CommissionIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action NotImplementedAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action MetricsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action PaymentsIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action RootAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action AssetIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action AccountLimitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action LedgerIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action LedgerShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action RateLimitExceededAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action EffectIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action OperationIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action OperationShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action NotImplementedAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -153,63 +167,28 @@ func (action AccountStatisticsAction) ServeHTTPC(c web.C, w http.ResponseWriter,
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action AccountShowBalancesAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action OrderBookShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action AccountTraitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action PaymentsIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action DataShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action OffersByAccountAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action LedgerIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action LedgerShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action OperationIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action OperationShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action RateLimitExceededAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action RootAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action CalculateCommissionAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)

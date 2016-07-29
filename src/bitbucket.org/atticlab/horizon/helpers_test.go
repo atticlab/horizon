@@ -6,33 +6,18 @@ import (
 	"fmt"
 	"log"
 
-	conf "bitbucket.org/atticlab/horizon/config"
-	hlog "bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/test"
-	"github.com/PuerkitoBio/throttled"
-	"time"
 )
 
 func NewTestApp() *App {
-	app, err := NewApp(NewTestConfig())
+	app, err := NewApp(test.NewTestConfig())
 
 	if err != nil {
 		log.Panic(err)
 	}
 
 	return app
-}
-
-func NewTestConfig() conf.Config {
-	return conf.Config{
-		DatabaseURL:            test.DatabaseURL(),
-		StellarCoreDatabaseURL: test.StellarCoreDatabaseURL(),
-		RateLimit:              throttled.PerHour(1000),
-		LogLevel:               hlog.DebugLevel,
-		AdminSignatureValid:    time.Duration(60) * time.Second,
-		BankMasterKey:          "GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R", //SB4HOLTEVQDTJSLQCCIXXYCURZUHNT3HEFJ5GNPNBCWIVFBVA3FBG4Q3
-	}
 }
 
 func NewRequestHelper(app *App) test.RequestHelper {
@@ -57,12 +42,16 @@ func ShouldBePageOf(actual interface{}, options ...interface{}) string {
 	}
 
 	records, ok := embedded.(map[string]interface{})["records"]
-
 	if !ok {
 		return "No records key in _embedded"
 	}
 
-	length := len(records.([]interface{}))
+	recordsArray, ok := records.([]interface{})
+	if !ok {
+		return "Expected array, but got instance"
+	}
+
+	length := len(recordsArray)
 
 	if length != expected {
 		return fmt.Sprintf("Expected %d records in page, got %d", expected, length)
@@ -72,39 +61,5 @@ func ShouldBePageOf(actual interface{}, options ...interface{}) string {
 }
 
 func ShouldBeProblem(a interface{}, options ...interface{}) string {
-	body := a.(*bytes.Buffer)
-	expected := options[0].(problem.P)
-
-	problem.Inflate(test.Context(), &expected)
-
-	var actual problem.P
-	err := json.Unmarshal(body.Bytes(), &actual)
-
-	if err != nil {
-		return fmt.Sprintf("Could not unmarshal json into problem struct:\n%s\n", body.String())
-	}
-
-	if expected.Type != "" && actual.Type != expected.Type {
-		return fmt.Sprintf("Mismatched problem type: %s expected, got %s", expected.Type, actual.Type)
-	}
-
-	if expected.Status != 0 && actual.Status != expected.Status {
-		return fmt.Sprintf("Mismatched problem status: %s expected, got %s", expected.Status, actual.Status)
-	}
-
-	// check extras for invalid field
-	if len(options) > 1 {
-		expectedName := options[1].(string)
-		hlog.WithField("extras", actual.Extras).Debug("Got problem with extras")
-		actualName, ok := actual.Extras["invalid_field"]
-		if !ok {
-			return fmt.Sprintf("Expected extras to have invalid_field")
-		}
-		if expectedName != actualName.(string) {
-			return fmt.Sprintf("Mismatched problem invalid field: %s expected, got %s", expectedName, actualName)
-		}
-
-	}
-
-	return ""
+	return problem.ShouldBeProblem(a, options...)
 }

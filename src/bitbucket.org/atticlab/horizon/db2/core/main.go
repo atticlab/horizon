@@ -70,6 +70,11 @@ type OrderBookSummaryPriceLevel struct {
 // counter currency
 type OrderBookSummary []OrderBookSummaryPriceLevel
 
+type QInterface interface {
+	TrustlineByAddressAndAsset(dest interface{}, addy string, assetCode string, issuer string) error
+	AccountByAddress(dest interface{}, addy string) error
+}
+
 // Q is a helper struct on which to hang common queries against a stellar
 // core database.
 type Q struct {

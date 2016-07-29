@@ -2,6 +2,7 @@ package txsub
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"golang.org/x/net/context"
 	"time"
 )
@@ -104,7 +105,7 @@ func (s SubmissionResult) IsBadSeq() (bool, error) {
 		return false, nil
 	}
 
-	fte, ok := s.Err.(*FailedTransactionError)
+	fte, ok := s.Err.(*results.FailedTransactionError)
 	if !ok {
 		return false, nil
 	}

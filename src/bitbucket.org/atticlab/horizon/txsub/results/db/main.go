@@ -10,6 +10,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"golang.org/x/net/context"
 )
 
@@ -45,7 +46,7 @@ func (rp *DB) ResultByHash(ctx context.Context, hash string) txsub.Result {
 	}
 
 	// if no result was found in either db, return ErrNoResults
-	return txsub.Result{Err: txsub.ErrNoResults}
+	return txsub.Result{Err: results.ErrNoResults}
 }
 
 func txResultFromHistory(tx history.Transaction) txsub.Result {
@@ -82,7 +83,7 @@ func txResultFromCore(tx core.Transaction) txsub.Result {
 
 	// if failed, produce a FailedTransactionError
 	return txsub.Result{
-		Err: &txsub.FailedTransactionError{
+		Err: &results.FailedTransactionError{
 			ResultXDR: trx,
 		},
 		Hash:           tx.TransactionHash,

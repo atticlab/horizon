@@ -9,11 +9,13 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/meta"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/admin"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/participants"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/resource/operations"
+	"encoding/json"
 	"github.com/spf13/viper"
 )
 
@@ -289,6 +291,9 @@ func (is *Session) ingestEffects() {
 		}
 
 		effects.Add(source, effect, dets)
+	case xdr.OperationTypeAdministrative:
+		opbody.MustAdminOp()
+		// no need to duplicate data
 
 	default:
 		is.Err = fmt.Errorf("Unknown operation type: %s", is.Cursor.OperationType())
@@ -354,7 +359,8 @@ func (is *Session) ingestOperation() {
 		return
 	}
 
-	if is.Cursor.Operation().Body.Type == xdr.OperationTypePayment {
+	switch is.Cursor.Operation().Body.Type {
+	case xdr.OperationTypePayment:
 		// Update statistics for both accounts
 		// TODO: paste aggregation here
 		source := is.Cursor.OperationSourceAccount()
@@ -407,11 +413,39 @@ func (is *Session) ingestOperation() {
 		if is.Err != nil {
 			return
 		}
-
-	} else if is.Cursor.Operation().Body.Type == xdr.OperationTypeCreateAccount {
+	case xdr.OperationTypeCreateAccount:
 		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()
 		is.Err = is.Ingestion.Account(is.Cursor.OperationID(), op.Destination.Address())
+	case xdr.OperationTypeAdministrative:
+		log := log.WithFields(log.F{
+			"tx_hash":      is.Cursor.Transaction().TransactionHash,
+			"operation_id": is.Cursor.OperationID(),
+		})
+		op := is.Cursor.Operation().Body.MustAdminOp()
+		var opData map[string]interface{}
+		err := json.Unmarshal([]byte(op.OpData), &opData)
+		if err != nil {
+			// skip silently
+			log.WithError(err).Error("Failed to unmarshal json data")
+			break
+		}
+		adminActionProvider := admin.NewAdminActionProvider(&history.Q{is.Ingestion.DB})
+		adminAction, err := adminActionProvider.CreateNewParser(opData)
+		if err != nil {
+			log.WithError(err).Error("Failed to create admin action")
+			break
+		}
+		adminAction.Validate()
+		if adminAction.GetError() != nil {
+			log.WithError(adminAction.GetError()).Error("Failed to validate admin action")
+			break
+		}
+		adminAction.Apply()
+		if adminAction.GetError() != nil {
+			log.WithError(adminAction.GetError()).Error("Failed to apply admin action")
+			break
+		}
 	}
 
 	is.ingestOperationParticipants()
@@ -761,6 +795,14 @@ func (is *Session) operationDetails() map[string]interface{} {
 		} else {
 			details["value"] = nil
 		}
+	case xdr.OperationTypeAdministrative:
+		op := c.Operation().Body.MustAdminOp()
+		var adminOpDetails map[string]interface{}
+		err := json.Unmarshal([]byte(op.OpData), &adminOpDetails)
+		if err != nil {
+			log.WithField("tx_hash", c.Transaction().TransactionHash).WithError(err).Error("Failed to unmarshal admin op details")
+		}
+		details["details"] = adminOpDetails
 	default:
 		panic(fmt.Errorf("Unknown operation type: %s", c.OperationType()))
 	}

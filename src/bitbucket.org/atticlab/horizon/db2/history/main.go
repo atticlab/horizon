@@ -96,6 +96,8 @@ const (
 	// EffectDataUpdated occurs when an account changes a data field's value
 	EffectDataUpdated EffectType = 42 // from manage_data
 
+	// EffectAdminOpPerformed occurs when an admin operation was performed
+	EffectAdminOpPerformed EffectType = 43
 )
 
 // Account is a row of data from the `history_accounts` table
@@ -181,8 +183,57 @@ type OperationsQ struct {
 	sql    sq.SelectBuilder
 }
 
-// Q is a helper struct on which to hang common queries against a history
+// QInterface is a helper struct on which to hang common queries against a history
 // portion of the horizon database.
+type QInterface interface {
+	// Account limits
+	// GetAccountLimits returns limits row by account and asset.
+	GetAccountLimits(dest interface{}, address string, assetCode string) error
+	// Inserts new account limits instance
+	CreateAccountLimits(limits AccountLimits) error
+	// Updates account's limits
+	UpdateAccountLimits(limits AccountLimits) error
+
+	// Account statistics
+	// GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
+	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error
+
+	// Account traits
+	// Returns account traits instance by history.account id
+	GetAccountTraits(dest interface{}, id int64) error
+	// GetAccountTraitsByAddress returns traits for specified account
+	GetAccountTraitsByAddress(dest interface{}, accountID string) error
+	// Inserts new instance of account traits
+	CreateAccountTraits(traits AccountTraits) error
+	// Updates account traits
+	UpdateAccountTraits(traits AccountTraits) error
+
+	// Asset
+	// Returns asset for specified xdr.Asset
+	Asset(dest interface{}, asset xdr.Asset) error
+	// Deletes asset from db by id
+	DeleteAsset(id int64) (bool, error)
+	// updates asset
+	UpdateAsset(asset *Asset) (bool, error)
+	// inserts asset
+	InsertAsset(asset *Asset) (err error)
+
+	// Account
+	// AccountByAddress loads a row from `history_accounts`, by address
+	AccountByAddress(dest interface{}, addy string) error
+
+	// Commission
+	// selects commission by id
+	CommissionById(id int64) (*Commission, error)
+	// Inserts new commission
+	InsertCommission(commission *Commission) (err error)
+	// Deletes commission
+	DeleteCommission(id int64) (bool, error)
+	// update commission
+	UpdateCommission(commission *Commission) (bool, error)
+}
+
+// Q is default implementation of QInterface
 type Q struct {
 	*db2.Repo
 }
@@ -317,4 +368,20 @@ type AuditLog struct {
 	Action    string    `db:"action"`     //action performed on subject
 	Meta      string    `db:"meta"`       //meta information about audit event
 	CreatedAt time.Time `db:"created_at"` // time log was created
+}
+
+type Asset struct {
+	Id          int64  `db:"id"`
+	Type        int    `db:"type"`
+	Code        string `db:"code"`
+	Issuer      string `db:"issuer"`
+	IsAnonymous bool   `db:"is_anonymous"`
+}
+
+// AssetQ is a helper struct to aid in configuring queries that loads
+// slices of Assets.
+type AssetQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
 }

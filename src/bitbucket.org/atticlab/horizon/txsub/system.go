@@ -4,9 +4,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
+	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/context"
 )
 
@@ -64,7 +65,7 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 	// check the configured result provider for an existing result
 	r := sys.Results.ResultByHash(ctx, info.Hash)
 
-	if r.Err != ErrNoResults {
+	if r.Err != results.ErrNoResults {
 		sys.finish(response, r)
 		return
 	}
@@ -78,7 +79,7 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 	// If account's sequence cannot be found, abort with tx_NO_ACCOUNT
 	// error code
 	if _, ok := curSeq[info.SourceAddress]; !ok {
-		sys.finish(response, Result{Err: ErrNoAccount, EnvelopeXDR: env})
+		sys.finish(response, Result{Err: results.ErrNoAccount, EnvelopeXDR: env})
 		return
 	}
 
@@ -94,7 +95,7 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 	case err := <-seq:
 		if err == sequence.ErrBadSequence {
 			// convert the internal only ErrBadSequence into the FailedTransactionError
-			err = ErrBadSequence
+			err = results.ErrBadSequence
 		}
 
 		if err != nil {
@@ -137,7 +138,7 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 		}
 
 	case <-ctx.Done():
-		sys.finish(response, Result{Err: ErrCanceled, EnvelopeXDR: env})
+		sys.finish(response, Result{Err: results.ErrCanceled, EnvelopeXDR: env})
 	}
 
 	return
@@ -188,7 +189,7 @@ func (sys *System) Tick(ctx context.Context) {
 			continue
 		}
 
-		_, ok := r.Err.(*FailedTransactionError)
+		_, ok := r.Err.(*results.FailedTransactionError)
 
 		if ok {
 			logger.WithField("hash", hash).Debug("finishing open submission")
@@ -196,7 +197,7 @@ func (sys *System) Tick(ctx context.Context) {
 			continue
 		}
 
-		if r.Err != ErrNoResults {
+		if r.Err != results.ErrNoResults {
 			logger.WithStack(r.Err).Error(r.Err)
 		}
 	}

@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func _TestHistoryAccount(t *testing.T) {
+func TestHistoryAccount(t *testing.T) {
 	tt := test.Start(t).Scenario("base")
 	defer tt.Finish()
 	db := tt.HorizonRepo()
 	c := NewHistoryAccount(db)
 	tt.Assert.Equal(0, c.cached.Len())
 
-	id, err := c.Get("GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H")
+	id, err := c.Get("GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R")
 	if tt.Assert.NoError(err) {
 		tt.Assert.Equal(int64(1), id)
 		tt.Assert.Equal(1, c.cached.Len())

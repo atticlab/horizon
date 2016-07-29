@@ -54,9 +54,6 @@ func (p *P) Error() string {
 func Inflate(ctx context.Context, p *P) {
 	//TODO: add requesting url to extra info
 
-	//TODO: make this prefix configurable
-	p.Type = "https://stellar.org/horizon-errors/" + p.Type
-
 	p.Instance = requestid.FromContext(ctx)
 }
 

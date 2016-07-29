@@ -8,6 +8,7 @@ package txsub
 
 import (
 	"golang.org/x/net/context"
+	subResults "bitbucket.org/atticlab/horizon/txsub/results"
 )
 
 // MockSubmitter is a test helper that simplements the Submitter interface
@@ -34,7 +35,7 @@ func (results *MockResultProvider) ResultByHash(ctx context.Context, hash string
 		r = results.Results[0]
 		results.Results = results.Results[1:]
 	} else {
-		r = Result{Err: ErrNoResults}
+		r = Result{Err: subResults.ErrNoResults}
 	}
 
 	return

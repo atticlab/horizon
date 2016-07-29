@@ -6,11 +6,11 @@ package ingest
 import (
 	"time"
 
-	sq "github.com/lann/squirrel"
-	"github.com/rcrowley/go-metrics"
 	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/core"
+	sq "github.com/lann/squirrel"
+	"github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -106,7 +106,7 @@ type Ingestion struct {
 	operation_participants   sq.InsertBuilder
 	effects                  sq.InsertBuilder
 	accounts                 sq.InsertBuilder
-	account_traits			 sq.InsertBuilder
+	account_traits           sq.InsertBuilder
 }
 
 // Session represents a single attempt at ingesting data into the history

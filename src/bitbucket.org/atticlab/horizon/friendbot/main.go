@@ -7,6 +7,7 @@ import (
 	. "bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"golang.org/x/net/context"
 )
 
@@ -46,7 +47,7 @@ func (bot *Bot) Pay(ctx context.Context, address string) (result txsub.Result) {
 		}
 		return result
 	case <-ctx.Done():
-		return txsub.Result{Err: txsub.ErrCanceled}
+		return txsub.Result{Err: results.ErrCanceled}
 	}
 }
 

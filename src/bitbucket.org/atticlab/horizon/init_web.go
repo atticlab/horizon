@@ -87,7 +87,6 @@ func initWebActions(app *App) {
 	r.Get("/accounts/:id", &AccountShowAction{})
 	r.Get("/accounts/:account_id/statistics", &AccountStatisticsAction{})
 	r.Get("/accounts/:account_id/traits", &AccountTraitsAction{})
-	r.Post("/accounts/:account_id/traits", &SetTraitsAction{})
 	r.Get("/accounts/:account_id/limits", &AccountLimitsAction{})
 	r.Get("/accounts/:account_id/transactions", &TransactionIndexAction{})
 	r.Get("/accounts/:account_id/operations", &OperationIndexAction{})
@@ -122,16 +121,15 @@ func initWebActions(app *App) {
 	r.Post("/transactions", &TransactionCreateAction{})
 	r.Get("/paths", &PathIndexAction{})
 
-	r.Post("/accounts/:account_id/limits", &LimitsSetAction{})
-
 	// Commission API
 	r.Get("/commission", &CommissionIndexAction{})
-	r.Post("/commission", &SetCommissionAction{})
 	r.Get("/commission/calculate", &CalculateCommissionAction{})
 
 	// friendbot
 	r.Post("/friendbot", &FriendbotAction{})
 	r.Get("/friendbot", &FriendbotAction{})
+
+	r.Get("/assets", &AssetIndexAction{})
 
 	r.NotFound(&NotFoundAction{})
 }

@@ -254,7 +254,7 @@ func (q *Q) UpdateCommission(commission *Commission) (bool, error) {
 }
 
 func (q *Q) DeleteCommission(id int64) (bool, error) {
-	deleteQ := delete.Where("id = ?", id)
+	deleteQ := deleteCommission.Where("id = ?", id)
 	result, err := q.Exec(deleteQ)
 	if err != nil {
 		log.WithStack(err).WithError(err).Error("Failed to delete commission")
@@ -307,8 +307,23 @@ func (q *Q) CommissionByKey(keys map[string]CommissionKey) (resultingCommissions
 	return resultingCommissions, nil
 }
 
+func (q *Q) CommissionById(id int64) (*Commission, error) {
+	sql := selectCommission.Where("com.id = ?", id)
+	var storedCommissions []Commission
+	err := q.Select(&storedCommissions, sql)
+	if err != nil {
+		log.Error("Failed to get commission by key: " + err.Error())
+		return nil, err
+	}
+
+	if len(storedCommissions) == 0 {
+		return nil, nil
+	}
+	return &storedCommissions[0], nil
+}
+
 func (q *Q) DeleteCommissions() error {
-	_, err := q.Exec(delete)
+	_, err := q.Exec(deleteCommission)
 	return err
 }
 
@@ -390,4 +405,4 @@ func (q *CommissionQ) Select(dest interface{}) error {
 var selectCommission = sq.Select("com.*").From("commission com")
 var insertCommission = sq.Insert("commission").Columns("key_hash", "key_value", "flat_fee", "percent_fee")
 var updateCommission = sq.Update("commission")
-var delete = sq.Delete("commission")
+var deleteCommission = sq.Delete("commission")

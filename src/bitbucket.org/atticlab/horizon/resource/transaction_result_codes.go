@@ -1,13 +1,13 @@
 package resource
 
 import (
-	"bitbucket.org/atticlab/horizon/txsub"
+	"bitbucket.org/atticlab/horizon/txsub/results"
 	"golang.org/x/net/context"
 )
 
 // Populate fills out the details
 func (res *TransactionResultCodes) Populate(ctx context.Context,
-	fail *txsub.FailedTransactionError,
+	fail *results.FailedTransactionError,
 ) (err error) {
 
 	res.TransactionCode, err = fail.TransactionResultCode()

@@ -4,6 +4,8 @@ package helpers
 import (
     "time"
 	"strconv"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/go-smart-base/strkey"
 )
 
 // SameWeek resturns true if both of the timestamps are within the same week 
@@ -30,4 +32,14 @@ func ParseTimestamp(data string) time.Time {
 		return time.Time{}
 	}
 	return time.Unix(i, 0)
+}
+
+func ParseAccountId(address string) (result xdr.AccountId, err error) {
+	raw, err := strkey.Decode(strkey.VersionByteAccountID, address)
+	if err != nil {
+		return
+	}
+	var key xdr.Uint256
+	copy(key[:], raw)
+	return xdr.NewAccountId(xdr.CryptoKeyTypeKeyTypeEd25519, key)
 }
