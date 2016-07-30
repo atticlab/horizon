@@ -11,6 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestAllowTrustOpFrame(t *testing.T) {
@@ -35,7 +36,7 @@ func TestAllowTrustOpFrame(t *testing.T) {
 		allowTrust := build.AllowTrust(build.AllowTrustAsset{"USD"}, build.Trustor{newAccount.Address()})
 		tx := build.Transaction(allowTrust, build.Sequence{1}, build.SourceAccount{root.Address()})
 		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
@@ -46,7 +47,7 @@ func TestAllowTrustOpFrame(t *testing.T) {
 		allowTrust := build.AllowTrust(build.AllowTrustAsset{"UAH"}, build.Trustor{root.Address()})
 		tx := build.Transaction(allowTrust, build.Sequence{1}, build.SourceAccount{root.Address()})
 		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeTrue)

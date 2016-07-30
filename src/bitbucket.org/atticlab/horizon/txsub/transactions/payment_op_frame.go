@@ -85,7 +85,6 @@ func (p *PaymentOpFrame) getInnerResult() *xdr.PaymentResult {
 }
 
 func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPaymentOpFrame {
-	p.log.WithField("createPathPayment", p.SourceAccount.Accountid).Debug("ASD")
 	op := xdr.Operation{
 		SourceAccount: p.Op.SourceAccount,
 		Body: xdr.OperationBody{
@@ -99,7 +98,7 @@ func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPay
 			},
 		},
 	}
-	opFrame := NewOperationFrame(&op, p.ParentTx)
+	opFrame := NewOperationFrame(&op, p.ParentTx, *p.now)
 	opFrame.Result = &results.OperationResult{
 		Result: xdr.OperationResult{
 			Code: xdr.OperationResultCodeOpInner,
@@ -117,7 +116,6 @@ func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPay
 	ppayment.traitsValidator = p.GetTraitsValidator(historyQ)
 	ppayment.defaultOutLimitsValidator = p.defaultOutLimitsValidator
 	ppayment.defaultInLimitsValidator = p.defaultInLimitsValidator
-	p.log.WithField("createPathPayment", ppayment.SourceAccount.Accountid).Debug("ASD")
 	return ppayment
 }
 

@@ -12,6 +12,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestPathPaymentOpFrame(t *testing.T) {
@@ -84,7 +85,7 @@ func TestPathPaymentOpFrame(t *testing.T) {
 func checkPaymentInvalidAsset(payment build.PaymentBuilder, root *keypair.Full, historyQ history.QInterface, coreQ core.QInterface, config config.Config) {
 	tx := build.Transaction(payment, build.Sequence{1}, build.SourceAccount{root.Address()})
 	txE := tx.Sign(root.Seed()).E
-	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 	isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 	So(err, ShouldBeNil)
 	So(isValid, ShouldBeFalse)

@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"testing"
 	"github.com/go-errors/errors"
+	"time"
 )
 
 func TestPaymentOpFrame(t *testing.T) {
@@ -49,7 +50,7 @@ func TestPaymentOpFrame(t *testing.T) {
 	})
 	tx := build.Transaction(payment, build.Sequence{1}, build.SourceAccount{from.Address()})
 	txE := tx.Sign(bankMasterKey.Seed()).E
-	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 	paymentFrame := GetPaymentOpFrame(&opFrame)
 	accountTypeVMock := &validators.AccountTypeValidatorMock{}
 	paymentFrame.accountTypeValidator = accountTypeVMock

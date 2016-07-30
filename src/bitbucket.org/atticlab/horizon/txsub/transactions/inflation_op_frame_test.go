@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	"time"
 )
 
 func TestInflationOpFrame(t *testing.T) {
@@ -31,7 +32,7 @@ func TestInflationOpFrame(t *testing.T) {
 		inflation := build.Inflation(build.SourceAccount{root.Address()})
 		tx := build.Transaction(inflation, build.Sequence{1}, build.SourceAccount{root.Address()})
 		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeTrue)

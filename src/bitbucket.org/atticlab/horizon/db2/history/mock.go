@@ -4,6 +4,8 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/log"
 	"github.com/stretchr/testify/mock"
+	"math/rand"
+	"time"
 )
 
 type QMock struct {
@@ -33,8 +35,8 @@ func (m *QMock) UpdateAccountLimits(limits AccountLimits) error {
 }
 
 // GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
-func (m *QMock) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error {
-	a := m.Called(addy, assetCode)
+func (m *QMock) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error {
+	a := m.Called(addy, assetCode, now)
 	rawStats := a.Get(0)
 	if rawStats != nil {
 		for key, value := range rawStats.(map[xdr.AccountType]AccountStatistics) {
@@ -136,4 +138,32 @@ func (m *QMock) DeleteCommission(id int64) (bool, error) {
 func (m *QMock) UpdateCommission(commission *Commission) (bool, error) {
 	log.Panic("Not implemented")
 	return false, nil
+}
+
+func CreateRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {
+	return CreateRandomAccountStatsWithMinValue(account, counterpartyType, asset, 0)
+}
+
+func CreateRandomAccountStatsWithMinValue(account string, counterpartyType xdr.AccountType, asset string, minValue int64) AccountStatistics {
+	return AccountStatistics{
+		Account:          account,
+		AssetCode:        asset,
+		CounterpartyType: int16(counterpartyType),
+		DailyIncome:      Max(rand.Int63(), minValue),
+		DailyOutcome:     Max(rand.Int63(), minValue),
+		WeeklyIncome:     Max(rand.Int63(), minValue),
+		WeeklyOutcome:    Max(rand.Int63(), minValue),
+		MonthlyIncome:    Max(rand.Int63(), minValue),
+		MonthlyOutcome:   Max(rand.Int63(), minValue),
+		AnnualIncome:     Max(rand.Int63(), minValue),
+		AnnualOutcome:    Max(rand.Int63(), minValue),
+		UpdatedAt:        time.Unix(time.Now().Unix(), 0),
+	}
+}
+
+func Max(x int64, y int64) int64 {
+	if x > y {
+		return x
+	}
+	return y
 }

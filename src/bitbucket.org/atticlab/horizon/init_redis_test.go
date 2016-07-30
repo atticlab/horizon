@@ -17,14 +17,6 @@ func TestRedis(t *testing.T) {
 		So(app.redis, ShouldNotBeNil)
 	})
 
-	Convey("app.redis is nil when no RedisURL is set", t, func() {
-		c := test.NewTestConfig()
-		c.RedisURL = ""
-		app, _ := NewApp(c)
-		defer app.Close()
-		So(app.redis, ShouldBeNil)
-	})
-
 	Convey("app.redis can successfully connect to redis", t, func() {
 		conf := test.NewTestConfig()
 		conf.RedisURL = "redis://127.0.0.1:6379/"

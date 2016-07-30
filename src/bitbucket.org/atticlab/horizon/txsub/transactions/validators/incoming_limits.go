@@ -11,6 +11,7 @@ import (
 	"bitbucket.org/atticlab/horizon/txsub/transactions/helpers"
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 type IncomingLimitsValidatorInterface interface {
@@ -24,8 +25,8 @@ type IncomingLimitsValidator struct {
 	monthlyIncome    *int64
 }
 
-func NewIncomingLimitsValidator(account, counterparty *core.Account, accountTrustLine core.Trustline, opAmount int64, opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions) *IncomingLimitsValidator {
-	limitsValidator := newLimitsValidator(PaymentTypeIncoming, account, counterparty, opAmount, opAsset, historyQ, anonUserRestr)
+func NewIncomingLimitsValidator(account, counterparty *core.Account, accountTrustLine core.Trustline, opAmount int64, opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions, now time.Time) *IncomingLimitsValidator {
+	limitsValidator := newLimitsValidator(PaymentTypeIncoming, account, counterparty, opAmount, opAsset, historyQ, anonUserRestr, now)
 	result := &IncomingLimitsValidator{
 		limitsValidator:  *limitsValidator,
 		accountTrustLine: accountTrustLine,

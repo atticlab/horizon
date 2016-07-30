@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 type PaymentType string
@@ -28,18 +29,20 @@ type limitsValidator struct {
 	accountStats map[xdr.AccountType]history.AccountStatistics
 	paymentType  PaymentType
 	log          *log.Entry
+	now          time.Time
 }
 
-func newLimitsValidator(paymentType PaymentType, sender, destination *core.Account, opAmount int64, opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions) *limitsValidator {
+func newLimitsValidator(paymentType PaymentType, sender, destination *core.Account, opAmount int64, opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions, now time.Time) *limitsValidator {
 	return &limitsValidator{
-		account:       sender,
-		counterparty:  destination,
+		account:      sender,
+		counterparty: destination,
 		opAsset:      opAsset,
 		opAmount:     opAmount,
 		historyQ:     historyQ,
 		anonUserRest: anonUserRestr,
 		paymentType:  paymentType,
 		log:          log.WithField("service", "limits_validator"),
+		now:          now,
 	}
 }
 
@@ -48,7 +51,7 @@ func (v *limitsValidator) getAccountStats() (map[xdr.AccountType]history.Account
 		return v.accountStats, nil
 	}
 	v.accountStats = make(map[xdr.AccountType]history.AccountStatistics)
-	err := v.historyQ.GetStatisticsByAccountAndAsset(v.accountStats, v.account.Accountid, v.opAsset.Code)
+	err := v.historyQ.GetStatisticsByAccountAndAsset(v.accountStats, v.account.Accountid, v.opAsset.Code, v.now)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return nil, err

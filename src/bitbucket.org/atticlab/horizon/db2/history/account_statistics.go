@@ -9,36 +9,82 @@ import (
 	sq "github.com/lann/squirrel"
 )
 
+func NewAccountStatistics(account, assetCode string, counterparty xdr.AccountType) AccountStatistics {
+	return AccountStatistics{
+		Account:          account,
+		AssetCode:        assetCode,
+		CounterpartyType: int16(counterparty),
+	}
+}
+
+func (stats *AccountStatistics) Update(delta int64, receivedAt time.Time, now time.Time, isIncome bool) {
+	if isIncome {
+		stats.AddIncome(delta, receivedAt, now)
+	} else {
+		stats.AddOutcome(delta, receivedAt, now)
+	}
+}
+
+func (stats *AccountStatistics) AddIncome(income int64, receivedAt time.Time, now time.Time) {
+	if receivedAt.Year() != now.Year() {
+		return
+	}
+	stats.AnnualIncome = stats.AnnualIncome + income
+
+	if receivedAt.Month() != now.Month() {
+		return
+	}
+	stats.MonthlyIncome = stats.MonthlyIncome + income
+
+	if !helpers.SameWeek(receivedAt, now) {
+		return
+	}
+	stats.WeeklyIncome = stats.WeeklyIncome + income
+
+	if receivedAt.Day() != now.Day() {
+		return
+	}
+	stats.DailyIncome = stats.DailyIncome + income
+}
+
+func (stats *AccountStatistics) AddOutcome(outcome int64, performedAt time.Time, now time.Time) {
+	if performedAt.Year() != now.Year() {
+		return
+	}
+	stats.AnnualOutcome = stats.AnnualOutcome + outcome
+
+	if performedAt.Month() != now.Month() {
+		return
+	}
+	stats.MonthlyOutcome = stats.MonthlyOutcome + outcome
+
+	if !helpers.SameWeek(performedAt, now) {
+		return
+	}
+	stats.WeeklyOutcome = stats.WeeklyOutcome + outcome
+
+	if performedAt.Day() != now.Day() {
+		return
+	}
+	stats.DailyOutcome = stats.DailyOutcome + outcome
+}
+
 // GetAccountStatistics returns account_statistics row by account, asset and counterparty type.
-func (q *Q) GetAccountStatistics(
-	dest *AccountStatistics,
-	address string,
-	assetCode string,
-	counterPartyType xdr.AccountType,
-) error {
-	sql := SelectAccountStatisticsTemplate.Where(
-		"a.address = ? AND a.asset_code = ? AND a.counterparty_type = ?",
+func (q *Q) GetAccountStatistics(address string, assetCode string, counterPartyType xdr.AccountType) (AccountStatistics, error) {
+	sql := selectAccountStatisticsTemplate.Limit(1).Where("a.address = ? AND a.asset_code = ? AND a.counterparty_type = ?",
 		address,
 		assetCode,
 		int16(counterPartyType),
 	)
 
-	now := time.Now()
 	var stats AccountStatistics
 	err := q.Get(&stats, sql)
-
-	if err == nil {
-		// Erase obsolete data from result. Don't save, to avoid conflicts with ingester's thread
-		stats.ClearObsoleteStats(now)
-		*dest = stats
-	}
-
-	return err
+	return stats, err
 }
 
 // GetStatisticsByAccount selects rows from `account_statistics` by address
 func (q *Q) GetStatisticsByAccount(dest *[]AccountStatistics, addy string) error {
-	sql := SelectAccountStatisticsTemplate.Where("a.address = ?", addy)
+	sql := selectAccountStatisticsTemplate.Where("a.address = ?", addy)
 	var stats []AccountStatistics
 	err := q.Select(&stats, sql)
 
@@ -54,8 +100,10 @@ func (q *Q) GetStatisticsByAccount(dest *[]AccountStatistics, addy string) error
 	return err
 }
 
-func (q *Q) CreateStats(stats AccountStatistics) error {
-	sql := CreateAccountStatisticsTemplate.Values(
+// CreateAccountStats creates new row in the account_statistics table
+// and populates it with values from the AccountStatistics struct
+func (q *Q) CreateAccountStats(stats AccountStatistics) error {
+	sql := createAccountStatisticsTemplate.Values(
 		stats.Account,
 		stats.AssetCode,
 		int16(stats.CounterpartyType),
@@ -75,14 +123,14 @@ func (q *Q) CreateStats(stats AccountStatistics) error {
 }
 
 // GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
-func (q *Q) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error {
-	sql := SelectAccountStatisticsTemplate.Where("a.address = ? AND a.asset_code = ?", addy, assetCode)
+func (q *Q) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error {
+	sql := selectAccountStatisticsTemplate.Where("a.address = ? AND a.asset_code = ?", addy, assetCode)
 	var stats []AccountStatistics
 	err := q.Select(&stats, sql)
 	if err != nil {
 		return err
 	}
-	now := time.Now()
+
 	for _, stat := range stats {
 		// Erase obsolete data from result. Don't save, to avoid conflicts with ingester's thread
 		stat.ClearObsoleteStats(now)
@@ -92,8 +140,36 @@ func (q *Q) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStati
 	return nil
 }
 
+// updateStats updates entry in the account_statistics table
+// with values from the AccountStatistics struct
+func (q *Q) UpdateAccountStats(stats AccountStatistics) error {
+	update := updateAccountStatisticsTemplate.SetMap(map[string]interface{}{
+		"daily_income":    stats.DailyIncome,
+		"daily_outcome":   stats.DailyOutcome,
+		"weekly_income":   stats.WeeklyIncome,
+		"weekly_outcome":  stats.WeeklyOutcome,
+		"monthly_income":  stats.MonthlyIncome,
+		"monthly_outcome": stats.MonthlyOutcome,
+		"annual_income":   stats.AnnualIncome,
+		"annual_outcome":  stats.AnnualOutcome,
+		"updated_at":      stats.UpdatedAt,
+	}).Where(
+		"address = ? AND asset_code = ? AND counterparty_type = ?",
+		stats.Account,
+		stats.AssetCode,
+		stats.CounterpartyType,
+	)
+
+	_, err := q.Exec(update)
+	return err
+}
+
 // ClearObsoleteStats checks last update time and erases obsolete data
 func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
+	log.WithFields(log.F{
+		"now": now.String(),
+		"updated": stats.UpdatedAt.String(),
+	}).Debug("ClearObsoleteStats")
 	isYear := stats.UpdatedAt.Year() < now.Year()
 	if isYear {
 		stats.AnnualIncome = 0
@@ -134,10 +210,10 @@ func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
 // TODO: get all assets for account
 
 // SelectAccountStatisticsTemplate is a prepared statement for SELECT from the account_statistics
-var SelectAccountStatisticsTemplate = sq.Select("a.*").From("account_statistics a")
+var selectAccountStatisticsTemplate = sq.Select("a.*").From("account_statistics a")
 
 // CreateAccountStatisticsTemplate is a prepared statement for insertion into the account_statistics
-var CreateAccountStatisticsTemplate = sq.Insert("account_statistics").Columns(
+var createAccountStatisticsTemplate = sq.Insert("account_statistics").Columns(
 	"address",
 	"asset_code",
 	"counterparty_type",
@@ -151,3 +227,5 @@ var CreateAccountStatisticsTemplate = sq.Insert("account_statistics").Columns(
 	"annual_outcome",
 	"updated_at",
 )
+
+var updateAccountStatisticsTemplate = sq.Update("account_statistics")

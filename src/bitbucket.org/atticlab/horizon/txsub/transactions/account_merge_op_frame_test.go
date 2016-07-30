@@ -11,6 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestAccountMergeOpFrame(t *testing.T) {
@@ -35,7 +36,7 @@ func TestAccountMergeOpFrame(t *testing.T) {
 		accountMerge := build.AccountMerge(build.Destination{newAccount.Address()})
 		tx := build.Transaction(accountMerge, build.Sequence{1}, build.SourceAccount{root.Address()})
 		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeTrue)

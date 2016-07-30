@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"database/sql"
 	"github.com/go-errors/errors"
+	"time"
 )
 
 var ASSET_NOT_ALLOWED = errors.New("asset not allowed")
@@ -24,15 +25,17 @@ type OperationFrame struct {
 	innerOp       OperationInterface
 	SourceAccount *core.Account
 	log           *log.Entry
+	now           *time.Time
 }
 
-func NewOperationFrame(op *xdr.Operation, tx *xdr.TransactionEnvelope) OperationFrame {
+func NewOperationFrame(op *xdr.Operation, tx *xdr.TransactionEnvelope, now time.Time) OperationFrame {
 	return OperationFrame{
-		Op:       op,
-		ParentTx: tx,
-		Result:   &results.OperationResult{},
-		log:      log.WithField("service", op.Body.Type.String()),
+		Op:            op,
+		ParentTx:      tx,
+		Result:        &results.OperationResult{},
+		log:           log.WithField("service", op.Body.Type.String()),
 		SourceAccount: new(core.Account),
+		now:           &now,
 	}
 }
 

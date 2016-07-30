@@ -11,6 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestOperationFrame(t *testing.T) {
@@ -36,7 +37,7 @@ func TestOperationFrame(t *testing.T) {
 			createAccount := build.CreateAccount(build.Destination{newAccount.Address()})
 			tx := build.Transaction(createAccount, build.Sequence{1}, build.SourceAccount{newAccount.Address()})
 			txE := tx.Sign(newAccount.Seed()).E
-			opFrame := NewOperationFrame(&createAccount.O, txE)
+			opFrame := NewOperationFrame(&createAccount.O, txE, time.Now())
 			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)
@@ -46,7 +47,7 @@ func TestOperationFrame(t *testing.T) {
 			createAccount := build.CreateAccount(build.Destination{newAccount.Address()}, build.SourceAccount{newAccount.Address()})
 			tx := build.Transaction(createAccount, build.Sequence{1}, build.SourceAccount{root.Address()})
 			txE := tx.Sign(root.Seed()).E
-			opFrame := NewOperationFrame(&createAccount.O, txE)
+			opFrame := NewOperationFrame(&createAccount.O, txE, time.Now())
 			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)
@@ -57,7 +58,7 @@ func TestOperationFrame(t *testing.T) {
 			invalidOp.O.Body.Type = xdr.OperationType(123)
 			tx := build.Transaction(invalidOp, build.Sequence{1}, build.SourceAccount{root.Address()})
 			txE := tx.Sign(root.Seed()).E
-			opFrame := NewOperationFrame(&invalidOp.O, txE)
+			opFrame := NewOperationFrame(&invalidOp.O, txE, time.Now())
 			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 			So(err.Error(), ShouldEqual, "unknown operation")
 			So(isValid, ShouldBeFalse)

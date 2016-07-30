@@ -51,7 +51,7 @@ func (p *PathPaymentOpFrame) GetOutgoingLimitsValidator(account, counterparty *c
 	if p.defaultOutLimitsValidator != nil {
 		return p.defaultOutLimitsValidator
 	}
-	return validators.NewOutgoingLimitsValidator(account, counterparty, opAmount, opAsset, historyQ, anonUserRestr)
+	return validators.NewOutgoingLimitsValidator(account, counterparty, opAmount, opAsset, historyQ, anonUserRestr, *p.now)
 }
 
 func (p *PathPaymentOpFrame) GetIncomingLimitsValidator(account, counterparty *core.Account,
@@ -60,7 +60,7 @@ func (p *PathPaymentOpFrame) GetIncomingLimitsValidator(account, counterparty *c
 	if p.defaultInLimitsValidator != nil {
 		return p.defaultInLimitsValidator
 	}
-	return validators.NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, historyQ, anonUserRestr)
+	return validators.NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, historyQ, anonUserRestr, *p.now)
 }
 
 func (p *PathPaymentOpFrame) GetAssetsValidator(historyQ history.QInterface) validators.AssetsValidatorInterface {

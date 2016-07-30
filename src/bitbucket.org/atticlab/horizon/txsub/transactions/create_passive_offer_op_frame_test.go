@@ -11,6 +11,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	"time"
 )
 
 func TestCreatePassiveOfferOpFrame(t *testing.T) {
@@ -64,7 +65,7 @@ func TestCreatePassiveOfferOpFrame(t *testing.T) {
 		}, build.Amount("1000"))
 		tx := build.Transaction(createPassiveOffer, build.Sequence{1}, build.SourceAccount{root.Address()})
 		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeTrue)
@@ -75,7 +76,7 @@ func TestCreatePassiveOfferOpFrame(t *testing.T) {
 func checkInvalidAsset(createPassiveOffer build.ManageOfferBuilder, root *keypair.Full, historyQ history.QInterface, coreQ core.QInterface, config config.Config) {
 	tx := build.Transaction(createPassiveOffer, build.Sequence{1}, build.SourceAccount{root.Address()})
 	txE := tx.Sign(root.Seed()).E
-	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
 	isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
 	So(err, ShouldBeNil)
 	So(isValid, ShouldBeFalse)

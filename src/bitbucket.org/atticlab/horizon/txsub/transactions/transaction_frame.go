@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"time"
 )
 
 type TransactionFrame struct {
@@ -56,8 +57,9 @@ func (t *TransactionFrame) checkTransaction() (bool, error) {
 func (t *TransactionFrame) checkOperations(historyQ history.QInterface, coreQ core.QInterface, conf *config.Config) (bool, error) {
 	opFrames := make([]OperationFrame, len(t.tx.Tx.Operations))
 	isValid := true
+	now := time.Now()
 	for i, op := range t.tx.Tx.Operations {
-		opFrames[i] = NewOperationFrame(&op, t.tx)
+		opFrames[i] = NewOperationFrame(&op, t.tx, now)
 		isOpValid, err := opFrames[i].CheckValid(historyQ, coreQ, conf)
 		// failed to validate
 		if err != nil {
