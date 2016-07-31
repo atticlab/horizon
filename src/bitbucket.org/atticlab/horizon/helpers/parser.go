@@ -219,6 +219,25 @@ func GetAmount(base ParserInterface, name string) (result xdr.Int64) {
 	return
 }
 
+func GetOptionalAmount(base ParserInterface, name string) (result xdr.Int64) {
+	if base.HasError() {
+		return 0
+	}
+	strAmount := base.GetString(name)
+	if strAmount == "" {
+		return 0
+	}
+
+	result, err := amount.Parse(strAmount)
+
+	if err != nil {
+		base.SetInvalidField(name, err)
+		return
+	}
+
+	return
+}
+
 // GetAssetType is a helper that returns a xdr.AssetType by reading a string
 func GetAssetType(base ParserInterface, name string) xdr.AssetType {
 	if base.HasError() {

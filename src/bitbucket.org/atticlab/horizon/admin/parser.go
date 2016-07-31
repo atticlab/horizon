@@ -96,3 +96,7 @@ func (p *AdminAction) GetOptionalBool(name string) *bool {
 func (p *AdminAction) GetOptionalAsset(prefix string) *xdr.Asset {
 	return helpers.GetOptionalAsset(p, prefix)
 }
+
+func (p *AdminAction) GetOptionalAmount(name string) int64 {
+	return int64(helpers.GetOptionalAmount(p, name))
+}

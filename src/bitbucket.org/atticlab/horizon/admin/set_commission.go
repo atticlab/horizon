@@ -98,6 +98,7 @@ func (action *SetCommissionAction) Apply() {
 }
 
 func (action *SetCommissionAction) loadParams() {
+	action.CommissionId = action.GetInt64("id")
 	action.CommissionKey.From = action.GetOptionalAddress("from")
 	action.CommissionKey.To = action.GetOptionalAddress("to")
 	action.CommissionKey.FromType = action.GetOptionalRawAccountType("from_type")
@@ -106,16 +107,18 @@ func (action *SetCommissionAction) loadParams() {
 	if xdrAsset != nil {
 		action.CommissionKey.Asset = assets.ToBaseAsset(*xdrAsset)
 	}
-	action.FlatFee = action.GetInt64("flat_fee")
+	action.Log.WithError(action.Err).Debug("Getting flat_fee")
+	action.FlatFee = action.GetOptionalAmount("flat_fee")
 	if action.FlatFee < 0 {
 		action.SetInvalidField("flat_fee", errors.New("flat_fee can not be negative"))
 		return
 	}
-	action.PercentFee = action.GetInt64("percent_fee")
+	action.Log.WithError(action.Err).Debug("Getting percent_fee")
+	action.PercentFee = action.GetOptionalAmount("percent_fee")
 	if action.PercentFee < 0 {
 		action.SetInvalidField("percent_fee", errors.New("percent_fee can not be negative"))
 		return
 	}
-	action.CommissionId = action.GetInt64("id")
+	action.Log.WithError(action.Err).Debug("Got percent fee")
 	action.Delete = action.GetBool("delete")
 }

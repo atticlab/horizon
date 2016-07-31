@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
@@ -25,7 +26,9 @@ func TestActionsSetCommission(t *testing.T) {
 	Convey("Set commission Actions:", t, func() {
 		Convey("Not exists", func() {
 			action := NewSetCommissionAction(NewAdminAction(map[string]interface{}{
-				"id": "1",
+				"id":          "1",
+				"flat_fee":    "0",
+				"percent_fee": "0",
 			}, historyQ))
 			action.Validate()
 			So(action.Err, ShouldNotBeNil)
@@ -95,10 +98,21 @@ func TestActionsSetCommission(t *testing.T) {
 		Convey("Invalid percent_fee", func() {
 			action := NewSetCommissionAction(NewAdminAction(map[string]interface{}{
 				"percent_fee": "-10",
+				"flat_fee": "0",
 			}, historyQ))
 			action.Validate()
 			So(action.Err, ShouldNotBeNil)
 			So(action.Err, ShouldBeInvalidField, "percent_fee")
+		})
+		Convey("Pass flat fee & percent fee as amount", func() {
+			action := NewSetCommissionAction(NewAdminAction(map[string]interface{}{
+				"percent_fee": "1.2",
+				"flat_fee":    "7.1413121",
+			}, historyQ))
+			action.Validate()
+			So(action.Err, ShouldBeNil)
+			So(action.PercentFee, ShouldEqual, 12000000)
+			So(action.FlatFee, ShouldEqual, 71413121)
 		})
 		Convey("valid insert", func() {
 			fromKey, err := keypair.Random()
@@ -114,8 +128,8 @@ func TestActionsSetCommission(t *testing.T) {
 			assetType := assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4)
 			assetCode := "EUR"
 			assetIssuer := issuer.Address()
-			flatFee := xdr.Int64(12000000)
-			percentFee := xdr.Int64(11)
+			flatFee := int64(12000000)
+			percentFee := int64(11)
 			data := map[string]interface{}{
 				"from":         from,
 				"to":           to,
@@ -124,8 +138,8 @@ func TestActionsSetCommission(t *testing.T) {
 				"asset_type":   assetType,
 				"asset_code":   assetCode,
 				"asset_issuer": assetIssuer,
-				"flat_fee":     strconv.FormatInt(int64(flatFee), 10),
-				"percent_fee":  strconv.FormatInt(int64(percentFee), 10),
+				"flat_fee":     strconv.FormatInt(flatFee, 10),
+				"percent_fee":  strconv.FormatInt(percentFee, 10),
 			}
 			action := NewSetCommissionAction(NewAdminAction(data, historyQ))
 			check := func(action AdminAction) int64 {
@@ -143,8 +157,8 @@ func TestActionsSetCommission(t *testing.T) {
 				assert.Equal(t, assetType, stKey.Asset.Type)
 				assert.Equal(t, assetCode, stKey.Asset.Code)
 				assert.Equal(t, assetIssuer, stKey.Asset.Issuer)
-				assert.Equal(t, int64(flatFee), st.FlatFee)
-				assert.Equal(t, int64(percentFee), st.PercentFee)
+				assert.Equal(t, flatFee*amount.One, st.FlatFee)
+				assert.Equal(t, percentFee*amount.One, st.PercentFee)
 				return st.Id
 			}
 			action.Validate()
