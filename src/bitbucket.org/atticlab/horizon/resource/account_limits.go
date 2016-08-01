@@ -7,6 +7,8 @@ import (
 	"bitbucket.org/atticlab/horizon/httpx"
 	"bitbucket.org/atticlab/horizon/render/hal"
 
+	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"golang.org/x/net/context"
 )
 
@@ -36,10 +38,17 @@ func (al *AccountLimits) Populate(
 // Populate fills out the resource's fields
 func (ale *AccountLimitsEntry) Populate(entry history.AccountLimits) {
 	ale.AssetCode = entry.AssetCode
-	ale.MaxOperationOut = entry.MaxOperationOut
-	ale.DailyMaxOut = entry.DailyMaxOut
-	ale.MonthlyMaxOut = entry.MonthlyMaxOut
-	ale.MaxOperationIn = entry.MaxOperationIn
-	ale.DailyMaxIn = entry.DailyMaxIn
-	ale.MonthlyMaxIn = entry.MonthlyMaxIn
+	ale.MaxOperationOut = ale.formatLimit(entry.MaxOperationOut)
+	ale.DailyMaxOut = ale.formatLimit(entry.DailyMaxOut)
+	ale.MonthlyMaxOut = ale.formatLimit(entry.MonthlyMaxOut)
+	ale.MaxOperationIn = ale.formatLimit(entry.MaxOperationIn)
+	ale.DailyMaxIn = ale.formatLimit(entry.DailyMaxIn)
+	ale.MonthlyMaxIn = ale.formatLimit(entry.MonthlyMaxIn)
+}
+
+func (ale *AccountLimitsEntry) formatLimit(limit int64) string {
+	if limit == -1 {
+		return amount.String(xdr.Int64(limit) * amount.One)
+	}
+	return amount.String(xdr.Int64(limit))
 }

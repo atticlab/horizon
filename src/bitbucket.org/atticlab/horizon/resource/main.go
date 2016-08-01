@@ -68,16 +68,16 @@ type Account struct {
 
 type AccountBalance struct {
 	AccountId string `json:"account_id"`
-	Balance string `json:"balance"`
-	Limit   string `json:"limit,omitempty"`
+	Balance   string `json:"balance"`
+	Limit     string `json:"limit,omitempty"`
 }
 
 type MultiAccountAssetBalances struct {
-	Asset		base.Asset			`json:"asset"`
-	Balances	[]AccountBalance	`json:"balances"`
+	Asset    base.Asset       `json:"asset"`
+	Balances []AccountBalance `json:"balances"`
 }
 type MultiAssetBalances struct {
-	Assets	[]MultiAccountAssetBalances	`json:"assets"`
+	Assets []MultiAccountAssetBalances `json:"assets"`
 }
 
 // AccountStatistics is the detailed income/outcome statistics of an account
@@ -341,12 +341,12 @@ type AccountLimits struct {
 // AccountLimitsEntry represents limits on a specific currency
 type AccountLimitsEntry struct {
 	AssetCode       string `json:"asset_code"`
-	MaxOperationOut int64  `json:"max_operation_out"`
-	DailyMaxOut     int64  `json:"daily_max_out"`
-	MonthlyMaxOut   int64  `json:"monthly_max_out"`
-	MaxOperationIn  int64  `json:"max_operation_in"`
-	DailyMaxIn      int64  `json:"daily_max_in"`
-	MonthlyMaxIn    int64  `json:"monthly_max_in"`
+	MaxOperationOut string `json:"max_operation_out"`
+	DailyMaxOut     string `json:"daily_max_out"`
+	MonthlyMaxOut   string `json:"monthly_max_out"`
+	MaxOperationIn  string `json:"max_operation_in"`
+	DailyMaxIn      string `json:"daily_max_in"`
+	MonthlyMaxIn    string `json:"monthly_max_in"`
 }
 
 type Commission struct {
