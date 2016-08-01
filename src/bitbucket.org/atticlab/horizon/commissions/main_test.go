@@ -94,14 +94,12 @@ func TestCommission(t *testing.T) {
 	Convey("get smallest", t, func() {
 		comms := []history.Commission{
 			history.Commission{
-				Id:         int64(1),
 				KeyHash:    "hash",
 				KeyValue:   "{}",
 				FlatFee:    int64(20000000),
 				PercentFee: int64(40000000),
 			},
 			history.Commission{
-				Id:         int64(2),
 				KeyHash:    "hash",
 				KeyValue:   "{}",
 				FlatFee:    int64(20000000),

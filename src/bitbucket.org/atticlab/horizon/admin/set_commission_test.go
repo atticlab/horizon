@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
@@ -26,22 +25,11 @@ func TestActionsSetCommission(t *testing.T) {
 	Convey("Set commission Actions:", t, func() {
 		Convey("Not exists", func() {
 			action := NewSetCommissionAction(NewAdminAction(map[string]interface{}{
-				"id":          "1",
-				"flat_fee":    "0",
-				"percent_fee": "0",
+				"delete": "true",
 			}, historyQ))
 			action.Validate()
 			So(action.Err, ShouldNotBeNil)
 			So(action.Err, problem.ShouldBeProblem, problem.NotFound)
-
-		})
-		Convey("Invalid id", func() {
-			action := NewSetCommissionAction(NewAdminAction(map[string]interface{}{
-				"id": "invalid_id",
-			}, historyQ))
-			action.Validate()
-			So(action.Err, ShouldNotBeNil)
-			So(action.Err, ShouldBeInvalidField, "id")
 
 		})
 		Convey("Invalid asset", func() {
@@ -98,21 +86,11 @@ func TestActionsSetCommission(t *testing.T) {
 		Convey("Invalid percent_fee", func() {
 			action := NewSetCommissionAction(NewAdminAction(map[string]interface{}{
 				"percent_fee": "-10",
-				"flat_fee": "0",
+				"flat_fee":    "0",
 			}, historyQ))
 			action.Validate()
 			So(action.Err, ShouldNotBeNil)
 			So(action.Err, ShouldBeInvalidField, "percent_fee")
-		})
-		Convey("Pass flat fee & percent fee as amount", func() {
-			action := NewSetCommissionAction(NewAdminAction(map[string]interface{}{
-				"percent_fee": "1.2",
-				"flat_fee":    "7.1413121",
-			}, historyQ))
-			action.Validate()
-			So(action.Err, ShouldBeNil)
-			So(action.PercentFee, ShouldEqual, 12000000)
-			So(action.FlatFee, ShouldEqual, 71413121)
 		})
 		Convey("valid insert", func() {
 			fromKey, err := keypair.Random()
@@ -142,7 +120,7 @@ func TestActionsSetCommission(t *testing.T) {
 				"percent_fee":  strconv.FormatInt(percentFee, 10),
 			}
 			action := NewSetCommissionAction(NewAdminAction(data, historyQ))
-			check := func(action AdminAction) int64 {
+			check := func(action AdminAction) {
 				So(action.Err, ShouldBeNil)
 				var sts []history.Commission
 				err = historyQ.Commissions().ForAccount(from).Select(&sts)
@@ -157,17 +135,15 @@ func TestActionsSetCommission(t *testing.T) {
 				assert.Equal(t, assetType, stKey.Asset.Type)
 				assert.Equal(t, assetCode, stKey.Asset.Code)
 				assert.Equal(t, assetIssuer, stKey.Asset.Issuer)
-				assert.Equal(t, flatFee*amount.One, st.FlatFee)
-				assert.Equal(t, percentFee*amount.One, st.PercentFee)
-				return st.Id
+				assert.Equal(t, flatFee, st.FlatFee)
+				assert.Equal(t, percentFee, st.PercentFee)
 			}
 			action.Validate()
 			So(action.Err, ShouldBeNil)
 			action.Apply()
-			id := check(action.AdminAction)
+			check(action.AdminAction)
 			Convey("update", func() {
 				flatFee = 99
-				data["id"] = strconv.FormatInt(id, 10)
 				data["flat_fee"] = strconv.FormatInt(int64(flatFee), 10)
 				updateAction := NewSetCommissionAction(NewAdminAction(data, historyQ))
 				updateAction.Validate()
@@ -176,11 +152,8 @@ func TestActionsSetCommission(t *testing.T) {
 				check(updateAction.AdminAction)
 			})
 			Convey("delete", func() {
-				deleteForm := map[string]interface{}{
-					"id":     strconv.FormatInt(id, 10),
-					"delete": "true",
-				}
-				deleteAction := NewSetCommissionAction(NewAdminAction(deleteForm, historyQ))
+				data["delete"] = "true"
+				deleteAction := NewSetCommissionAction(NewAdminAction(data, historyQ))
 				deleteAction.Validate()
 				So(action.Err, ShouldBeNil)
 				deleteAction.Apply()

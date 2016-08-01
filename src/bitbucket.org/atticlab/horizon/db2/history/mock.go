@@ -115,7 +115,7 @@ func (m *QMock) AccountByAddress(dest interface{}, addy string) error {
 }
 
 // selects commission by id
-func (m *QMock) CommissionById(id int64) (*Commission, error) {
+func (m *QMock) CommissionByHash(hash string) (*Commission, error) {
 	log.Panic("Not implemented")
 	return nil, nil
 }
@@ -127,7 +127,7 @@ func (m *QMock) InsertCommission(commission *Commission) (err error) {
 }
 
 // Deletes commission
-func (m *QMock) DeleteCommission(id int64) (bool, error) {
+func (m *QMock) DeleteCommission(hash string) (bool, error) {
 	log.Panic("Not implemented")
 	return false, nil
 }

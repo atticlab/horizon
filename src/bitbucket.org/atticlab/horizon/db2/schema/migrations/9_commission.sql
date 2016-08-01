@@ -9,7 +9,7 @@ CREATE TABLE commission (
     PRIMARY KEY(id)
 );
 
-CREATE INDEX commission_by_hash ON commission USING btree (key_hash);
+CREATE UNIQUE INDEX commission_by_hash ON commission USING btree (key_hash);
 CREATE INDEX commission_by_account ON commission USING btree (((key_value ->>'from')::text), ((key_value ->> 'to')::text));
 CREATE INDEX commission_by_account_type ON commission USING btree (((key_value ->>'from_type')::integer), ((key_value ->> 'to_type')::integer));
 CREATE INDEX commission_by_asset ON commission USING btree (((key_value ->>'asset_type')::text), ((key_value ->> 'asset_code')::text), ((key_value ->> 'asset_issuer')::text));

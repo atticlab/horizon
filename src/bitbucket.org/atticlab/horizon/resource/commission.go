@@ -12,7 +12,7 @@ import (
 func (res *Commission) Populate(row history.Commission) (err error) {
 	key := row.GetKey()
 	res.Weight = key.CountWeight()
-	res.Id = row.Id
+	res.Id = row.ID
 
 	if key.From != "" {
 		res.From = &key.From

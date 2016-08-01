@@ -223,12 +223,12 @@ type QInterface interface {
 	AccountByAddress(dest interface{}, addy string) error
 
 	// Commission
-	// selects commission by id
-	CommissionById(id int64) (*Commission, error)
+	// selects commission by hash
+	CommissionByHash(hash string) (*Commission, error)
 	// Inserts new commission
 	InsertCommission(commission *Commission) (err error)
 	// Deletes commission
-	DeleteCommission(id int64) (bool, error)
+	DeleteCommission(hash string) (bool, error)
 	// update commission
 	UpdateCommission(commission *Commission) (bool, error)
 }
@@ -345,20 +345,12 @@ type AccountTraits struct {
 }
 
 type Commission struct {
-	Id         int64  `db:"id"`
+	TotalOrderID
 	KeyHash    string `db:"key_hash"`
 	KeyValue   string `db:"key_value"`
 	FlatFee    int64  `db:"flat_fee"`
 	PercentFee int64  `db:"percent_fee"`
 	weight     int
-}
-
-// CommissionQ is a helper struct to aid in configuring queries that loads
-// slices of Commission.
-type CommissionQ struct {
-	Err    error
-	parent *Q
-	sql    sq.SelectBuilder
 }
 
 type AuditLog struct {

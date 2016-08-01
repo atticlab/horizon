@@ -117,7 +117,6 @@ func TestCommissionStore(t *testing.T) {
 		assert.Nil(t, err)
 		log.WithField("stored", stored).Debug("Got commission")
 		assert.Equal(t, 1, len(stored))
-		commission.Id = stored[0].Id
 		stored[0].weight = commission.weight
 		assert.True(t, commission.Equals(stored[0]))
 		err = q.DeleteCommissions()
@@ -167,7 +166,6 @@ func TestCommissionSelector(t *testing.T) {
 	}, 10*amount.One, 12*amount.One)
 	assert.Nil(t, err)
 
-	commission.Id = 1
 	err = q.InsertCommission(commission)
 	assert.Nil(t, err)
 	newAccountType := accountType + 1

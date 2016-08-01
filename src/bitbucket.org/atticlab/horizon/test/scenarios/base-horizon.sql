@@ -736,7 +736,7 @@ CREATE INDEX commission_by_asset ON commission USING btree (((key_value ->> 'ass
 -- Name: commission_by_hash; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX commission_by_hash ON commission USING btree (key_hash);
+CREATE UNIQUE INDEX commission_by_hash ON commission USING btree (key_hash);
 
 
 --

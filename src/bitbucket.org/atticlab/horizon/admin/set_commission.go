@@ -9,12 +9,12 @@ import (
 
 type SetCommissionAction struct {
 	AdminAction
-	CommissionId  int64
 	CommissionKey history.CommissionKey
 	FlatFee       int64
 	PercentFee    int64
 	Delete        bool
 	commission    *history.Commission
+	isNew bool
 }
 
 func NewSetCommissionAction(adminAction AdminAction) *SetCommissionAction {
@@ -37,22 +37,16 @@ func (action *SetCommissionAction) Validate() {
 		return
 	}
 
-	action.commission.Id = action.CommissionId
-
-	if action.commission.Id == 0 && action.Delete {
-		action.Err = &problem.NotFound
+	stored, err := action.HistoryQ().CommissionByHash(action.commission.KeyHash)
+	if err != nil {
+		action.Log.WithStack(err).WithError(err).Error("Failed to get commission by id")
+		action.Err = &problem.ServerError
 		return
 	}
 
-	if action.commission.Id != 0 {
-		stored, err := action.HistoryQ().CommissionById(action.CommissionId)
-		if err != nil {
-			action.Log.WithStack(err).WithError(err).Error("Failed to get commission by id")
-			action.Err = &problem.ServerError
-			return
-		}
-
-		if stored == nil {
+	if stored == nil {
+		action.isNew = true
+		if action.Delete {
 			action.Err = &problem.NotFound
 			return
 		}
@@ -65,9 +59,8 @@ func (action *SetCommissionAction) Apply() {
 	}
 	action.Log.WithField("commission", action.commission).Debug("Updating commission")
 	var err error
-	action.commission.Id = action.CommissionId
 
-	if action.commission.Id == 0 {
+	if action.isNew {
 		action.Log.WithField("commission", action.commission).Debug("Trying to insert commission")
 		err = action.HistoryQ().InsertCommission(action.commission)
 		if err != nil {
@@ -79,8 +72,7 @@ func (action *SetCommissionAction) Apply() {
 
 	var updated bool
 	if action.Delete {
-		action.Log.WithField("commissionid", action.commission.Id).Debug("Trying to delete commission")
-		updated, err = action.HistoryQ().DeleteCommission(action.commission.Id)
+		updated, err = action.HistoryQ().DeleteCommission(action.commission.KeyHash)
 	} else {
 		action.Log.WithField("commission", action.commission).Debug("Trying to update commission")
 		updated, err = action.HistoryQ().UpdateCommission(action.commission)
@@ -98,7 +90,6 @@ func (action *SetCommissionAction) Apply() {
 }
 
 func (action *SetCommissionAction) loadParams() {
-	action.CommissionId = action.GetInt64("id")
 	action.CommissionKey.From = action.GetOptionalAddress("from")
 	action.CommissionKey.To = action.GetOptionalAddress("to")
 	action.CommissionKey.FromType = action.GetOptionalRawAccountType("from_type")
@@ -107,18 +98,16 @@ func (action *SetCommissionAction) loadParams() {
 	if xdrAsset != nil {
 		action.CommissionKey.Asset = assets.ToBaseAsset(*xdrAsset)
 	}
-	action.Log.WithError(action.Err).Debug("Getting flat_fee")
-	action.FlatFee = action.GetOptionalAmount("flat_fee")
+
+	action.FlatFee = action.GetInt64("flat_fee")
 	if action.FlatFee < 0 {
 		action.SetInvalidField("flat_fee", errors.New("flat_fee can not be negative"))
 		return
 	}
-	action.Log.WithError(action.Err).Debug("Getting percent_fee")
-	action.PercentFee = action.GetOptionalAmount("percent_fee")
+	action.PercentFee = action.GetInt64("percent_fee")
 	if action.PercentFee < 0 {
 		action.SetInvalidField("percent_fee", errors.New("percent_fee can not be negative"))
 		return
 	}
-	action.Log.WithError(action.Err).Debug("Got percent fee")
 	action.Delete = action.GetBool("delete")
 }
