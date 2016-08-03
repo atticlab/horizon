@@ -264,9 +264,19 @@ func initConfig() {
 		log.Fatal("Invalid config: bank-commission-key is blank. Please set the BANK_COMMISSION_KEY environment variable.")
 	}
 
-	adminSigValid :=  viper.GetInt("admin-sig-valid")
+	adminSigValid := viper.GetInt("admin-sig-valid")
 	if adminSigValid == 0 {
 		adminSigValid = 60
+	}
+
+	statisticsTimeout := viper.GetInt("stats-timeout")
+	if statisticsTimeout == 0 {
+		statisticsTimeout = 60
+	}
+
+	processedOpTimeout := viper.GetInt("processed-op-timeout")
+	if processedOpTimeout == 0 {
+		processedOpTimeout = statisticsTimeout / 2
 	}
 
 	config = conf.Config{
@@ -289,6 +299,8 @@ func initConfig() {
 		BankCommissionKey:         viper.GetString("bank-commission-key"),
 		AnonymousUserRestrictions: getAnonymousUserRestrictions(),
 		AdminSignatureValid:       time.Duration(adminSigValid) * time.Second,
+		StatisticsTimeout:         time.Duration(statisticsTimeout) * time.Second,
+		ProcessedOpTimeout:        time.Duration(processedOpTimeout) * time.Second,
 	}
 }
 

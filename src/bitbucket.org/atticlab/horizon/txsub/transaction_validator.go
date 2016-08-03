@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/transactions"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
+	"bitbucket.org/atticlab/horizon/accounttypes"
 )
 
 type TransactionValidatorInterface interface {
@@ -22,14 +23,20 @@ type TransactionValidator struct {
 	log          *log.Entry
 }
 
-func NewTransactionValidator(historyQ history.QInterface, coreQ core.QInterface, statsManager statistics.ManagerInterface, config *config.Config) *TransactionValidator {
+func NewTransactionValidator(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) *TransactionValidator {
 	return &TransactionValidator{
 		historyQ:     historyQ,
 		coreQ:        coreQ,
 		config:       config,
 		log:          log.WithField("service", "transaction_validator"),
-		statsManager: statsManager,
 	}
+}
+
+func (v *TransactionValidator) getStatsManager() statistics.ManagerInterface {
+	if v.statsManager == nil {
+		v.statsManager = statistics.NewManager(v.historyQ, accounttype.GetAll(), v.config)
+	}
+	return v.statsManager
 }
 
 // Validates transaction and operations

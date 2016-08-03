@@ -2,6 +2,7 @@ package statistics
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/redis"
@@ -18,11 +19,11 @@ type ManagerInterface interface {
 }
 
 type Manager struct {
-	counterparties              []xdr.AccountType
-	statisticsTimeOut           time.Duration
-	processedOpTimeOut          time.Duration
-	numOfRetires                int
-	log                         *log.Entry
+	counterparties     []xdr.AccountType
+	statisticsTimeOut  time.Duration
+	processedOpTimeOut time.Duration
+	numOfRetires       int
+	log                *log.Entry
 
 	historyQ                    history.QInterface
 	connectionProvider          redis.ConnectionProviderInterface
@@ -31,12 +32,12 @@ type Manager struct {
 }
 
 // Creates new statistics manager. counterparties MUST BE FULL ARRAY OF COUTERPARTIES.
-func NewManager(historyQ history.QInterface, counterparties []xdr.AccountType) *Manager {
+func NewManager(historyQ history.QInterface, counterparties []xdr.AccountType, config *config.Config) *Manager {
 	return &Manager{
 		historyQ:           historyQ,
 		counterparties:     counterparties,
-		statisticsTimeOut:  time.Duration(2) * time.Minute,
-		processedOpTimeOut: time.Duration(1) * time.Minute,
+		statisticsTimeOut:  config.StatisticsTimeout,
+		processedOpTimeOut: config.ProcessedOpTimeout,
 		numOfRetires:       5,
 		log:                log.WithField("service", "statistics_manager"),
 	}
@@ -196,7 +197,7 @@ func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection
 	m.log.Debug("Getting new connection")
 	conn := m.getConnectionProvider().GetConnection()
 	defer conn.Close()
-	
+
 	// 1. Check if op processed
 	processedOp, err := m.getProcessedOp(conn, paymentData, direction)
 	if err != nil {

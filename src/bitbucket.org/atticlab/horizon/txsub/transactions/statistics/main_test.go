@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/redis"
+	"bitbucket.org/atticlab/horizon/test"
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -24,8 +25,9 @@ func TestStatistics(t *testing.T) {
 
 	counterparties := accounttype.GetAll()
 
-	statsTimeOut := time.Duration(1) * time.Hour
-	opTimeout := time.Duration(30) * time.Minute
+	config := test.NewTestConfig()
+	statsTimeout := config.StatisticsTimeout
+	opTimeout := config.ProcessedOpTimeout
 	sourceKP, err := keypair.Random()
 	assert.Nil(t, err)
 	destKP, err := keypair.Random()
@@ -50,9 +52,9 @@ func TestStatistics(t *testing.T) {
 
 	Convey("UpdateGet", t, func() {
 		historyQ := &history.QMock{}
-		manager := NewManager(historyQ, counterparties)
+		manager := NewManager(historyQ, counterparties, &config)
 		manager.SetProcessedOpTimeout(opTimeout)
-		manager.SetStatisticsTimeout(statsTimeOut)
+		manager.SetStatisticsTimeout(statsTimeout)
 		connProvider := &redis.ConnectionProviderMock{}
 		conn := &redis.ConnectionMock{}
 		conn.On("Close").Return(nil)
@@ -101,7 +103,7 @@ func TestStatistics(t *testing.T) {
 				Convey("Got stats from history", func() {
 					accountStatsProvider.On("Get", account, assetCode, counterparties).Return(nil, nil).Once()
 					historyQ.On("GetStatisticsByAccountAndAsset", account, assetCode, now).Return(returnedStats.AccountsStatistics, nil)
-					accountStatsProvider.On("Insert", &returnedStats, statsTimeOut).Return(nil)
+					accountStatsProvider.On("Insert", &returnedStats, statsTimeout).Return(nil)
 					result, err := manager.UpdateGet(&paymentData, direction, now)
 					So(err, ShouldBeNil)
 					assert.Equal(t, returnedStats.AccountsStatistics, result)
@@ -161,7 +163,7 @@ func TestStatistics(t *testing.T) {
 				conn.On("Multi").Return(nil)
 				Convey("Failed to insert stats", func() {
 					errorData := "Failed to insert stats"
-					accountStatsProvider.On("Insert", mock.Anything, statsTimeOut).Return(errors.New(errorData)).Run(func(args mock.Arguments) {
+					accountStatsProvider.On("Insert", mock.Anything, statsTimeout).Return(errors.New(errorData)).Run(func(args mock.Arguments) {
 						actual := args.Get(0).(*redis.AccountStatistics)
 						assert.Equal(t, len(actual.AccountsStatistics), len(expectedStats.AccountsStatistics))
 						for aKey, aValue := range actual.AccountsStatistics {
@@ -172,7 +174,7 @@ func TestStatistics(t *testing.T) {
 					So(err.Error(), ShouldEqual, errorData)
 					So(result, ShouldBeNil)
 				})
-				accountStatsProvider.On("Insert", expectedStats, statsTimeOut).Return(nil).Once()
+				accountStatsProvider.On("Insert", expectedStats, statsTimeout).Return(nil).Once()
 				processedOp := redis.NewProcessedOp(paymentData.TxHash, opIndex, paymentData.Amount, isIncome, now)
 				Convey("Failed to insert op processed", func() {
 					errorData := "failed to insert op processed"
@@ -204,9 +206,7 @@ func TestStatistics(t *testing.T) {
 		returnedStats := createRandomStatsWithMinValue(account, assetCode, updatedTime, counterparties, paymentData.Amount)
 
 		historyQ := &history.QMock{}
-		manager := NewManager(historyQ, counterparties)
-		manager.SetProcessedOpTimeout(opTimeout)
-		manager.SetStatisticsTimeout(statsTimeOut)
+		manager := NewManager(historyQ, counterparties, &config)
 		connProvider := &redis.ConnectionProviderMock{}
 		conn := &redis.ConnectionMock{}
 		conn.On("Close").Return(nil)
@@ -282,11 +282,11 @@ func TestStatistics(t *testing.T) {
 		}
 		Convey("Failed to insert stats", func() {
 			errorData := "Failed to insert stats"
-			accountStatsProvider.On("Insert", expectedStats, statsTimeOut).Return(errors.New(errorData)).Once()
+			accountStatsProvider.On("Insert", expectedStats, statsTimeout).Return(errors.New(errorData)).Once()
 			err := manager.CancelOp(&paymentData, direction, now)
 			So(err.Error(), ShouldEqual, errorData)
 		})
-		accountStatsProvider.On("Insert", expectedStats, statsTimeOut).Return(nil).Once()
+		accountStatsProvider.On("Insert", expectedStats, statsTimeout).Return(nil).Once()
 		Convey("Failed to delete op processed", func() {
 			errorData := "failed to delete op processed"
 			processedOpProvider.On("Delete", paymentData.TxHash, opIndex, isIncome).Return(errors.New(errorData))
@@ -326,7 +326,7 @@ func TestStatistics(t *testing.T) {
 			}
 			expected.AccountsStatistics[key] = value
 		}
-		m := NewManager(nil, counterparties)
+		m := NewManager(nil, counterparties, &config)
 		m.updateStats(&actual, counterparty, isIncome, opAmount, now)
 		assert.Equal(t, expected, &actual)
 	})

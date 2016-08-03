@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/accounttypes"
 	"bitbucket.org/atticlab/horizon/commissions"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
@@ -16,7 +15,6 @@ import (
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions"
-	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
@@ -59,7 +57,6 @@ type submitter struct {
 	Log      *log.Entry
 
 	defaultTxValidator  TransactionValidatorInterface
-	defaultStatsManager statistics.ManagerInterface
 }
 
 func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config) *submitter {
@@ -73,17 +70,9 @@ func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *hist
 	}
 }
 
-func (sub *submitter) getStatsManager() statistics.ManagerInterface {
-	if sub.defaultStatsManager == nil {
-		sub.defaultStatsManager = statistics.NewManager(sub.historyQ, accounttype.GetAll())
-	}
-	return sub.defaultStatsManager
-}
-
 func (sub *submitter) getTxValidator() TransactionValidatorInterface {
 	if sub.defaultTxValidator == nil {
-		statsManager := sub.getStatsManager()
-		sub.defaultTxValidator = NewTransactionValidator(sub.historyQ, sub.coreQ, statsManager, sub.config)
+		sub.defaultTxValidator = NewTransactionValidator(sub.historyQ, sub.coreQ, sub.config)
 	}
 	return sub.defaultTxValidator
 }

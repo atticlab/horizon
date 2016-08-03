@@ -216,6 +216,8 @@ func NewTestConfig() config.Config {
 		RateLimit:              throttled.PerHour(1000),
 		LogLevel:               hlog.DebugLevel,
 		AdminSignatureValid:    time.Duration(60) * time.Second,
+		StatisticsTimeout:      time.Duration(60) * time.Second,
+		ProcessedOpTimeout:     time.Duration(30) * time.Second,
 		BankMasterKey:          "GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R", //SB4HOLTEVQDTJSLQCCIXXYCURZUHNT3HEFJ5GNPNBCWIVFBVA3FBG4Q3
 	}
 }

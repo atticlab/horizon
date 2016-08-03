@@ -22,7 +22,7 @@ type Config struct {
 	LogglyToken            string
 	FriendbotSecret        string
 	// TLSCert is a path to a certificate file to use for horizon's TLS config
-	TLSCert string
+	TLSCert                   string
 	// TLSKey is the path to a private key file to use for horizon's TLS config
 	TLSKey                    string
 	Ingest                    bool
@@ -31,4 +31,8 @@ type Config struct {
 	AnonymousUserRestrictions AnonymousUserRestrictions
 	// time admin signature valid in seconds
 	AdminSignatureValid       time.Duration
+	// time user statistics is stored in redis
+	StatisticsTimeout         time.Duration
+	// time flag for processed operation is stored
+	ProcessedOpTimeout        time.Duration
 }
