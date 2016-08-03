@@ -10,13 +10,15 @@ import (
 
 type PaymentOpFrame struct {
 	OperationFrame
-	payment xdr.PaymentOp
+	payment                   xdr.PaymentOp
 
 	accountTypeValidator      validators.AccountTypeValidatorInterface
 	assetsValidator           validators.AssetsValidatorInterface
 	defaultOutLimitsValidator validators.OutgoingLimitsValidatorInterface
 	defaultInLimitsValidator  validators.IncomingLimitsValidatorInterface
 	traitsValidator           validators.TraitsValidatorInterface
+
+	pathPayment               *PathPaymentOpFrame
 }
 
 func (p *PaymentOpFrame) GetAccountTypeValidator() validators.AccountTypeValidatorInterface {
@@ -35,17 +37,17 @@ func NewPaymentOpFrame(opFrame OperationFrame) *PaymentOpFrame {
 
 func (p *PaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	//creating path payment op
-	ppayment := p.createPathPayment(manager)
-	isValid, err := ppayment.DoCheckValid(manager)
+	p.pathPayment = p.createPathPayment(manager)
+	isValid, err := p.pathPayment.DoCheckValid(manager)
 	if err != nil {
 		return isValid, err
 	}
 
 	if !isValid {
-		p.Result.Info = ppayment.Result.Info
+		p.Result.Info = p.pathPayment.Result.Info
 
 		var code xdr.PaymentResultCode
-		switch ppayment.getInnerResult().Code {
+		switch p.pathPayment.getInnerResult().Code {
 		case xdr.PathPaymentResultCodePathPaymentMalformed:
 			code = xdr.PaymentResultCodePaymentMalformed
 		case xdr.PathPaymentResultCodePathPaymentUnderfunded:
@@ -130,4 +132,8 @@ func (p *PaymentOpFrame) GetTraitsValidator(historyQ history.QInterface) validat
 		p.traitsValidator = validators.NewTraitsValidator(historyQ)
 	}
 	return p.traitsValidator
+}
+
+func (p *PaymentOpFrame) DoRollbackCachedData(manager *Manager) error {
+	return p.pathPayment.DoRollbackCachedData(manager)
 }

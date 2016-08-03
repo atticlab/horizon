@@ -5,9 +5,9 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
 	"database/sql"
-	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 )
 
 type PathPaymentOpFrame struct {
@@ -212,4 +212,24 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (p *PathPaymentOpFrame) DoRollbackCachedData(manager *Manager) error {
+	p.log.Debug("Rollingback path payment")
+	// 3. Check restrictions for sender
+	operationData := statistics.NewOperationData(p.SourceAccount, p.Index, p.ParentTxFrame.TxHash)
+	outPaymentData := statistics.NewPaymentData(&p.destAccount, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
+	err := manager.StatsManager.CancelOp(&outPaymentData, statistics.PaymentDirectionOutgoing, *p.now)
+	if err != nil {
+		p.log.WithError(err).Error("Failed to rollback outgoing payment part")
+		return err
+	}
+
+	inPaymentData := statistics.NewPaymentData(&p.destAccount, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
+	err = manager.StatsManager.CancelOp(&inPaymentData, statistics.PaymentDirectionIncoming, *p.now)
+	if err != nil {
+		p.log.WithError(err).Error("Failed to rollback incoming payment part")
+		return err
+	}
+	return nil
 }

@@ -41,7 +41,7 @@ func (v *TransactionValidator) getStatsManager() statistics.ManagerInterface {
 
 // Validates transaction and operations
 func (v *TransactionValidator) CheckTransaction(envelopeInfo *transactions.EnvelopeInfo) error {
-	manager := transactions.NewManager(v.coreQ, v.historyQ, v.statsManager, v.config)
+	manager := transactions.NewManager(v.coreQ, v.historyQ, v.getStatsManager(), v.config)
 	txFrame := transactions.NewTransactionFrame(envelopeInfo)
 	isValid, err := txFrame.CheckValid(manager)
 	if err != nil {

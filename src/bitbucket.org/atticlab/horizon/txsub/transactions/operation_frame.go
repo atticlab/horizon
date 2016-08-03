@@ -14,6 +14,7 @@ var ASSET_NOT_ALLOWED = errors.New("asset not allowed")
 
 type OperationInterface interface {
 	DoCheckValid(manager *Manager) (bool, error)
+	DoRollbackCachedData(manager *Manager) (error)
 }
 
 type OperationFrame struct {
@@ -114,4 +115,19 @@ func (opFrame *OperationFrame) CheckValid(manager *Manager) (bool, error) {
 
 	// validate
 	return innerOp.DoCheckValid(manager)
+}
+
+// default implementation
+func (opFrame *OperationFrame) DoRollbackCachedData(manager *Manager) error {
+	return nil
+}
+
+func (opFrame *OperationFrame) RollbackCachedData(manager *Manager) error {
+	innerOp, err := opFrame.GetInnerOp()
+	if err != nil {
+		return err
+	}
+
+	// rollback
+	return innerOp.DoRollbackCachedData(manager)
 }
