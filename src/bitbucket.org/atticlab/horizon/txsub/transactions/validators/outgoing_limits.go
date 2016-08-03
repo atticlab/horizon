@@ -101,7 +101,7 @@ func (v *OutgoingLimitsValidator) verifyAnonymousAssetLimits() (*results.Exceede
 			if err != nil {
 				return nil, err
 			}
-			log.WithField("updatedDailyOutcome", updatedDailyOutcome).WithField("MaxDailyOutcome", v.anonUserRest.MaxDailyOutcome).Debug("ASDASD")
+
 			if updatedDailyOutcome > v.anonUserRest.MaxDailyOutcome {
 				description := v.limitExceededDescription("Daily", true, updatedDailyOutcome, v.anonUserRest.MaxDailyOutcome)
 				return &results.ExceededLimitError{Description: description}, nil

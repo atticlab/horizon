@@ -59,9 +59,9 @@ func TestStatistics(t *testing.T) {
 		connProvider.On("GetConnection").Return(conn)
 		manager.connectionProvider = connProvider
 		processedOpProvider := &redis.ProcessedOpProviderMock{}
-		manager.processedOpProvider = processedOpProvider
+		manager.defaultProcessedOpProvider = processedOpProvider
 		accountStatsProvider := &redis.AccountStatisticsProviderMock{}
-		manager.accountStatsProvider = accountStatsProvider
+		manager.defaultAccountStatsProvider = accountStatsProvider
 		opKey := redis.GetProcessedOpKey(paymentData.TxHash, paymentData.Index, isIncome)
 
 		Convey("Failed to watch", func() {
@@ -213,9 +213,9 @@ func TestStatistics(t *testing.T) {
 		connProvider.On("GetConnection").Return(conn)
 		manager.connectionProvider = connProvider
 		processedOpProvider := &redis.ProcessedOpProviderMock{}
-		manager.processedOpProvider = processedOpProvider
+		manager.defaultProcessedOpProvider = processedOpProvider
 		accountStatsProvider := &redis.AccountStatisticsProviderMock{}
-		manager.accountStatsProvider = accountStatsProvider
+		manager.defaultAccountStatsProvider = accountStatsProvider
 		opKey := redis.GetProcessedOpKey(paymentData.TxHash, opIndex, isIncome)
 
 		Convey("Failed to watch", func() {

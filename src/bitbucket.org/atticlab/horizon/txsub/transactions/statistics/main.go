@@ -18,16 +18,16 @@ type ManagerInterface interface {
 }
 
 type Manager struct {
-	counterparties     []xdr.AccountType
-	statisticsTimeOut  time.Duration
-	processedOpTimeOut time.Duration
-	numOfRetires       int
-	log                *log.Entry
+	counterparties              []xdr.AccountType
+	statisticsTimeOut           time.Duration
+	processedOpTimeOut          time.Duration
+	numOfRetires                int
+	log                         *log.Entry
 
-	historyQ             history.QInterface
-	connectionProvider   redis.ConnectionProviderInterface
-	processedOpProvider  redis.ProcessedOpProviderInterface
-	accountStatsProvider redis.AccountStatisticsProviderInterface
+	historyQ                    history.QInterface
+	connectionProvider          redis.ConnectionProviderInterface
+	defaultProcessedOpProvider  redis.ProcessedOpProviderInterface
+	defaultAccountStatsProvider redis.AccountStatisticsProviderInterface
 }
 
 // Creates new statistics manager. counterparties MUST BE FULL ARRAY OF COUTERPARTIES.
@@ -63,17 +63,17 @@ func (m *Manager) getConnectionProvider() redis.ConnectionProviderInterface {
 }
 
 func (m *Manager) getProcessedOpProvider(conn redis.ConnectionInterface) redis.ProcessedOpProviderInterface {
-	if m.processedOpProvider == nil {
-		m.processedOpProvider = redis.NewProcessedOpProvider(conn)
+	if m.defaultProcessedOpProvider != nil {
+		return m.defaultProcessedOpProvider
 	}
-	return m.processedOpProvider
+	return redis.NewProcessedOpProvider(conn)
 }
 
 func (m *Manager) getAccountStatsProvider(conn redis.ConnectionInterface) redis.AccountStatisticsProviderInterface {
-	if m.accountStatsProvider == nil {
-		m.accountStatsProvider = redis.NewAccountStatisticsProvider(conn)
+	if m.defaultAccountStatsProvider != nil {
+		return m.defaultAccountStatsProvider
 	}
-	return m.accountStatsProvider
+	return redis.NewAccountStatisticsProvider(conn)
 }
 
 func (m *Manager) CancelOp(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) error {
@@ -82,7 +82,10 @@ func (m *Manager) CancelOp(paymentData *PaymentData, paymentDirection PaymentDir
 		var needRetry bool
 		needRetry, err := m.cancelOp(paymentData, paymentDirection, now)
 		if err != nil {
-			return err
+			if !redis.IsConnectionClosed(err) {
+				return err
+			}
+			needRetry = true
 		}
 
 		if !needRetry {
@@ -98,11 +101,6 @@ func (m *Manager) cancelOp(paymentData *PaymentData, direction PaymentDirection,
 	m.log.Debug("Getting new connection")
 	conn := m.getConnectionProvider().GetConnection()
 	defer conn.Close()
-
-	// check connection
-	if err := conn.Ping(); err != nil {
-		return true, nil
-	}
 
 	// Check if op is still in redis
 	processedOp, err := m.getProcessedOp(conn, paymentData, direction)
@@ -179,7 +177,11 @@ func (m *Manager) UpdateGet(paymentData *PaymentData, paymentDirection PaymentDi
 		var needRetry bool
 		accountStats, needRetry, err = m.updateGet(paymentData, paymentDirection, now)
 		if err != nil {
-			return nil, err
+			m.log.WithError(err).Error("Failed to updateGet statistics")
+			if !redis.IsConnectionClosed(err) {
+				return nil, err
+			}
+			needRetry = true
 		}
 
 		if !needRetry {
@@ -194,12 +196,7 @@ func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection
 	m.log.Debug("Getting new connection")
 	conn := m.getConnectionProvider().GetConnection()
 	defer conn.Close()
-
-	// check connection
-	if err := conn.Ping(); err != nil {
-		return nil, true, nil
-	}
-
+	
 	// 1. Check if op processed
 	processedOp, err := m.getProcessedOp(conn, paymentData, direction)
 	if err != nil {
@@ -257,6 +254,7 @@ func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection
 	}
 
 	// commit
+	m.log.Debug("Exec multi")
 	isOk, err := conn.Exec()
 	if err != nil {
 		return nil, false, err

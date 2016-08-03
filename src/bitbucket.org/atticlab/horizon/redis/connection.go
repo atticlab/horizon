@@ -14,7 +14,7 @@ type ConnectionInterface interface {
 	// Sets the specified fields to their respective values in the hash stored at key.
 	// This command overwrites any existing fields in the hash.
 	// If key does not exist, a new key holding a hash is created.
-	HMSet(args... interface{}) (error)
+	HMSet(args ...interface{}) error
 
 	// Returns all fields and values of the hash stored at key. In the returned value,
 	// every field name is followed by its value, so the length of the reply is twice the size of the hash.
@@ -32,7 +32,7 @@ type ConnectionInterface interface {
 
 	// Set key to hold the string value. If key already holds a value, it is overwritten, regardless of its type.
 	// Any previous time to live associated with the key is discarded on successful SET operation.
-	Set(key string, data interface{}) (error)
+	Set(key string, data interface{}) error
 
 	// Marks the given keys to be watched for conditional execution of a transaction.
 	Watch(key string) error
@@ -68,7 +68,7 @@ func NewConnection(c redis.Conn) *Connection {
 // Sets the specified fields to their respective values in the hash stored at key.
 // This command overwrites any existing fields in the hash.
 // If key does not exist, a new key holding a hash is created.
-func (r *Connection) HMSet(args... interface{}) (error) {
+func (r *Connection) HMSet(args ...interface{}) error {
 	_, err := r.Do("HMSET", args...)
 	return err
 }
@@ -104,7 +104,7 @@ func (r *Connection) Get(key string) (interface{}, error) {
 
 // Set key to hold the string value. If key already holds a value, it is overwritten, regardless of its type.
 // Any previous time to live associated with the key is discarded on successful SET operation.
-func (r *Connection) Set(key string, data interface{}) (error) {
+func (r *Connection) Set(key string, data interface{}) error {
 	_, err := r.Do("SET", key, data)
 	return err
 }
@@ -122,7 +122,7 @@ func (r *Connection) UnWatch() error {
 }
 
 // Marks the start of a transaction block. Subsequent commands will be queued for atomic execution using EXEC.
-func (r *Connection)  Multi() error {
+func (r *Connection) Multi() error {
 	_, err := r.Do("MULTI")
 	return err
 }
@@ -137,13 +137,16 @@ func (r *Connection) Exec() (bool, error) {
 }
 
 // Removes the specified keys. A key is ignored if it does not exist.
-func (r *Connection) Delete(key string) (error) {
+func (r *Connection) Delete(key string) error {
 	_, err := r.Do("DEL", key)
 	return err
 }
 
-func (r *Connection) Ping() (error) {
+func (r *Connection) Ping() error {
 	_, err := r.Do("PING")
 	return err
 }
 
+func IsConnectionClosed(err error) bool {
+	return err.Error() == "redigo: connection closed"
+}
