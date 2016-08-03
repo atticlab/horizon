@@ -28,6 +28,8 @@ func TestOperationFrame(t *testing.T) {
 	}
 	config := test.NewTestConfig()
 
+	manager := NewManager(coreQ, historyQ, nil, &config)
+
 	root := test.BankMasterSeed()
 	newAccount, err := keypair.Random()
 	assert.Nil(t, err)
@@ -36,9 +38,11 @@ func TestOperationFrame(t *testing.T) {
 		Convey("Source account does to exists", func() {
 			createAccount := build.CreateAccount(build.Destination{newAccount.Address()})
 			tx := build.Transaction(createAccount, build.Sequence{1}, build.SourceAccount{newAccount.Address()})
-			txE := tx.Sign(newAccount.Seed()).E
-			opFrame := NewOperationFrame(&createAccount.O, txE, time.Now())
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			txE := NewTransactionFrame(&EnvelopeInfo{
+				Tx: tx.Sign(root.Seed()).E,
+			})
+			opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
+			isValid, err := opFrame.CheckValid(manager)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)
 			So(opFrame.GetResult().Result.Code, ShouldEqual, xdr.OperationResultCodeOpNoAccount)
@@ -46,22 +50,14 @@ func TestOperationFrame(t *testing.T) {
 		Convey("Op source does not exists", func() {
 			createAccount := build.CreateAccount(build.Destination{newAccount.Address()}, build.SourceAccount{newAccount.Address()})
 			tx := build.Transaction(createAccount, build.Sequence{1}, build.SourceAccount{root.Address()})
-			txE := tx.Sign(root.Seed()).E
-			opFrame := NewOperationFrame(&createAccount.O, txE, time.Now())
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			txE := NewTransactionFrame(&EnvelopeInfo{
+				Tx: tx.Sign(root.Seed()).E,
+			})
+			opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
+			isValid, err := opFrame.CheckValid(manager)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)
 			So(opFrame.GetResult().Result.Code, ShouldEqual, xdr.OperationResultCodeOpNoAccount)
-		})
-		Convey("Invalid op", func() {
-			invalidOp := build.CreateAccount(build.Destination{newAccount.Address()}, build.SourceAccount{root.Address()})
-			invalidOp.O.Body.Type = xdr.OperationType(123)
-			tx := build.Transaction(invalidOp, build.Sequence{1}, build.SourceAccount{root.Address()})
-			txE := tx.Sign(root.Seed()).E
-			opFrame := NewOperationFrame(&invalidOp.O, txE, time.Now())
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
-			So(err.Error(), ShouldEqual, "unknown operation")
-			So(isValid, ShouldBeFalse)
 		})
 	})
 }

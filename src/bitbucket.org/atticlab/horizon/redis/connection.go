@@ -51,6 +51,8 @@ type ConnectionInterface interface {
 
 	// Removes the specified keys. A key is ignored if it does not exist.
 	Delete(key string) error
+
+	Ping() error
 }
 
 type Connection struct {
@@ -137,6 +139,11 @@ func (r *Connection) Exec() (bool, error) {
 // Removes the specified keys. A key is ignored if it does not exist.
 func (r *Connection) Delete(key string) (error) {
 	_, err := r.Do("DEL", key)
+	return err
+}
+
+func (r *Connection) Ping() (error) {
+	_, err := r.Do("PING")
 	return err
 }
 

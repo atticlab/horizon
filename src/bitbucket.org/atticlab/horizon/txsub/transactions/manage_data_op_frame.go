@@ -2,9 +2,6 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/history"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/config"
 )
 
 type ManageDataOpFrame struct {
@@ -19,7 +16,7 @@ func NewManageDataOpFrame(opFrame OperationFrame) *ManageDataOpFrame {
 	}
 }
 
-func (frame *ManageDataOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (frame *ManageDataOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	frame.getInnerResult().Code = xdr.ManageDataResultCodeManageDataSuccess
 	return true, nil
 }

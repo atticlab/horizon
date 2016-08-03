@@ -79,6 +79,10 @@ func (m *ConnectionMock) Delete(key string) error {
 	return m.Called(key).Error(0)
 }
 
+func (m *ConnectionMock) Ping() error {
+	return nil
+}
+
 type ProcessedOpProviderMock struct {
 	mock.Mock
 }
@@ -87,8 +91,8 @@ func (p *ProcessedOpProviderMock) Insert(processedOp *ProcessedOp, timeout time.
 	a := p.Called(processedOp, timeout)
 	return a.Error(0)
 }
-func (p *ProcessedOpProviderMock) Get(txHash string, opIndex int) (*ProcessedOp, error) {
-	a := p.Called(txHash, opIndex)
+func (p *ProcessedOpProviderMock) Get(txHash string, opIndex int, isIncome bool) (*ProcessedOp, error) {
+	a := p.Called(txHash, opIndex, isIncome)
 	rawProcessedOp := a.Get(0)
 	if rawProcessedOp == nil {
 		return nil, a.Error(1)
@@ -97,8 +101,8 @@ func (p *ProcessedOpProviderMock) Get(txHash string, opIndex int) (*ProcessedOp,
 	return rawProcessedOp.(*ProcessedOp), a.Error(1)
 }
 
-func (p *ProcessedOpProviderMock) Delete(txHash string, opIndex int) error {
-	a := p.Called(txHash, opIndex)
+func (p *ProcessedOpProviderMock) Delete(txHash string, opIndex int, isIncome bool) error {
+	a := p.Called(txHash, opIndex, isIncome)
 	return a.Error(0)
 }
 

@@ -2,11 +2,8 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/config"
 )
 
 type ChangeTrustOpFrame struct {
@@ -21,8 +18,8 @@ func NewChangeTrustOpFrame(opFrame OperationFrame) *ChangeTrustOpFrame {
 	}
 }
 
-func (frame *ChangeTrustOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
-	isValid, err := validators.NewAssetsValidator(historyQ).IsAssetValid(frame.operation.Line)
+func (frame *ChangeTrustOpFrame) DoCheckValid(manager *Manager) (bool, error) {
+	isValid, err := validators.NewAssetsValidator(manager.HistoryQ).IsAssetValid(frame.operation.Line)
 	if err != nil {
 		return false, err
 	}

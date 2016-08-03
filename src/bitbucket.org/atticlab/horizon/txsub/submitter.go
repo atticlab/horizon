@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/accounttypes"
 	"bitbucket.org/atticlab/horizon/commissions"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
@@ -14,6 +15,8 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"bitbucket.org/atticlab/horizon/txsub/transactions"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
@@ -48,73 +51,71 @@ type coreSubmissionResponse struct {
 // submits directly to the configured stellar-core instance using the
 // configured http client.
 type submitter struct {
-	http      *http.Client
-	coreURL   string
-	coreDb    *core.Q
-	historyDb *history.Q
-	config    *conf.Config
-	Log       *log.Entry
+	http     *http.Client
+	coreURL  string
+	coreQ    *core.Q
+	historyQ *history.Q
+	config   *conf.Config
+	Log      *log.Entry
 
-	defaultTxValidator TransactionValidatorInterface
+	defaultTxValidator  TransactionValidatorInterface
+	defaultStatsManager statistics.ManagerInterface
 }
 
 func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config) *submitter {
 	return &submitter{
-		http:      h,
-		coreURL:   url,
-		coreDb:    coreDb,
-		historyDb: historyDb,
-		config:    config,
-		Log:       log.WithField("service", "submitter"),
+		http:     h,
+		coreURL:  url,
+		coreQ:    coreDb,
+		historyQ: historyDb,
+		config:   config,
+		Log:      log.WithField("service", "submitter"),
 	}
+}
+
+func (sub *submitter) getStatsManager() statistics.ManagerInterface {
+	if sub.defaultStatsManager == nil {
+		sub.defaultStatsManager = statistics.NewManager(sub.historyQ, accounttype.GetAll())
+	}
+	return sub.defaultStatsManager
 }
 
 func (sub *submitter) getTxValidator() TransactionValidatorInterface {
 	if sub.defaultTxValidator == nil {
-		sub.defaultTxValidator = NewTransactionValidator(sub.historyDb, sub.coreDb, sub.config)
+		statsManager := sub.getStatsManager()
+		sub.defaultTxValidator = NewTransactionValidator(sub.historyQ, sub.coreQ, statsManager, sub.config)
 	}
 	return sub.defaultTxValidator
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
 // a SubmissionResult
-func (sub *submitter) Submit(ctx context.Context, env string) (result SubmissionResult) {
+func (sub *submitter) Submit(ctx context.Context, env *transactions.EnvelopeInfo) (result SubmissionResult) {
 	start := time.Now()
 	defer func() { result.Duration = time.Since(start) }()
 
-	// parse tx
-	sub.Log.Debug("Parsing tx")
-	tx, err := parseTransaction(env)
-	if err != nil {
-		result.Err = err
-		return
-	}
-
-	// check constraints for tx
-	sub.Log.Debug("Checking tx")
-	err = sub.getTxValidator().CheckTransaction(&tx)
-	if err != nil {
-		result.Err = err
-		return
-	}
-
 	sub.Log.Debug("Setting commission")
-	cm := commissions.New(sub.coreDb, sub.historyDb)
-	err = cm.SetCommissions(&tx)
+	cm := commissions.New(sub.coreQ, sub.historyQ)
+	err := cm.SetCommissions(env.Tx)
 	if err != nil {
 		log.WithField("Error", err).Error("Failed to set commissions")
 		result.Err = &problem.ServerError
 		return
 	}
 
-	updatedEnv, err := writeTransaction(&tx)
+	// check constraints for tx
+	sub.Log.Debug("Checking tx")
+	err = sub.getTxValidator().CheckTransaction(env)
 	if err != nil {
 		result.Err = err
 		return
 	}
 
-	env = *updatedEnv
-	sub.Log.Debug("Commission was set")
+	updatedEnv, err := writeTransaction(env.Tx)
+	if err != nil {
+		result.Err = err
+		return
+	}
 
 	// construct the request
 	u, err := url.Parse(sub.coreURL)
@@ -125,7 +126,7 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 
 	u.Path = "/tx"
 	q := u.Query()
-	q.Add("blob", env)
+	q.Add("blob", *updatedEnv)
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequest("GET", u.String(), nil)
@@ -166,14 +167,6 @@ func (sub *submitter) Submit(ctx context.Context, env string) (result Submission
 	}
 
 	return
-}
-
-func parseTransaction(envelope string) (tx xdr.TransactionEnvelope, err error) {
-	err = xdr.SafeUnmarshalBase64(envelope, &tx)
-	if err != nil {
-		err = &results.MalformedTransactionError{envelope}
-	}
-	return tx, err
 }
 
 func writeTransaction(tx *xdr.TransactionEnvelope) (*string, error) {

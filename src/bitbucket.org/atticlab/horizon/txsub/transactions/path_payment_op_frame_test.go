@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
@@ -29,6 +28,8 @@ func TestPathPaymentOpFrame(t *testing.T) {
 	}
 	config := test.NewTestConfig()
 
+	manager := NewManager(coreQ, historyQ, nil, &config)
+
 	root := test.BankMasterSeed()
 
 	newAccount, err := keypair.Random()
@@ -42,7 +43,7 @@ func TestPathPaymentOpFrame(t *testing.T) {
 			},
 			MaxAmount: "1000000",
 		})
-		checkPaymentInvalidAsset(payment, root, historyQ, coreQ, config)
+		checkPaymentInvalidAsset(payment, root, manager)
 	})
 	Convey("Invalid dest asset", t, func() {
 		payment := build.Payment(build.Destination{newAccount.Address()}, build.PayWithPath{
@@ -52,13 +53,13 @@ func TestPathPaymentOpFrame(t *testing.T) {
 			},
 			Path: []build.Asset{
 				build.Asset{
-					Code: "USD",
+					Code:   "USD",
 					Issuer: root.Address(),
 				},
 			},
 			MaxAmount: "1000000",
 		})
-		checkPaymentInvalidAsset(payment, root, historyQ, coreQ, config)
+		checkPaymentInvalidAsset(payment, root, manager)
 	})
 	Convey("Invalid path asset", t, func() {
 		payment := build.Payment(build.Destination{newAccount.Address()}, build.PayWithPath{
@@ -68,25 +69,27 @@ func TestPathPaymentOpFrame(t *testing.T) {
 			},
 			Path: []build.Asset{
 				build.Asset{
-					Code: "USD",
+					Code:   "USD",
 					Issuer: root.Address(),
 				},
 				build.Asset{
-					Code: "AUAH",
+					Code:   "AUAH",
 					Issuer: root.Address(),
 				},
 			},
 			MaxAmount: "1000000",
 		})
-		checkPaymentInvalidAsset(payment, root, historyQ, coreQ, config)
+		checkPaymentInvalidAsset(payment, root, manager)
 	})
 }
 
-func checkPaymentInvalidAsset(payment build.PaymentBuilder, root *keypair.Full, historyQ history.QInterface, coreQ core.QInterface, config config.Config) {
+func checkPaymentInvalidAsset(payment build.PaymentBuilder, root *keypair.Full, manager *Manager) {
 	tx := build.Transaction(payment, build.Sequence{1}, build.SourceAccount{root.Address()})
-	txE := tx.Sign(root.Seed()).E
-	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
-	isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+	txE := NewTransactionFrame(&EnvelopeInfo{
+		Tx: tx.Sign(root.Seed()).E,
+	})
+	opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
+	isValid, err := opFrame.CheckValid(manager)
 	So(err, ShouldBeNil)
 	So(isValid, ShouldBeFalse)
 	So(opFrame.GetResult().Result.MustTr().MustPathPaymentResult().Code, ShouldEqual, xdr.PathPaymentResultCodePathPaymentMalformed)

@@ -3,6 +3,7 @@ package txsub
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"bitbucket.org/atticlab/horizon/txsub/transactions"
 	"golang.org/x/net/context"
 	"time"
 )
@@ -57,7 +58,7 @@ type OpenSubmissionList interface {
 // provider.
 type Submitter interface {
 	// Submit sends the provided transaction envelope to stellar-core
-	Submit(context.Context, string) SubmissionResult
+	Submit(context.Context, *transactions.EnvelopeInfo) SubmissionResult
 }
 
 // Result represents the response from a ResultProvider.  Given no

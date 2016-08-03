@@ -1,10 +1,7 @@
 package transactions
 
 import (
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/config"
 )
 
 type AccountMergeOpFrame struct {
@@ -19,7 +16,7 @@ func NewAccountMergeOpFrame(opFrame OperationFrame) *AccountMergeOpFrame {
 	}
 }
 
-func (frame *AccountMergeOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (frame *AccountMergeOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	frame.getInnerResult().Code = xdr.AccountMergeResultCodeAccountMergeSuccess
 	return true, nil
 }

@@ -2,9 +2,6 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/history"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/config"
 )
 
 type SetOptionsOpFrame struct {
@@ -19,7 +16,7 @@ func NewSetOptionsOpFrame(opFrame OperationFrame) *SetOptionsOpFrame {
 	}
 }
 
-func (p *SetOptionsOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (p *SetOptionsOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	p.getInnerResult().Code = xdr.SetOptionsResultCodeSetOptionsSuccess
 	return true, nil
 }

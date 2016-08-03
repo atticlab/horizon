@@ -2,12 +2,12 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
 	"database/sql"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 )
 
 type PathPaymentOpFrame struct {
@@ -46,21 +46,19 @@ func (p *PathPaymentOpFrame) GetAccountTypeValidator() validators.AccountTypeVal
 	return p.accountTypeValidator
 }
 
-func (p *PathPaymentOpFrame) GetOutgoingLimitsValidator(account, counterparty *core.Account, opAmount int64,
-	opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions) validators.OutgoingLimitsValidatorInterface {
+func (p *PathPaymentOpFrame) GetOutgoingLimitsValidator(paymentData *statistics.PaymentData, manager *Manager) validators.OutgoingLimitsValidatorInterface {
 	if p.defaultOutLimitsValidator != nil {
 		return p.defaultOutLimitsValidator
 	}
-	return validators.NewOutgoingLimitsValidator(account, counterparty, opAmount, opAsset, historyQ, anonUserRestr, *p.now)
+	return validators.NewOutgoingLimitsValidator(paymentData, manager.StatsManager, manager.HistoryQ, manager.Config.AnonymousUserRestrictions, *p.now)
 }
 
-func (p *PathPaymentOpFrame) GetIncomingLimitsValidator(account, counterparty *core.Account,
-	accountTrustLine core.Trustline, opAmount int64, opAsset history.Asset, historyQ history.QInterface,
-	anonUserRestr config.AnonymousUserRestrictions) validators.IncomingLimitsValidatorInterface {
+func (p *PathPaymentOpFrame) GetIncomingLimitsValidator(paymentData *statistics.PaymentData,
+	accountTrustLine core.Trustline, manager *Manager) validators.IncomingLimitsValidatorInterface {
 	if p.defaultInLimitsValidator != nil {
 		return p.defaultInLimitsValidator
 	}
-	return validators.NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, historyQ, anonUserRestr, *p.now)
+	return validators.NewIncomingLimitsValidator(paymentData, accountTrustLine, manager.HistoryQ, manager.StatsManager, manager.Config.AnonymousUserRestrictions, *p.now)
 }
 
 func (p *PathPaymentOpFrame) GetAssetsValidator(historyQ history.QInterface) validators.AssetsValidatorInterface {
@@ -71,9 +69,9 @@ func (p *PathPaymentOpFrame) GetAssetsValidator(historyQ history.QInterface) val
 	return p.assetsValidator
 }
 
-func (p *PathPaymentOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, conf *config.Config) (bool, error) {
+func (p *PathPaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	// check if all assets are valid
-	isAssetsValid, err := p.isAssetsValid(historyQ)
+	isAssetsValid, err := p.isAssetsValid(manager.HistoryQ)
 	if err != nil {
 		p.log.Error("Failed to validate assets")
 		return false, err
@@ -86,7 +84,7 @@ func (p *PathPaymentOpFrame) DoCheckValid(historyQ history.QInterface, coreQ cor
 	}
 
 	// check if destination exists or asset is anonymous
-	destExists, err := p.tryLoadDestinationAccount(coreQ)
+	destExists, err := p.tryLoadDestinationAccount(manager.CoreQ)
 	if err != nil {
 		return false, err
 	}
@@ -98,7 +96,7 @@ func (p *PathPaymentOpFrame) DoCheckValid(historyQ history.QInterface, coreQ cor
 
 	// check if destination trust line exists or (dest account does not exist and asset is anonymous)
 	if destExists {
-		err = coreQ.TrustlineByAddressAndAsset(&p.destTrustline, p.pathPayment.Destination.Address(), p.destAsset.Code, p.destAsset.Issuer)
+		err = manager.CoreQ.TrustlineByAddressAndAsset(&p.destTrustline, p.pathPayment.Destination.Address(), p.destAsset.Code, p.destAsset.Issuer)
 		if err != nil {
 			if err != sql.ErrNoRows {
 				return false, err
@@ -108,7 +106,7 @@ func (p *PathPaymentOpFrame) DoCheckValid(historyQ history.QInterface, coreQ cor
 		}
 	}
 
-	isLimitsValid, err := p.checkLimits(historyQ, coreQ, conf)
+	isLimitsValid, err := p.checkLimits(manager)
 	if err != nil || !isLimitsValid {
 		return isLimitsValid, err
 	}
@@ -161,7 +159,7 @@ func (p *PathPaymentOpFrame) isAssetsValid(historyQ history.QInterface) (bool, e
 	return true, nil
 }
 
-func (p *PathPaymentOpFrame) checkLimits(historyQ history.QInterface, coreQ core.QInterface, conf *config.Config) (bool, error) {
+func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 
 	// 1. Check account types
 	p.log.Debug("Validating account types")
@@ -174,7 +172,7 @@ func (p *PathPaymentOpFrame) checkLimits(historyQ history.QInterface, coreQ core
 
 	// 2. Check traits for accounts
 	p.log.WithField("sourceAccount", p.SourceAccount.Accountid).WithField("destAccount", p.destAccount.Accountid).Debug("Checking traits")
-	accountRestricted, err := p.GetTraitsValidator(historyQ).CheckTraits(p.SourceAccount.Accountid, p.destAccount.Accountid)
+	accountRestricted, err := p.GetTraitsValidator(manager.HistoryQ).CheckTraits(p.SourceAccount.Accountid, p.destAccount.Accountid)
 	if err != nil {
 		return false, err
 	}
@@ -186,12 +184,9 @@ func (p *PathPaymentOpFrame) checkLimits(historyQ history.QInterface, coreQ core
 	}
 
 	// 3. Check restrictions for sender
-	outgoingValidator := p.GetOutgoingLimitsValidator(p.SourceAccount,
-		&p.destAccount,
-		int64(p.pathPayment.SendMax),
-		p.sendAsset,
-		historyQ,
-		conf.AnonymousUserRestrictions)
+	operationData := statistics.NewOperationData(p.SourceAccount, p.Index, p.ParentTxFrame.TxHash)
+	outPaymentData := statistics.NewPaymentData(&p.destAccount, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
+	outgoingValidator := p.GetOutgoingLimitsValidator(&outPaymentData, manager)
 	outLimitsResult, err := outgoingValidator.VerifyLimits()
 	if err != nil {
 		return false, err
@@ -203,8 +198,8 @@ func (p *PathPaymentOpFrame) checkLimits(historyQ history.QInterface, coreQ core
 		return false, nil
 	}
 
-	incomingValidator := p.GetIncomingLimitsValidator(&p.destAccount, p.SourceAccount,
-		p.destTrustline, int64(p.pathPayment.DestAmount), p.destAsset, historyQ, conf.AnonymousUserRestrictions)
+	inPaymentData := statistics.NewPaymentData(&p.destAccount, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
+	incomingValidator := p.GetIncomingLimitsValidator(&inPaymentData, p.destTrustline, manager)
 	inLimitsResult, err := incomingValidator.VerifyLimits()
 	if err != nil {
 		return false, err

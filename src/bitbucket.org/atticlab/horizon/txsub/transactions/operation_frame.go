@@ -2,9 +2,7 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"database/sql"
@@ -15,24 +13,26 @@ import (
 var ASSET_NOT_ALLOWED = errors.New("asset not allowed")
 
 type OperationInterface interface {
-	DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error)
+	DoCheckValid(manager *Manager) (bool, error)
 }
 
 type OperationFrame struct {
 	Op            *xdr.Operation
-	ParentTx      *xdr.TransactionEnvelope
+	ParentTxFrame *TransactionFrame
 	Result        *results.OperationResult
 	innerOp       OperationInterface
 	SourceAccount *core.Account
+	Index         int
 	log           *log.Entry
 	now           *time.Time
 }
 
-func NewOperationFrame(op *xdr.Operation, tx *xdr.TransactionEnvelope, now time.Time) OperationFrame {
+func NewOperationFrame(op *xdr.Operation, tx *TransactionFrame, index int, now time.Time) OperationFrame {
 	return OperationFrame{
 		Op:            op,
-		ParentTx:      tx,
+		ParentTxFrame: tx,
 		Result:        &results.OperationResult{},
+		Index:         index,
 		log:           log.WithField("service", op.Body.Type.String()),
 		SourceAccount: new(core.Account),
 		now:           &now,
@@ -80,14 +80,14 @@ func (op *OperationFrame) GetResult() results.OperationResult {
 	return *op.Result
 }
 
-func (opFrame *OperationFrame) CheckValid(historyQ history.QInterface, coreQ core.QInterface, conf *config.Config) (bool, error) {
-	sourceAddress := opFrame.ParentTx.Tx.SourceAccount.Address()
+func (opFrame *OperationFrame) CheckValid(manager *Manager) (bool, error) {
+	sourceAddress := opFrame.ParentTxFrame.Tx.Tx.SourceAccount.Address()
 	if opFrame.Op.SourceAccount != nil {
 		sourceAddress = opFrame.Op.SourceAccount.Address()
 	}
 
 	// check if source account exists
-	err := coreQ.AccountByAddress(opFrame.SourceAccount, sourceAddress)
+	err := manager.CoreQ.AccountByAddress(opFrame.SourceAccount, sourceAddress)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			opFrame.Result.Result = xdr.OperationResult{
@@ -113,5 +113,5 @@ func (opFrame *OperationFrame) CheckValid(historyQ history.QInterface, coreQ cor
 	}
 
 	// validate
-	return innerOp.DoCheckValid(historyQ, coreQ, conf)
+	return innerOp.DoCheckValid(manager)
 }

@@ -72,7 +72,7 @@ type AccountStatistics struct {
 		Self    hal.Link `json:"self"`
 		Account hal.Link `json:"account"`
 	} `json:"_links"`
-	Statistics []AccountStatisticsEntry `json:"ststistics"`
+	Statistics []AccountStatisticsEntry `json:"statistics"`
 }
 
 // AccountStatisticsEntry represents account_statistics row

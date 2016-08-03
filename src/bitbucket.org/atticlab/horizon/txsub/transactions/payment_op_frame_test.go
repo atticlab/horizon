@@ -49,8 +49,10 @@ func TestPaymentOpFrame(t *testing.T) {
 		Amount: "1000000",
 	})
 	tx := build.Transaction(payment, build.Sequence{1}, build.SourceAccount{from.Address()})
-	txE := tx.Sign(bankMasterKey.Seed()).E
-	opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE, time.Now())
+	txE := NewTransactionFrame(&EnvelopeInfo{
+		Tx: tx.Sign(bankMasterKey.Seed()).E,
+	})
+	opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
 	paymentFrame := GetPaymentOpFrame(&opFrame)
 	accountTypeVMock := &validators.AccountTypeValidatorMock{}
 	paymentFrame.accountTypeValidator = accountTypeVMock
@@ -62,9 +64,10 @@ func TestPaymentOpFrame(t *testing.T) {
 	paymentFrame.defaultOutLimitsValidator = outLimitsValidator
 	inLimitsValidator := &validators.IncomingLimitsValidatorMock{}
 	paymentFrame.defaultInLimitsValidator = inLimitsValidator
+	manager := NewManager(coreQMock, historyQMock, nil, &config)
 	Convey("Invalid asset", t, func() {
 		assetVMock.On("GetValidAsset", mock.Anything).Return(nil, nil).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentMalformed)
@@ -73,7 +76,7 @@ func TestPaymentOpFrame(t *testing.T) {
 	assetVMock.On("GetValidAsset", mock.Anything).Return(&destAsset, nil)
 	Convey("Dest does not exists", t, func() {
 		coreQMock.On("AccountByAddress", to.Address()).Return(nil, sql.ErrNoRows).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentNoDestination)
@@ -84,7 +87,7 @@ func TestPaymentOpFrame(t *testing.T) {
 	}, nil)
 	Convey("Dest trust line does not exists", t, func() {
 		coreQMock.On("TrustlineByAddressAndAsset", to.Address(), destAsset.Code, destAsset.Issuer).Return(nil, sql.ErrNoRows).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentNoTrust)
@@ -97,7 +100,7 @@ func TestPaymentOpFrame(t *testing.T) {
 		accountTypeVMock.On("VerifyAccountTypesForPayment", mock.Anything, mock.Anything).Return(&results.RestrictedForAccountTypeError{
 			Reason: fmt.Sprintf("Payments from %s to %s are restricted.", fromType.String(), toType.String()),
 		}).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentMalformed)
@@ -107,7 +110,7 @@ func TestPaymentOpFrame(t *testing.T) {
 	Convey("Failed to get traits", t, func() {
 		errorData := "failed to get traits"
 		traitsMock.On("CheckTraits", from.Address(), to.Address()).Return(nil, errors.New(errorData)).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err.Error(), ShouldEqual, errorData)
 		So(isValid, ShouldBeFalse)
 	})
@@ -116,7 +119,7 @@ func TestPaymentOpFrame(t *testing.T) {
 		traitsMock.On("CheckTraits", from.Address(), to.Address()).Return(&results.RestrictedForAccountError{
 			Reason: errorData,
 		}, nil).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentMalformed)
@@ -126,7 +129,7 @@ func TestPaymentOpFrame(t *testing.T) {
 	Convey("Failed to validate out limits", t, func() {
 		errorData := "limits_failed"
 		outLimitsValidator.On("VerifyLimits").Return(nil, errors.New(errorData)).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err.Error(), ShouldEqual, errorData)
 		So(isValid, ShouldBeFalse)
 	})
@@ -135,7 +138,7 @@ func TestPaymentOpFrame(t *testing.T) {
 		outLimitsValidator.On("VerifyLimits").Return(&results.ExceededLimitError{
 			Description: errorData,
 		}, nil).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentMalformed)
@@ -145,7 +148,7 @@ func TestPaymentOpFrame(t *testing.T) {
 	Convey("Failed to validate in limits", t, func() {
 		errorData := "limits_failed"
 		inLimitsValidator.On("VerifyLimits").Return(nil, errors.New(errorData)).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err.Error(), ShouldEqual, errorData)
 		So(isValid, ShouldBeFalse)
 	})
@@ -154,7 +157,7 @@ func TestPaymentOpFrame(t *testing.T) {
 		inLimitsValidator.On("VerifyLimits").Return(&results.ExceededLimitError{
 			Description: errorData,
 		}, nil).Once()
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentMalformed)
@@ -162,7 +165,7 @@ func TestPaymentOpFrame(t *testing.T) {
 	})
 	inLimitsValidator.On("VerifyLimits").Return(nil, nil)
 	Convey("Success", t, func() {
-		isValid, err := opFrame.CheckValid(historyQMock, coreQMock, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeTrue)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentSuccess)

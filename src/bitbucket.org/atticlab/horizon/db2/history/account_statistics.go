@@ -18,6 +18,13 @@ func NewAccountStatistics(account, assetCode string, counterparty xdr.AccountTyp
 }
 
 func (stats *AccountStatistics) Update(delta int64, receivedAt time.Time, now time.Time, isIncome bool) {
+	log.WithFields(log.F{
+		"service": "account_statistics",
+		"delta": delta,
+		"receivedAt": receivedAt,
+		"now": now,
+		"isIncome": isIncome,
+	}).Debug("Updating")
 	if isIncome {
 		stats.AddIncome(delta, receivedAt, now)
 	} else {
@@ -166,10 +173,7 @@ func (q *Q) UpdateAccountStats(stats AccountStatistics) error {
 
 // ClearObsoleteStats checks last update time and erases obsolete data
 func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
-	log.WithFields(log.F{
-		"now": now.String(),
-		"updated": stats.UpdatedAt.String(),
-	}).Debug("ClearObsoleteStats")
+	log.WithField("now", now).WithField("updated_at", stats.UpdatedAt).Debug("Clearing obsolete")
 	isYear := stats.UpdatedAt.Year() < now.Year()
 	if isYear {
 		stats.AnnualIncome = 0
@@ -187,19 +191,20 @@ func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
 		stats.WeeklyOutcome = 0
 	}
 	isDay := isWeek || stats.UpdatedAt.Day() < now.Day()
+	log.WithFields(
+		log.F{
+			"service":           "account_statistics",
+			"account":           stats.Account,
+			"asset":             stats.AssetCode,
+			"counterparty_type": stats.CounterpartyType,
+			"year":              isYear,
+			"month":             isMonth,
+			"week":              isWeek,
+			"day":               isDay,
+			"now":               now.String(),
+			"updated":           stats.UpdatedAt.String(),
+		}).Info("Ereasing obsolete stats")
 	if isDay {
-
-		log.WithFields(
-			log.F{
-				"account":           stats.Account,
-				"asset":             stats.AssetCode,
-				"counterparty_type": stats.CounterpartyType,
-				"year":              isYear,
-				"month":             isMonth,
-				"week":              isWeek,
-				"day":               isDay,
-			}).Info("account_statistics: Ereasing obsolete stats")
-
 		stats.DailyIncome = 0
 		stats.DailyOutcome = 0
 

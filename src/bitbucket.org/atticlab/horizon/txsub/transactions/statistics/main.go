@@ -5,44 +5,54 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/redis"
-	"time"
 	"errors"
+	"time"
 )
 
 type ManagerInterface interface {
 	// Gets statistics for account-asset pair, updates it with opAmount and returns stats
-	UpdateGet(account string, assetCode string, counterparty xdr.AccountType,
-		isIncome bool, now time.Time, txHash string, opIndex int, opAmount int64) (result map[xdr.AccountType]history.AccountStatistics, err error)
+	UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (result map[xdr.AccountType]history.AccountStatistics, err error)
 
 	// Cancels Op - removes it from processed ops and subtracts from stats
-	CancelOp(account, assetCode string, counterparty xdr.AccountType, isIncome bool, now time.Time,
-		txHash string, opIndex int, opAmount int64) error
+	CancelOp(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) error
 }
 
 type Manager struct {
+	counterparties     []xdr.AccountType
+	statisticsTimeOut  time.Duration
+	processedOpTimeOut time.Duration
+	numOfRetires       int
+	log                *log.Entry
+
 	historyQ             history.QInterface
-	counterparties       []xdr.AccountType
-	statisticsTimeOut    time.Duration
-	processedOpTimeOut   time.Duration
-	numOfRetires         int
 	connectionProvider   redis.ConnectionProviderInterface
 	processedOpProvider  redis.ProcessedOpProviderInterface
 	accountStatsProvider redis.AccountStatisticsProviderInterface
-	log                  *log.Entry
 }
 
 // Creates new statistics manager. counterparties MUST BE FULL ARRAY OF COUTERPARTIES.
-// statisticsTimeOut must be bigger then ledger's close time (~0.5 hour is recommended)
-// timeout for statistics must be greater then for processed op
-func NewManager(historyQ history.QInterface, counterparties []xdr.AccountType, statisticsTimeOut, processedOpTimeOut time.Duration) *Manager {
+func NewManager(historyQ history.QInterface, counterparties []xdr.AccountType) *Manager {
 	return &Manager{
 		historyQ:           historyQ,
 		counterparties:     counterparties,
-		statisticsTimeOut:  statisticsTimeOut,
-		processedOpTimeOut: processedOpTimeOut,
+		statisticsTimeOut:  time.Duration(2) * time.Minute,
+		processedOpTimeOut: time.Duration(1) * time.Minute,
 		numOfRetires:       5,
 		log:                log.WithField("service", "statistics_manager"),
 	}
+}
+
+// statisticsTimeOut must be bigger then ledger's close time (~2 minutes is recommended)
+// timeout for statistics must be greater then for processed op
+func (m *Manager) SetStatisticsTimeout(timeout time.Duration) *Manager {
+	m.statisticsTimeOut = timeout
+	return m
+}
+
+// timeout for statistics must be greater then for processed op
+func (m *Manager) SetProcessedOpTimeout(timeout time.Duration) *Manager {
+	m.processedOpTimeOut = timeout
+	return m
 }
 
 func (m *Manager) getConnectionProvider() redis.ConnectionProviderInterface {
@@ -66,12 +76,11 @@ func (m *Manager) getAccountStatsProvider(conn redis.ConnectionInterface) redis.
 	return m.accountStatsProvider
 }
 
-func (m *Manager) CancelOp(account, assetCode string, counterparty xdr.AccountType, isIncome bool, now time.Time,
-txHash string, opIndex int, opAmount int64) error {
+func (m *Manager) CancelOp(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) error {
 	for i := 0; i < m.numOfRetires; i++ {
 		m.log.WithField("retry", i).Debug("CancelOp started new retry")
 		var needRetry bool
-		needRetry, err := m.cancelOp(account, assetCode, counterparty, isIncome, now, txHash, opIndex, opAmount)
+		needRetry, err := m.cancelOp(paymentData, paymentDirection, now)
 		if err != nil {
 			return err
 		}
@@ -85,14 +94,18 @@ txHash string, opIndex int, opAmount int64) error {
 }
 
 // Returns true if retry needed
-func (m *Manager) cancelOp(account, assetCode string, counterparty xdr.AccountType, isIncome bool, now time.Time,
-txHash string, opIndex int, opAmount int64) (bool, error) {
+func (m *Manager) cancelOp(paymentData *PaymentData, direction PaymentDirection, now time.Time) (bool, error) {
 	m.log.Debug("Getting new connection")
 	conn := m.getConnectionProvider().GetConnection()
 	defer conn.Close()
 
+	// check connection
+	if err := conn.Ping(); err != nil {
+		return true, nil
+	}
+
 	// Check if op is still in redis
-	processedOp, err := m.getProcessedOp(txHash, opIndex, conn)
+	processedOp, err := m.getProcessedOp(conn, paymentData, direction)
 	if err != nil {
 		return false, err
 	}
@@ -105,7 +118,8 @@ txHash string, opIndex int, opAmount int64) (bool, error) {
 	}
 
 	// Get stats
-	accountStats, err := m.getAccountStatistics(account, assetCode, conn)
+	account := paymentData.GetAccount(direction)
+	accountStats, err := m.getAccountStatistics(account.Accountid, paymentData.Asset.Code, conn)
 	if err != nil {
 		m.log.WithError(err).Error("Failed to get account statistics")
 		return false, err
@@ -118,10 +132,11 @@ txHash string, opIndex int, opAmount int64) (bool, error) {
 		return false, err
 	}
 
+	counterparty := paymentData.GetCounterparty(direction)
 	for key, value := range accountStats.AccountsStatistics {
 		value.ClearObsoleteStats(now)
-		if key == counterparty {
-			value.Update(-opAmount, processedOp.TimeUpdated, now, isIncome)
+		if key == counterparty.AccountType {
+			value.Update(-paymentData.Amount, processedOp.TimeUpdated, now, direction.IsIncoming())
 		}
 		accountStats.AccountsStatistics[key] = value
 	}
@@ -140,9 +155,9 @@ txHash string, opIndex int, opAmount int64) (bool, error) {
 		return false, err
 	}
 
-	processedOp = redis.NewProcessedOp(txHash, opIndex, opAmount, now)
+	processedOp = redis.NewProcessedOp(paymentData.TxHash, paymentData.Index, paymentData.Amount, direction.IsIncoming(), now)
 	// 6. Mark Op processed
-	err = m.getProcessedOpProvider(conn).Delete(txHash, opIndex)
+	err = m.getProcessedOpProvider(conn).Delete(paymentData.TxHash, paymentData.Index, direction.IsIncoming())
 	if err != nil {
 		return false, err
 	}
@@ -155,16 +170,14 @@ txHash string, opIndex int, opAmount int64) (bool, error) {
 
 	return !isOk, nil
 
-
 }
 
-func (m *Manager) UpdateGet(account string, assetCode string, counterparty xdr.AccountType,
-	isIncome bool, now time.Time, txHash string, opIndex int, opAmount int64) (result map[xdr.AccountType]history.AccountStatistics, err error) {
+func (m *Manager) UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (result map[xdr.AccountType]history.AccountStatistics, err error) {
 	var accountStats *redis.AccountStatistics
 	for i := 0; i < m.numOfRetires; i++ {
 		m.log.WithField("retry", i).Debug("UpdateGet started new retry")
 		var needRetry bool
-		accountStats, needRetry, err = m.updateGet(account, assetCode, counterparty, isIncome, now, txHash, opIndex, opAmount)
+		accountStats, needRetry, err = m.updateGet(paymentData, paymentDirection, now)
 		if err != nil {
 			return nil, err
 		}
@@ -177,14 +190,18 @@ func (m *Manager) UpdateGet(account string, assetCode string, counterparty xdr.A
 	return nil, errors.New("Failed to Update and Get Account stats")
 }
 
-func (m *Manager) updateGet(account string, assetCode string, counterparty xdr.AccountType,
-	isIncome bool, now time.Time, txHash string, opIndex int, opAmount int64) (*redis.AccountStatistics, bool, error) {
+func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection, now time.Time) (*redis.AccountStatistics, bool, error) {
 	m.log.Debug("Getting new connection")
 	conn := m.getConnectionProvider().GetConnection()
 	defer conn.Close()
 
+	// check connection
+	if err := conn.Ping(); err != nil {
+		return nil, true, nil
+	}
+
 	// 1. Check if op processed
-	processedOp, err := m.getProcessedOp(txHash, opIndex, conn)
+	processedOp, err := m.getProcessedOp(conn, paymentData, direction)
 	if err != nil {
 		return nil, false, err
 	}
@@ -197,11 +214,10 @@ func (m *Manager) updateGet(account string, assetCode string, counterparty xdr.A
 			return nil, false, err
 		}
 
-		return m.manageProcessedOp(conn, account, assetCode, now)
+		return m.manageProcessedOp(conn, paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, now)
 	}
 
-
-	accountStats, err := m.getAccountStatistics(account, assetCode, conn)
+	accountStats, err := m.getAccountStatistics(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, conn)
 	if err != nil {
 		return nil, false, err
 	}
@@ -209,14 +225,17 @@ func (m *Manager) updateGet(account string, assetCode string, counterparty xdr.A
 	if accountStats == nil {
 		// try get from db
 		m.log.Debug("Getting stats from histroy")
-		accountStats, err = m.tryGetStatisticsFromHistory(account, assetCode, now)
+		accountStats, err = m.tryGetStatisticsFromHistory(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, now)
 		if err != nil {
 			m.log.WithError(err).Error("Failed to get stats from history")
 			return nil, false, err
 		}
 	}
+	m.log.WithField("account_stats", accountStats).Debug("Got account stats")
+
 	// 4. Update stats and set op processed
-	m.updateStats(accountStats, counterparty, isIncome, opAmount, now)
+	counterparty := paymentData.GetCounterparty(direction)
+	m.updateStats(accountStats, counterparty.AccountType, direction.IsIncoming(), paymentData.Amount, now)
 	// 4.1 Start multi
 	m.log.Debug("Starting multi")
 	err = conn.Multi()
@@ -230,7 +249,7 @@ func (m *Manager) updateGet(account string, assetCode string, counterparty xdr.A
 		return nil, false, err
 	}
 
-	processedOp = redis.NewProcessedOp(txHash, opIndex, opAmount, now)
+	processedOp = redis.NewProcessedOp(paymentData.TxHash, paymentData.Index, paymentData.Amount, direction.IsIncoming(), now)
 	// 6. Mark Op processed
 	err = m.getProcessedOpProvider(conn).Insert(processedOp, m.processedOpTimeOut)
 	if err != nil {
@@ -249,10 +268,10 @@ func (m *Manager) updateGet(account string, assetCode string, counterparty xdr.A
 	return accountStats, false, nil
 }
 
-func (m *Manager) getProcessedOp(txHash string, opIndex int, conn redis.ConnectionInterface) (*redis.ProcessedOp, error) {
+func (m *Manager) getProcessedOp(conn redis.ConnectionInterface, paymentData *PaymentData, paymentDirection PaymentDirection) (*redis.ProcessedOp, error) {
 	// 1. Watch op
 	m.log.Debug("Setting watch for processed op key")
-	opKey := redis.GetProcessedOpKey(txHash, opIndex)
+	opKey := redis.GetProcessedOpKey(paymentData.TxHash, paymentData.Index, paymentDirection.IsIncoming())
 	err := conn.Watch(opKey)
 	if err != nil {
 		return nil, err
@@ -261,7 +280,7 @@ func (m *Manager) getProcessedOp(txHash string, opIndex int, conn redis.Connecti
 	// 2. Get op
 	m.log.Debug("Checking if op was processed")
 	processedOpProvider := m.getProcessedOpProvider(conn)
-	processedOp, err := processedOpProvider.Get(txHash, opIndex)
+	processedOp, err := processedOpProvider.Get(paymentData.TxHash, paymentData.Index, paymentDirection.IsIncoming())
 	if err != nil {
 		m.log.WithError(err).Error("Failed to get processed op")
 		return nil, err

@@ -2,8 +2,6 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
@@ -35,10 +33,10 @@ func NewPaymentOpFrame(opFrame OperationFrame) *PaymentOpFrame {
 	}
 }
 
-func (p *PaymentOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (p *PaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	//creating path payment op
-	ppayment := p.createPathPayment(historyQ)
-	isValid, err := ppayment.DoCheckValid(historyQ, coreQ, config)
+	ppayment := p.createPathPayment(manager)
+	isValid, err := ppayment.DoCheckValid(manager)
 	if err != nil {
 		return isValid, err
 	}
@@ -84,7 +82,7 @@ func (p *PaymentOpFrame) getInnerResult() *xdr.PaymentResult {
 	return p.Result.Result.Tr.PaymentResult
 }
 
-func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPaymentOpFrame {
+func (p *PaymentOpFrame) createPathPayment(manager *Manager) *PathPaymentOpFrame {
 	op := xdr.Operation{
 		SourceAccount: p.Op.SourceAccount,
 		Body: xdr.OperationBody{
@@ -98,7 +96,7 @@ func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPay
 			},
 		},
 	}
-	opFrame := NewOperationFrame(&op, p.ParentTx, *p.now)
+	opFrame := NewOperationFrame(&op, p.ParentTxFrame, p.Index, *p.now)
 	opFrame.Result = &results.OperationResult{
 		Result: xdr.OperationResult{
 			Code: xdr.OperationResultCodeOpInner,
@@ -112,8 +110,8 @@ func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPay
 	innerOp, _ := opFrame.GetInnerOp()
 	ppayment := innerOp.(*PathPaymentOpFrame)
 	ppayment.accountTypeValidator = p.GetAccountTypeValidator()
-	ppayment.assetsValidator = p.GetAssetsValidator(historyQ)
-	ppayment.traitsValidator = p.GetTraitsValidator(historyQ)
+	ppayment.assetsValidator = p.GetAssetsValidator(manager.HistoryQ)
+	ppayment.traitsValidator = p.GetTraitsValidator(manager.HistoryQ)
 	ppayment.defaultOutLimitsValidator = p.defaultOutLimitsValidator
 	ppayment.defaultInLimitsValidator = p.defaultInLimitsValidator
 	return ppayment

@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
+	"bitbucket.org/atticlab/horizon/txsub/transactions"
 	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/context"
 )
@@ -63,7 +64,7 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 	}
 
 	// check the configured result provider for an existing result
-	r := sys.Results.ResultByHash(ctx, info.Hash)
+	r := sys.Results.ResultByHash(ctx, info.ContentHash)
 
 	if r.Err != results.ErrNoResults {
 		sys.finish(response, r)
@@ -103,12 +104,12 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 			return
 		}
 
-		sr := sys.submitOnce(ctx, env)
+		sr := sys.submitOnce(ctx, &info)
 
 		// if submission succeeded
 		if sr.Err == nil {
 			// add transactions to open list
-			sys.Pending.Add(ctx, info.Hash, response)
+			sys.Pending.Add(ctx, info.ContentHash, response)
 			// update the submission queue, allowing the next submission to proceed
 			sys.SubmissionQueue.Update(map[string]uint64{info.SourceAddress: info.Sequence})
 			return
@@ -127,7 +128,7 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 		}
 
 		// If error is txBAD_SEQ, check for the result again
-		r = sys.Results.ResultByHash(ctx, info.Hash)
+		r = sys.Results.ResultByHash(ctx, info.ContentHash)
 
 		if r.Err == nil {
 			// If the found use it as the result
@@ -146,9 +147,9 @@ func (sys *System) Submit(ctx context.Context, env string) (result <-chan Result
 
 // Submit submits the provided base64 encoded transaction envelope to the
 // network using this submission system.
-func (sys *System) submitOnce(ctx context.Context, env string) SubmissionResult {
+func (sys *System) submitOnce(ctx context.Context, envInfo *transactions.EnvelopeInfo) SubmissionResult {
 	// submit to stellar-core
-	sr := sys.Submitter.Submit(ctx, env)
+	sr := sys.Submitter.Submit(ctx, envInfo)
 	sys.Metrics.SubmissionTimer.Update(sr.Duration)
 
 	// if received or duplicate, add to the open submissions list
