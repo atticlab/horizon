@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-var ASSET_NOT_ALLOWED = errors.New("asset not allowed")
+var (
+	ASSET_NOT_ALLOWED = errors.New("asset is not allowed")
+	OPERATION_NOT_ALLOWED = errors.New("operation is not allowed")
+)
 
 type OperationInterface interface {
 	DoCheckValid(manager *Manager) (bool, error)
