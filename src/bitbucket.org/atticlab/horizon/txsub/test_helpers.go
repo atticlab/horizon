@@ -9,6 +9,7 @@ package txsub
 import (
 	"golang.org/x/net/context"
 	subResults "bitbucket.org/atticlab/horizon/txsub/results"
+	"bitbucket.org/atticlab/horizon/txsub/transactions"
 )
 
 // MockSubmitter is a test helper that simplements the Submitter interface
@@ -18,7 +19,7 @@ type MockSubmitter struct {
 }
 
 // Submit implements `txsub.Submitter`
-func (sub *MockSubmitter) Submit(ctx context.Context, env string) SubmissionResult {
+func (sub *MockSubmitter) Submit(ctx context.Context, env *transactions.EnvelopeInfo) SubmissionResult {
 	sub.WasSubmittedTo = true
 	return sub.R
 }

@@ -2,27 +2,27 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"time"
 )
 
 type TransactionFrame struct {
-	tx       *xdr.TransactionEnvelope
+	Tx       *xdr.TransactionEnvelope
+	TxHash   string
 	txResult *results.RestrictedTransactionError
 	log      *log.Entry
 }
 
-func NewTransactionFrame(tx *xdr.TransactionEnvelope) *TransactionFrame {
+func NewTransactionFrame(envelopeInfo *EnvelopeInfo) *TransactionFrame {
 	return &TransactionFrame{
-		tx:  tx,
+		Tx:  envelopeInfo.Tx,
+		TxHash: envelopeInfo.ContentHash,
 		log: log.WithField("service", "transaction_frame"),
 	}
 }
 
-func (t *TransactionFrame) CheckValid(historyQ history.QInterface, coreQ core.QInterface, conf *config.Config) (bool, error) {
+func (t *TransactionFrame) CheckValid(manager *Manager) (bool, error) {
 	t.log.Debug("Checking transaction")
 	isTxValid, err := t.checkTransaction()
 	if !isTxValid || err != nil {
@@ -30,16 +30,16 @@ func (t *TransactionFrame) CheckValid(historyQ history.QInterface, coreQ core.QI
 	}
 
 	t.log.Debug("Transaction is valid. Checking operations.")
-	return t.checkOperations(historyQ, coreQ, conf)
+	return t.checkOperations(manager)
 }
 
 func (t *TransactionFrame) checkTransaction() (bool, error) {
 	// transaction can only have one adminOp
-	if len(t.tx.Tx.Operations) == 1 {
+	if len(t.Tx.Tx.Operations) == 1 {
 		return true, nil
 	}
 
-	for _, op := range t.tx.Tx.Operations {
+	for _, op := range t.Tx.Tx.Operations {
 		if op.Body.Type == xdr.OperationTypeAdministrative {
 			var err error
 			t.txResult, err = results.NewRestrictedTransactionErrorTx(xdr.TransactionResultCodeTxFailed, results.AdditionalErrorInfoStrError("Administrative op must be only op in tx"))
@@ -53,12 +53,13 @@ func (t *TransactionFrame) checkTransaction() (bool, error) {
 	return true, nil
 }
 
-func (t *TransactionFrame) checkOperations(historyQ history.QInterface, coreQ core.QInterface, conf *config.Config) (bool, error) {
-	opFrames := make([]OperationFrame, len(t.tx.Tx.Operations))
+func (t *TransactionFrame) checkOperations(manager *Manager) (bool, error) {
+	opFrames := make([]OperationFrame, len(t.Tx.Tx.Operations))
 	isValid := true
-	for i, op := range t.tx.Tx.Operations {
-		opFrames[i] = NewOperationFrame(&op, t.tx)
-		isOpValid, err := opFrames[i].CheckValid(historyQ, coreQ, conf)
+	now := time.Now()
+	for i, op := range t.Tx.Tx.Operations {
+		opFrames[i] = NewOperationFrame(&op, t, i, now)
+		isOpValid, err := opFrames[i].CheckValid(manager)
 		// failed to validate
 		if err != nil {
 			t.log.WithField("operation_i", i).Error("Failed to validate")
@@ -77,9 +78,19 @@ func (t *TransactionFrame) checkOperations(historyQ history.QInterface, coreQ co
 			t.log.Error("Failed to makeFailedTxResult")
 			return false, err
 		}
+		t.rollbackCachedData(manager, opFrames)
 		return false, nil
 	}
 	return isValid, nil
+}
+
+func (t *TransactionFrame) rollbackCachedData(manager *Manager, opFrames []OperationFrame) {
+	for i, op := range opFrames {
+		err := op.RollbackCachedData(manager)
+		if err != nil {
+			t.log.WithField("operation_i", i).WithError(err).Error("Failed to rollback cached data")
+		}
+	}
 }
 
 func (t *TransactionFrame) makeFailedTxResult(opFrames []OperationFrame) (*results.RestrictedTransactionError, error) {

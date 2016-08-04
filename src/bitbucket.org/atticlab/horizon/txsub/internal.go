@@ -5,36 +5,31 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/strkey"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"bitbucket.org/atticlab/horizon/txsub/transactions"
 	"golang.org/x/net/context"
 )
 
-type envelopeInfo struct {
-	Hash          string
-	Sequence      uint64
-	SourceAddress string
-}
+func extractEnvelopeInfo(ctx context.Context, env string, passphrase string) (result transactions.EnvelopeInfo, err error) {
+	result.Tx = new(xdr.TransactionEnvelope)
 
-func extractEnvelopeInfo(ctx context.Context, env string, passphrase string) (result envelopeInfo, err error) {
-	var tx xdr.TransactionEnvelope
-
-	err = xdr.SafeUnmarshalBase64(env, &tx)
+	err = xdr.SafeUnmarshalBase64(env, result.Tx)
 
 	if err != nil {
 		err = &results.MalformedTransactionError{env}
 		return
 	}
 
-	txb := build.TransactionBuilder{TX: &tx.Tx}
+	txb := build.TransactionBuilder{TX: &result.Tx.Tx}
 	txb.Mutate(build.Network{passphrase})
 
-	result.Hash, err = txb.HashHex()
+	result.ContentHash, err = txb.HashHex()
 	if err != nil {
 		return
 	}
 
-	result.Sequence = uint64(tx.Tx.SeqNum)
+	result.Sequence = uint64(result.Tx.Tx.SeqNum)
 
-	aid := tx.Tx.SourceAccount.MustEd25519()
+	aid := result.Tx.Tx.SourceAccount.MustEd25519()
 	result.SourceAddress, err = strkey.Encode(strkey.VersionByteAccountID, aid[:])
 
 	return

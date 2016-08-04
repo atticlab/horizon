@@ -5,8 +5,6 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/config"
 )
 
 type AllowTrustOpFrame struct {
@@ -21,8 +19,8 @@ func NewAllowTrustOpFrame(opFrame OperationFrame) *AllowTrustOpFrame {
 	}
 }
 
-func (frame *AllowTrustOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
-	isValid, err := frame.isAssetValid(historyQ)
+func (frame *AllowTrustOpFrame) DoCheckValid(manager *Manager) (bool, error) {
+	isValid, err := frame.isAssetValid(manager.HistoryQ)
 	if err != nil {
 		return false, err
 	}
@@ -40,7 +38,7 @@ func (frame *AllowTrustOpFrame) isAssetValid(historyQ history.QInterface) (bool,
 	xdrAsset := xdr.Asset{
 		Type: frame.operation.Asset.Type,
 	}
-	issuer := frame.ParentTx.Tx.SourceAccount
+	issuer := frame.ParentTxFrame.Tx.Tx.SourceAccount
 	if frame.Op.SourceAccount != nil {
 		issuer = *frame.Op.SourceAccount
 	}

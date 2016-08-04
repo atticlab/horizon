@@ -1,18 +1,24 @@
 package txsub
 
 import (
-	"errors"
 	"testing"
-	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"bitbucket.org/atticlab/go-smart-base/build"
+	"bitbucket.org/atticlab/go-smart-base/keypair"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/test"
-	"bitbucket.org/atticlab/horizon/txsub/sequence"
 	subResults "bitbucket.org/atticlab/horizon/txsub/results"
+	"bitbucket.org/atticlab/horizon/txsub/sequence"
+	"errors"
+	. "github.com/smartystreets/goconvey/convey"
+	"time"
 )
 
-func _TestTxsub(t *testing.T) {
+func TestTxsub(t *testing.T) {
+
+	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
+
 	Convey("txsub.System", t, func() {
 		ctx := test.Context()
 		submitter := &MockSubmitter{}
@@ -28,20 +34,18 @@ func _TestTxsub(t *testing.T) {
 			NetworkPassphrase: build.TestNetwork.Passphrase,
 		}
 
+		account, err := keypair.Random()
+		So(err, ShouldBeNil)
+
 		noResults := Result{Err: subResults.ErrNoResults}
-		successTx := Result{
-			Hash:           "2374e99349b9ef7dba9a5db3339b78fda8f34777b1af33ba468ad5c0df946d4d",
-			LedgerSequence: 2,
-			EnvelopeXDR:    "AAAAAGL8HQvQkbK2HA3WVjRrKmjX00fG8sLI7m0ERwJW/AX3AAAAZAAAAAAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAArqN6LeOagjxMaUP96Bzfs9e0corNZXzBWJkFoK7kvkwAAAAAO5rKAAAAAAAAAAABVvwF9wAAAECDzqvkQBQoNAJifPRXDoLhvtycT3lFPCQ51gkdsFHaBNWw05S/VhW0Xgkr0CBPE4NaFV2Kmcs3ZwLmib4TRrML",
-			ResultXDR:      "I3Tpk0m57326ml2zM5t4/ajzR3exrzO6RorVwN+UbU0AAAAAAAAAZAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAA==",
-		}
+		successTx := getSuccessResult(account)
 
 		badSeq := SubmissionResult{
 			Err: subResults.ErrBadSequence,
 		}
 
 		sequences.Results = map[string]uint64{
-			"GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H": 0,
+			account.Address(): 0,
 		}
 
 		Convey("Submit", func() {
@@ -136,4 +140,37 @@ func _TestTxsub(t *testing.T) {
 		})
 
 	})
+}
+
+func getSuccessResult(account *keypair.Full) Result {
+	createAccount := build.CreateAccount(build.Destination{account.Address()})
+	tx := build.Transaction(createAccount, build.Sequence{1}, build.SourceAccount{account.Address()}, build.Network{build.TestNetwork.Passphrase})
+	hash, err := tx.HashHex()
+	So(err, ShouldBeNil)
+	txE := tx.Sign(account.Seed())
+	envelopeXdr, err := txE.Base64()
+	So(err, ShouldBeNil)
+	var result xdr.TransactionResult
+	result.Result = xdr.TransactionResultResult{
+		Code: xdr.TransactionResultCodeTxSuccess,
+		Results: &[]xdr.OperationResult{
+			xdr.OperationResult{
+				Code: xdr.OperationResultCodeOpInner,
+				Tr: &xdr.OperationResultTr{
+					Type: xdr.OperationTypeCreateAccount,
+					CreateAccountResult: &xdr.CreateAccountResult{
+						Code: xdr.CreateAccountResultCodeCreateAccountSuccess,
+					},
+				},
+			},
+		},
+	}
+	resultXdr, err := xdr.MarshalBase64(result)
+	So(err, ShouldBeNil)
+	return Result{
+		Hash:           hash,
+		LedgerSequence: 2,
+		EnvelopeXDR:    envelopeXdr,
+		ResultXDR:      resultXdr,
+	}
 }

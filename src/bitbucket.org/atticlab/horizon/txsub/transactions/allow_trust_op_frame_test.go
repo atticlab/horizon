@@ -11,6 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestAllowTrustOpFrame(t *testing.T) {
@@ -31,12 +32,16 @@ func TestAllowTrustOpFrame(t *testing.T) {
 	newAccount, err := keypair.Random()
 	assert.Nil(t, err)
 
+	manager := NewManager(coreQ, historyQ, nil, &config)
+
 	Convey("Invalid asset", t, func() {
 		allowTrust := build.AllowTrust(build.AllowTrustAsset{"USD"}, build.Trustor{newAccount.Address()})
 		tx := build.Transaction(allowTrust, build.Sequence{1}, build.SourceAccount{root.Address()})
-		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
-		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+		txE := NewTransactionFrame(&EnvelopeInfo{
+			Tx: tx.Sign(root.Seed()).E,
+		})
+		opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustAllowTrustResult().Code, ShouldEqual, xdr.AllowTrustResultCodeAllowTrustMalformed)
@@ -45,9 +50,11 @@ func TestAllowTrustOpFrame(t *testing.T) {
 	Convey("Success", t, func() {
 		allowTrust := build.AllowTrust(build.AllowTrustAsset{"UAH"}, build.Trustor{root.Address()})
 		tx := build.Transaction(allowTrust, build.Sequence{1}, build.SourceAccount{root.Address()})
-		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
-		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+		txE := NewTransactionFrame(&EnvelopeInfo{
+			Tx: tx.Sign(root.Seed()).E,
+		})
+		opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeTrue)
 		So(opFrame.GetResult().Result.MustTr().MustAllowTrustResult().Code, ShouldEqual, xdr.AllowTrustResultCodeAllowTrustSuccess)

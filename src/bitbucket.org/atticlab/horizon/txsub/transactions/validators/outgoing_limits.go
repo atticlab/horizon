@@ -1,16 +1,14 @@
 package validators
 
 import (
-	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/helpers"
-	"database/sql"
-	"fmt"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
+	"time"
 )
 
 type OutgoingLimitsValidatorInterface interface {
@@ -23,8 +21,8 @@ type OutgoingLimitsValidator struct {
 	monthlyOutcome *int64
 }
 
-func NewOutgoingLimitsValidator(account, counterparty *core.Account, opAmount int64, opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions) *OutgoingLimitsValidator {
-	limitsValidator := newLimitsValidator(PaymentTypeOutgoing, account, counterparty, opAmount, opAsset, historyQ, anonUserRestr)
+func NewOutgoingLimitsValidator(paymentData *statistics.PaymentData, statsManager statistics.ManagerInterface, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions, now time.Time) *OutgoingLimitsValidator {
+	limitsValidator := newLimitsValidator(statistics.PaymentDirectionOutgoing, paymentData, statsManager, historyQ, anonUserRestr, now)
 	result := &OutgoingLimitsValidator{
 		limitsValidator: *limitsValidator,
 	}
@@ -45,55 +43,43 @@ func (v *OutgoingLimitsValidator) VerifyLimits() (*results.ExceededLimitError, e
 
 // Checks limits for sender
 func (v *OutgoingLimitsValidator) verifySenderAccountLimits() (*results.ExceededLimitError, error) {
-	var limits history.AccountLimits
-	err := v.historyQ.GetAccountLimits(&limits, v.account.Accountid, v.opAsset.Code)
-	if err != nil {
-		// no limits to check for sender
-		if err == sql.ErrNoRows {
-			v.log.Debug("No limits found")
-			return nil, nil
-		}
+	limits, err := v.GetAccountLimits()
+	if err != nil || limits == nil {
 		return nil, err
 	}
 
 	v.log.WithField("limits", limits).Debug("Checking limits")
-	if limits.MaxOperationOut >= 0 && v.opAmount > limits.MaxOperationOut {
-		description := fmt.Sprintf(
-			"Maximal operation amount for account (%s) exceeded: %s of %s %s",
-			v.account.Accountid,
-			amount.String(xdr.Int64(v.opAmount)),
-			amount.String(xdr.Int64(limits.MaxOperationOut)),
-			v.opAsset.Code,
-		)
+	if limits.MaxOperationOut >= 0 && v.paymentData.Amount > limits.MaxOperationOut {
+		description := v.opMaxAmountExceededDescription(limits.MaxOperationOut)
 		return &results.ExceededLimitError{Description: description}, nil
 	}
 
 	if limits.DailyMaxOut >= 0 {
-		dailyOutcome, err := v.getDailyOutcome()
+		updatedDailyOutcome, err := v.getUpdatedDailyOutcome()
 		if err != nil {
 			return nil, err
 		}
 		v.log.WithFields(log.F{
-			"newOutcome": dailyOutcome + v.opAmount,
+			"newOutcome": updatedDailyOutcome,
 			"limit":      limits.DailyMaxOut,
 		}).Debug("Checking daily outcome for limits")
-		if dailyOutcome+v.opAmount > limits.DailyMaxOut {
-			description := v.limitExceededDescription("Daily", false, dailyOutcome, limits.DailyMaxOut)
+		if updatedDailyOutcome > limits.DailyMaxOut {
+			description := v.limitExceededDescription("Daily", false, updatedDailyOutcome, limits.DailyMaxOut)
 			return &results.ExceededLimitError{Description: description}, nil
 		}
 	}
 
 	if limits.MonthlyMaxOut >= 0 {
-		monthlyOutcome, err := v.getMonthlyOutcome()
+		updatedMonthlyOutcome, err := v.getUpdatedMonthlyOutcome()
 		if err != nil {
 			return nil, err
 		}
 		v.log.WithFields(log.F{
-			"newOutcome": monthlyOutcome + v.opAmount,
+			"newOutcome": updatedMonthlyOutcome,
 			"limit":      limits.MonthlyMaxOut,
 		}).Debug("Checking daily outcome for limits")
-		if monthlyOutcome+v.opAmount > limits.MonthlyMaxOut {
-			description := v.limitExceededDescription("Monthly", false, monthlyOutcome, limits.MonthlyMaxOut)
+		if updatedMonthlyOutcome > limits.MonthlyMaxOut {
+			description := v.limitExceededDescription("Monthly", false, updatedMonthlyOutcome, limits.MonthlyMaxOut)
 			return &results.ExceededLimitError{Description: description}, nil
 		}
 	}
@@ -102,44 +88,49 @@ func (v *OutgoingLimitsValidator) verifySenderAccountLimits() (*results.Exceeded
 
 // checks limits for anonymous asset
 func (v *OutgoingLimitsValidator) verifyAnonymousAssetLimits() (*results.ExceededLimitError, error) {
-	if !v.opAsset.IsAnonymous || !helpers.IsUser(v.account.AccountType) {
+	if !v.paymentData.Asset.IsAnonymous || !helpers.IsUser(v.getAccount().AccountType) {
 		// Nothing to be checked
 		return nil, nil
 	}
 	// check anonymous asset limits
 	// daily and monthly limits are not applied for payments to merchant
-	if v.counterparty.AccountType != xdr.AccountTypeAccountMerchant {
+	if v.getCounterparty().AccountType != xdr.AccountTypeAccountMerchant {
 		// 1. Check daily outcome
-		dailyOutcome, err := v.getDailyOutcome()
-		if err != nil {
-			return nil, err
-		}
-		if dailyOutcome+v.opAmount > v.anonUserRest.MaxDailyOutcome {
-			description := v.limitExceededDescription("Daily", true, dailyOutcome, v.anonUserRest.MaxDailyOutcome)
-			return &results.ExceededLimitError{Description: description}, nil
+		if v.anonUserRest.MaxDailyOutcome >= 0 {
+			updatedDailyOutcome, err := v.getUpdatedDailyOutcome()
+			if err != nil {
+				return nil, err
+			}
+
+			if updatedDailyOutcome > v.anonUserRest.MaxDailyOutcome {
+				description := v.limitExceededDescription("Daily", true, updatedDailyOutcome, v.anonUserRest.MaxDailyOutcome)
+				return &results.ExceededLimitError{Description: description}, nil
+			}
 		}
 
 		// 2. Check monthly outcome
-		monthlyOutcome, err := v.getMonthlyOutcome()
-		if err != nil {
-			return nil, err
-		}
+		if v.anonUserRest.MaxMonthlyOutcome >= 0 {
+			updateMonthlyOutcome, err := v.getUpdatedMonthlyOutcome()
+			if err != nil {
+				return nil, err
+			}
 
-		if monthlyOutcome+v.opAmount > v.anonUserRest.MaxMonthlyOutcome {
-			description := v.limitExceededDescription("Monthly", true, monthlyOutcome, v.anonUserRest.MaxMonthlyOutcome)
-			return &results.ExceededLimitError{Description: description}, nil
+			if updateMonthlyOutcome > v.anonUserRest.MaxMonthlyOutcome {
+				description := v.limitExceededDescription("Monthly", true, updateMonthlyOutcome, v.anonUserRest.MaxMonthlyOutcome)
+				return &results.ExceededLimitError{Description: description}, nil
+			}
 		}
 	}
 
 	// annualOutcome does not count for payments to settlement agent
-	if v.counterparty.AccountType != xdr.AccountTypeAccountSettlementAgent {
+	if v.getCounterparty().AccountType != xdr.AccountTypeAccountSettlementAgent && v.anonUserRest.MaxAnnualOutcome >= 0 {
 		// 3. Check annual outcome
-		stats, err := v.getAccountStats()
+		stats, err := v.updateGetAccountStats()
 		if err != nil {
 			return nil, err
 		}
 
-		annualOutcome := helpers.SumAccountStats(
+		updatedAnnualOutcome := helpers.SumAccountStats(
 			stats,
 			func(stats *history.AccountStatistics) int64 { return stats.AnnualOutcome },
 			xdr.AccountTypeAccountAnonymousUser,
@@ -147,8 +138,8 @@ func (v *OutgoingLimitsValidator) verifyAnonymousAssetLimits() (*results.Exceede
 			xdr.AccountTypeAccountMerchant,
 		)
 
-		if annualOutcome+v.opAmount > v.anonUserRest.MaxAnnualOutcome {
-			description := v.limitExceededDescription("Annual", true, annualOutcome, v.anonUserRest.MaxAnnualOutcome)
+		if updatedAnnualOutcome > v.anonUserRest.MaxAnnualOutcome {
+			description := v.limitExceededDescription("Annual", true, updatedAnnualOutcome, v.anonUserRest.MaxAnnualOutcome)
 			return &results.ExceededLimitError{Description: description}, nil
 		}
 	}
@@ -156,12 +147,12 @@ func (v *OutgoingLimitsValidator) verifyAnonymousAssetLimits() (*results.Exceede
 	return nil, nil
 }
 
-func (v *OutgoingLimitsValidator) getDailyOutcome() (int64, error) {
+func (v *OutgoingLimitsValidator) getUpdatedDailyOutcome() (int64, error) {
 	if v.dailyOutcome != nil {
 		return *v.dailyOutcome, nil
 	}
 	v.dailyOutcome = new(int64)
-	stats, err := v.getAccountStats()
+	stats, err := v.updateGetAccountStats()
 	if err != nil {
 		return 0, err
 	}
@@ -176,12 +167,12 @@ func (v *OutgoingLimitsValidator) getDailyOutcome() (int64, error) {
 	return *v.dailyOutcome, nil
 }
 
-func (v *OutgoingLimitsValidator) getMonthlyOutcome() (int64, error) {
+func (v *OutgoingLimitsValidator) getUpdatedMonthlyOutcome() (int64, error) {
 	if v.monthlyOutcome != nil {
 		return *v.monthlyOutcome, nil
 	}
 	v.monthlyOutcome = new(int64)
-	stats, err := v.getAccountStats()
+	stats, err := v.updateGetAccountStats()
 	if err != nil {
 		return 0, err
 	}

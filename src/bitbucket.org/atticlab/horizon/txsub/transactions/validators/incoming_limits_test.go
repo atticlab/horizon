@@ -11,10 +11,12 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
-	"database/sql"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	"time"
+	"database/sql"
 )
 
 func TestIncomingLimits(t *testing.T) {
@@ -24,11 +26,11 @@ func TestIncomingLimits(t *testing.T) {
 	assert.Nil(t, err)
 	destKey, err := keypair.Random()
 	assert.Nil(t, err)
-	account := &core.Account{
+	source := &core.Account{
 		Accountid:   sourceKey.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
 	}
-	counterparty := &core.Account{
+	destination := &core.Account{
 		Accountid:   destKey.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
 	}
@@ -37,8 +39,13 @@ func TestIncomingLimits(t *testing.T) {
 		Code:        "UAH",
 		IsAnonymous: false,
 	}
+
+	opData := statistics.NewOperationData(source, 0, "random_tx_hash")
+	paymentData := statistics.NewPaymentData(destination, opAsset, opAmount, opData)
+	direction := statistics.PaymentDirectionIncoming
+
 	accountLimits := history.AccountLimits{
-		Account:         account.Accountid,
+		Account:         paymentData.GetAccount(direction).Accountid,
 		AssetCode:       opAsset.Code,
 		MaxOperationOut: -1,
 		DailyMaxOut:     -1,
@@ -49,14 +56,18 @@ func TestIncomingLimits(t *testing.T) {
 	}
 
 	accountTrustLine := core.Trustline{
-		Accountid: account.Accountid,
-		Balance: 0,
+		Accountid: paymentData.GetAccount(direction).Accountid,
+		Balance:   0,
 	}
+
+	statsManager := &statistics.ManagerMock{}
+
+	now := time.Now()
 	Convey("Incoming limits test:", t, func() {
 		Convey("No limits for account & asset is not anonymous", func() {
 			histMock := history.QMock{}
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(nil, sql.ErrNoRows)
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, config.AnonymousUserRestrictions{})
+			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Accountid, opAsset.Code).Return(nil, sql.ErrNoRows)
+			v := NewIncomingLimitsValidator(&paymentData, accountTrustLine, &histMock, statsManager, config.AnonymousUserRestrictions{}, now)
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
@@ -64,8 +75,8 @@ func TestIncomingLimits(t *testing.T) {
 		Convey("All limits are empty for account & asset is not anonymous", func() {
 			histMock := history.QMock{}
 			limits := accountLimits
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(limits, nil)
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, config.AnonymousUserRestrictions{})
+			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Accountid, opAsset.Code).Return(limits, nil)
+			v := NewIncomingLimitsValidator(&paymentData, accountTrustLine, &histMock, statsManager, config.AnonymousUserRestrictions{}, now)
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
@@ -74,31 +85,15 @@ func TestIncomingLimits(t *testing.T) {
 			limits := accountLimits
 			limits.MaxOperationIn = opAmount - 1
 			histMock := history.QMock{}
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(limits, nil)
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, config.AnonymousUserRestrictions{})
+			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Accountid, opAsset.Code).Return(limits, nil)
+			v := NewIncomingLimitsValidator(&paymentData, accountTrustLine, &histMock, statsManager, config.AnonymousUserRestrictions{}, now)
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
 			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf(
 				"Maximal operation amount for account (%s) exceeded: %s of %s %s",
-				account.Accountid,
+				paymentData.GetAccount(direction).Accountid,
 				amount.String(xdr.Int64(opAmount)),
 				amount.String(xdr.Int64(limits.MaxOperationIn)),
-				opAsset.Code,
-			)}, result)
-		})
-		Convey("Asset is not anonymous, exceeds daily limit with empty stats", func() {
-			limits := accountLimits
-			limits.DailyMaxIn = opAmount - 1
-			histMock := history.QMock{}
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(limits, nil)
-			histMock.On("GetStatisticsByAccountAndAsset", account.Accountid, opAsset.Code).Return(nil, sql.ErrNoRows)
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, config.AnonymousUserRestrictions{})
-			result, err := v.VerifyLimits()
-			So(err, ShouldBeNil)
-			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf("Daily incoming payments limit for account exceeded: %s + %s out of %s %s.",
-				amount.String(xdr.Int64(xdr.Int64(0))),
-				amount.String(xdr.Int64(opAmount)),
-				amount.String(xdr.Int64(limits.DailyMaxIn)),
 				opAsset.Code,
 			)}, result)
 		})
@@ -106,22 +101,21 @@ func TestIncomingLimits(t *testing.T) {
 			limits := accountLimits
 			limits.DailyMaxIn = 2*opAmount - 1
 			histMock := history.QMock{}
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(limits, nil)
+			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Accountid, opAsset.Code).Return(limits, nil)
 			stats := map[xdr.AccountType]history.AccountStatistics{
-				xdr.AccountTypeAccountAnonymousUser: history.AccountStatistics{
-					Account:          account.Accountid,
+				paymentData.GetAccount(direction).AccountType: history.AccountStatistics{
+					Account:          paymentData.GetAccount(direction).Accountid,
 					AssetCode:        opAsset.Code,
-					CounterpartyType: int16(xdr.AccountTypeAccountSettlementAgent),
-					DailyIncome:     opAmount,
+					CounterpartyType: int16(paymentData.GetCounterparty(direction).AccountType),
+					DailyIncome:      opAmount + opAmount,
 				},
 			}
-			histMock.On("GetStatisticsByAccountAndAsset", account.Accountid, opAsset.Code).Return(stats, nil)
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, config.AnonymousUserRestrictions{})
+			statsManager.On("UpdateGet", &paymentData, direction, now).Return(stats, nil).Once()
+			v := NewIncomingLimitsValidator(&paymentData, accountTrustLine, &histMock, statsManager, config.AnonymousUserRestrictions{}, now)
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
-			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf("Daily incoming payments limit for account exceeded: %s + %s out of %s %s.",
-				amount.String(xdr.Int64(xdr.Int64(opAmount))),
-				amount.String(xdr.Int64(opAmount)),
+			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf("Daily incoming payments limit for account exceeded: %s out of %s %s.",
+				amount.String(xdr.Int64(opAmount + opAmount)),
 				amount.String(xdr.Int64(limits.DailyMaxIn)),
 				opAsset.Code,
 			)}, result)
@@ -130,34 +124,33 @@ func TestIncomingLimits(t *testing.T) {
 			limits := accountLimits
 			limits.MonthlyMaxIn = 2*opAmount - 1
 			histMock := history.QMock{}
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(limits, nil)
+			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Accountid, opAsset.Code).Return(limits, nil)
 			stats := map[xdr.AccountType]history.AccountStatistics{
 				xdr.AccountTypeAccountAnonymousUser: history.AccountStatistics{
-					Account:          account.Accountid,
+					Account:          paymentData.GetAccount(direction).Accountid,
 					AssetCode:        opAsset.Code,
 					CounterpartyType: int16(xdr.AccountTypeAccountSettlementAgent),
-					MonthlyIncome:     opAmount,
+					MonthlyIncome:    opAmount + opAmount,
 				},
 			}
-			histMock.On("GetStatisticsByAccountAndAsset", account.Accountid, opAsset.Code).Return(stats, nil)
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, config.AnonymousUserRestrictions{})
+			statsManager.On("UpdateGet", &paymentData, direction, now).Return(stats, nil)
+			v := NewIncomingLimitsValidator(&paymentData, accountTrustLine, &histMock, statsManager, config.AnonymousUserRestrictions{}, now)
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
-			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf("Monthly incoming payments limit for account exceeded: %s + %s out of %s %s.",
-				amount.String(xdr.Int64(xdr.Int64(opAmount))),
-				amount.String(xdr.Int64(opAmount)),
+			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf("Monthly incoming payments limit for account exceeded: %s out of %s %s.",
+				amount.String(xdr.Int64(opAmount + opAmount)),
 				amount.String(xdr.Int64(limits.MonthlyMaxIn)),
 				opAsset.Code,
 			)}, result)
 		})
 		stats := map[xdr.AccountType]history.AccountStatistics{
 			xdr.AccountTypeAccountAnonymousUser: history.AccountStatistics{
-				Account:          account.Accountid,
+				Account:          paymentData.GetAccount(direction).Accountid,
 				AssetCode:        opAsset.Code,
 				CounterpartyType: int16(xdr.AccountTypeAccountSettlementAgent),
-				DailyIncome:     opAmount,
-				MonthlyIncome: opAmount,
-				AnnualIncome: opAmount,
+				DailyIncome:      opAmount,
+				MonthlyIncome:    opAmount,
+				AnnualIncome:     opAmount,
 			},
 		}
 		Convey("Asset is anonymous exceeds max balance", func() {
@@ -165,11 +158,11 @@ func TestIncomingLimits(t *testing.T) {
 				MaxBalance: 2*opAmount - 1,
 			}
 			accountTrustLine.Balance = xdr.Int64(opAmount)
-			opAsset.IsAnonymous = true
+			paymentData.Asset.IsAnonymous = true
 			histMock := history.QMock{}
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(nil, sql.ErrNoRows)
-			histMock.On("GetStatisticsByAccountAndAsset", account.Accountid, opAsset.Code).Return(stats, nil)
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, limits)
+			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Accountid, opAsset.Code).Return(nil, sql.ErrNoRows)
+			statsManager.On("UpdateGet", &paymentData, direction, now).Return(stats, nil)
+			v := NewIncomingLimitsValidator(&paymentData, accountTrustLine, &histMock, statsManager, limits, now)
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
 			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf(
@@ -186,15 +179,14 @@ func TestIncomingLimits(t *testing.T) {
 			accountTrustLine.Balance = xdr.Int64(opAmount)
 			opAsset.IsAnonymous = true
 			histMock := history.QMock{}
-			histMock.On("GetAccountLimits", account.Accountid, opAsset.Code).Return(nil, sql.ErrNoRows)
-			histMock.On("GetStatisticsByAccountAndAsset", account.Accountid, opAsset.Code).Return(stats, nil)
-			account.AccountType = xdr.AccountTypeAccountMerchant
-			v := NewIncomingLimitsValidator(account, counterparty, accountTrustLine, opAmount, opAsset, &histMock, limits)
+			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Accountid, opAsset.Code).Return(nil, sql.ErrNoRows)
+			statsManager.On("UpdateGet", &paymentData, direction, now).Return(stats, nil)
+			paymentData.GetAccount(direction).AccountType = xdr.AccountTypeAccountMerchant
+			v := NewIncomingLimitsValidator(&paymentData, accountTrustLine, &histMock, statsManager, limits, now)
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
 		})
-
 
 	})
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
+	"time"
 )
 
 func TestAdministrativeOpFrame(t *testing.T) {
@@ -30,14 +31,18 @@ func TestAdministrativeOpFrame(t *testing.T) {
 	}
 	config := test.NewTestConfig()
 
+	manager := NewManager(coreQ, historyQ, nil, &config)
+
 	root := test.BankMasterSeed()
 
 	Convey("Invalid OpData:", t, func() {
 		adminOp := build.AdministrativeOp(build.OpLongData{"random_data"})
 		tx := build.Transaction(adminOp, build.Sequence{1}, build.SourceAccount{root.Address()})
-		txEBuilder := tx.Sign(root.Seed())
-		opFrame := NewOperationFrame(&txEBuilder.E.Tx.Operations[0], txEBuilder.E)
-		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+		txE := NewTransactionFrame(&EnvelopeInfo{
+			Tx: tx.Sign(root.Seed()).E,
+		})
+		opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustAdminResult().Code, ShouldEqual, xdr.AdministrativeResultCodeAdministrativeMalformed)
@@ -45,15 +50,17 @@ func TestAdministrativeOpFrame(t *testing.T) {
 	Convey("Valid OpData", t, func() {
 		adminOp := build.AdministrativeOp(build.OpLongData{"{}"})
 		tx := build.Transaction(adminOp, build.Sequence{1}, build.SourceAccount{root.Address()})
-		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
+		txE := NewTransactionFrame(&EnvelopeInfo{
+			Tx: tx.Sign(root.Seed()).E,
+		})
+		opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
 		Convey("Unknown admin action", func() {
 			adminActionProviderM := admin.AdminActionProviderMock{}
 			errorData := "unknown admin action"
 			adminActionProviderM.On("CreateNewParser", mock.Anything).Return(nil, errors.New(errorData))
 			adminOpFrame := GetAdminOpFrame(&opFrame)
 			adminOpFrame.adminActionProvider = &adminActionProviderM
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			isValid, err := opFrame.CheckValid(manager)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)
 			So(opFrame.GetResult().Result.MustTr().MustAdminResult().Code, ShouldEqual, xdr.AdministrativeResultCodeAdministrativeMalformed)
@@ -67,7 +74,7 @@ func TestAdministrativeOpFrame(t *testing.T) {
 			adminActionProviderM.On("CreateNewParser", mock.Anything).Return(&adminActionMock, nil)
 			adminOpFrame := GetAdminOpFrame(&opFrame)
 			adminOpFrame.adminActionProvider = &adminActionProviderM
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			isValid, err := opFrame.CheckValid(manager)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)
 			So(opFrame.GetResult().Result.MustTr().MustAdminResult().Code, ShouldEqual, xdr.AdministrativeResultCodeAdministrativeMalformed)
@@ -81,7 +88,7 @@ func TestAdministrativeOpFrame(t *testing.T) {
 			adminActionProviderM.On("CreateNewParser", mock.Anything).Return(&adminActionMock, nil)
 			adminOpFrame := GetAdminOpFrame(&opFrame)
 			adminOpFrame.adminActionProvider = &adminActionProviderM
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			isValid, err := opFrame.CheckValid(manager)
 			assert.Equal(t, &problem.ServerError, err)
 			So(isValid, ShouldBeFalse)
 		})
@@ -92,7 +99,7 @@ func TestAdministrativeOpFrame(t *testing.T) {
 			adminActionProviderM.On("CreateNewParser", mock.Anything).Return(&adminActionMock, nil)
 			adminOpFrame := GetAdminOpFrame(&opFrame)
 			adminOpFrame.adminActionProvider = &adminActionProviderM
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			isValid, err := opFrame.CheckValid(manager)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)
 			So(opFrame.GetResult().Result.MustTr().MustAdminResult().Code, ShouldEqual, xdr.AdministrativeResultCodeAdministrativeMalformed)
@@ -105,7 +112,7 @@ func TestAdministrativeOpFrame(t *testing.T) {
 			adminActionProviderM.On("CreateNewParser", mock.Anything).Return(&adminActionMock, nil)
 			adminOpFrame := GetAdminOpFrame(&opFrame)
 			adminOpFrame.adminActionProvider = &adminActionProviderM
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			isValid, err := opFrame.CheckValid(manager)
 			So(err.Error(), ShouldEqual, errData)
 			So(isValid, ShouldBeFalse)
 		})
@@ -116,7 +123,7 @@ func TestAdministrativeOpFrame(t *testing.T) {
 			adminActionProviderM.On("CreateNewParser", mock.Anything).Return(&adminActionMock, nil)
 			adminOpFrame := GetAdminOpFrame(&opFrame)
 			adminOpFrame.adminActionProvider = &adminActionProviderM
-			isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+			isValid, err := opFrame.CheckValid(manager)
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeTrue)
 			So(opFrame.GetResult().Result.MustTr().MustAdminResult().Code, ShouldEqual, xdr.AdministrativeResultCodeAdministrativeSuccess)

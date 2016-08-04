@@ -4,9 +4,11 @@ import (
 	"strconv"
 	"testing"
 
+	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/test"
 	"github.com/PuerkitoBio/throttled"
 	. "github.com/smartystreets/goconvey/convey"
-	"bitbucket.org/atticlab/horizon/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func _TestRateLimitMiddleware(t *testing.T) {
@@ -14,12 +16,14 @@ func _TestRateLimitMiddleware(t *testing.T) {
 	Convey("Rate Limiting", t, func() {
 		c := test.NewTestConfig()
 		c.RateLimit = throttled.PerHour(10)
-		app, _ := NewApp(c)
+		app, err := NewApp(c)
+		assert.Nil(t, err)
 		defer app.Close()
 		rh := NewRequestHelper(app)
 
 		Convey("sets X-RateLimit-Limit headers correctly", func() {
 			w := rh.Get("/", test.RequestHelperNoop)
+			log.WithField("header", w.HeaderMap).Error("Testing")
 			So(w.Code, ShouldEqual, 200)
 			So(w.Header().Get("X-RateLimit-Limit"), ShouldEqual, "10")
 		})

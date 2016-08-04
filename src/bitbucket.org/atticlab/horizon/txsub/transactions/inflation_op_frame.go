@@ -1,10 +1,7 @@
 package transactions
 
 import (
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
 )
 
 type InflationOpFrame struct {
@@ -17,7 +14,7 @@ func NewInflationOpFrame(opFrame OperationFrame) *InflationOpFrame {
 	}
 }
 
-func (frame *InflationOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (frame *InflationOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	frame.getInnerResult().Code = xdr.InflationResultCodeInflationSuccess
 	return true, nil
 }

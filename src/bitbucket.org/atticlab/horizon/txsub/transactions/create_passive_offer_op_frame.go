@@ -2,9 +2,6 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 )
 
@@ -20,9 +17,9 @@ func NewCreatePassiveOfferOpFrame(opFrame OperationFrame) *CreatePassiveOfferOpF
 	}
 }
 
-func (frame *CreatePassiveOfferOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (frame *CreatePassiveOfferOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	manageOffer := frame.createManageOfferFrame()
-	isValid, err := manageOffer.DoCheckValid(historyQ, coreQ, config)
+	isValid, err := manageOffer.DoCheckValid(manager)
 	frame.Result.Info = manageOffer.Result.Info
 	innerResult := frame.getInnerResult()
 	manageOfferInnerResult := manageOffer.getInnerResult()
@@ -53,7 +50,7 @@ func (p *CreatePassiveOfferOpFrame) createManageOfferFrame() *ManageOfferOpFrame
 	}
 	return NewManageOfferOpFrame(OperationFrame{
 		Op:       &resultOp,
-		ParentTx: p.ParentTx,
+		ParentTxFrame: p.ParentTxFrame,
 		Result: &results.OperationResult{
 			Result: xdr.OperationResult{
 				Code: xdr.OperationResultCodeOpInner,

@@ -26,8 +26,9 @@ func TestTransactionFrame(t *testing.T) {
 				build.Destination{newAccount.Address()})
 			createAccount := build.CreateAccount(build.Destination{newAccount.Address()})
 			tx := build.Transaction(payment, createAccount, build.Sequence{1}, build.SourceAccount{signer.Address()})
-			txE := tx.Sign(signer.Seed()).E
-			txFrame := NewTransactionFrame(txE)
+			txFrame := NewTransactionFrame(&EnvelopeInfo{
+				Tx: tx.Sign(signer.Seed()).E,
+			})
 			isValid, err := txFrame.checkTransaction()
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeTrue)
@@ -42,8 +43,9 @@ func TestTransactionFrame(t *testing.T) {
 			So(adminOp.Err, ShouldBeNil)
 			tx := build.Transaction(adminOp, build.Sequence{1}, build.SourceAccount{signer.Address()})
 			So(tx.Err, ShouldBeNil)
-			txE := tx.Sign(signer.Seed()).E
-			txFrame := NewTransactionFrame(txE)
+			txFrame := NewTransactionFrame(&EnvelopeInfo{
+				Tx: tx.Sign(signer.Seed()).E,
+			})
 			isValid, err := txFrame.checkTransaction()
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeTrue)
@@ -60,8 +62,9 @@ func TestTransactionFrame(t *testing.T) {
 			createAccount := build.CreateAccount(build.Destination{newAccount.Address()})
 			tx := build.Transaction(adminOp, createAccount, build.Sequence{1}, build.SourceAccount{signer.Address()})
 			So(tx.Err, ShouldBeNil)
-			txE := tx.Sign(signer.Seed()).E
-			txFrame := NewTransactionFrame(txE)
+			txFrame := NewTransactionFrame(&EnvelopeInfo{
+				Tx: tx.Sign(signer.Seed()).E,
+			})
 			isValid, err := txFrame.checkTransaction()
 			So(err, ShouldBeNil)
 			So(isValid, ShouldBeFalse)

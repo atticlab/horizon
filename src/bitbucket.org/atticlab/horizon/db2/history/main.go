@@ -196,7 +196,8 @@ type QInterface interface {
 
 	// Account statistics
 	// GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
-	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string) error
+	// Now is used to clear obsolete stats
+	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error
 
 	// Account traits
 	// Returns account traits instance by history.account id

@@ -23,10 +23,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-	"os"
 )
 
 // StaticMockServer is a test helper that records it's last request
@@ -100,6 +100,10 @@ func BankMasterSeed() *keypair.Full {
 		hlog.Panic("BANK_MASTER_KEY_SEED must be valid seed")
 	}
 	return bankFull
+}
+
+func RedisURL() string {
+	return os.Getenv("REDIS_URL")
 }
 
 // DatabaseURL returns the database connection the url any test
@@ -208,9 +212,12 @@ func NewTestConfig() config.Config {
 	return config.Config{
 		DatabaseURL:            db.HorizonURL(),
 		StellarCoreDatabaseURL: db.StellarCoreURL(),
+		RedisURL:               RedisURL(),
 		RateLimit:              throttled.PerHour(1000),
 		LogLevel:               hlog.DebugLevel,
 		AdminSignatureValid:    time.Duration(60) * time.Second,
+		StatisticsTimeout:      time.Duration(60) * time.Second,
+		ProcessedOpTimeout:     time.Duration(30) * time.Second,
 		BankMasterKey:          "GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R", //SB4HOLTEVQDTJSLQCCIXXYCURZUHNT3HEFJ5GNPNBCWIVFBVA3FBG4Q3
 	}
 }

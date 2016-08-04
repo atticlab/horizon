@@ -7,13 +7,11 @@ import (
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"encoding/json"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/config"
 )
 
 type AdministrativeOpFrame struct {
 	OperationFrame
-	operation xdr.AdministrativeOp
+	operation           xdr.AdministrativeOp
 	adminActionProvider admin.AdminActionProviderInterface
 }
 
@@ -31,7 +29,7 @@ func (frame *AdministrativeOpFrame) getAdminActionProvider(historyQ history.QInt
 	return frame.adminActionProvider
 }
 
-func (frame *AdministrativeOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (frame *AdministrativeOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	var opData map[string]interface{}
 	err := json.Unmarshal([]byte(frame.operation.OpData), &opData)
 	if err != nil {
@@ -40,7 +38,7 @@ func (frame *AdministrativeOpFrame) DoCheckValid(historyQ history.QInterface, co
 		return false, nil
 	}
 
-	adminAction, err := frame.getAdminActionProvider(historyQ).CreateNewParser(opData)
+	adminAction, err := frame.getAdminActionProvider(manager.HistoryQ).CreateNewParser(opData)
 	if err != nil {
 		frame.getInnerResult().Code = xdr.AdministrativeResultCodeAdministrativeMalformed
 		frame.Result.Info = results.AdditionalErrorInfoError(err)

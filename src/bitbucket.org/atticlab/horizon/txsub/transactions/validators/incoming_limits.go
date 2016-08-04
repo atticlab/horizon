@@ -9,8 +9,9 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/helpers"
-	"database/sql"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"fmt"
+	"time"
 )
 
 type IncomingLimitsValidatorInterface interface {
@@ -19,16 +20,22 @@ type IncomingLimitsValidatorInterface interface {
 
 type IncomingLimitsValidator struct {
 	limitsValidator
+	statsManager     statistics.ManagerInterface
 	accountTrustLine core.Trustline
-	dailyIncome      *int64
-	monthlyIncome    *int64
+
+	dailyIncome   *int64
+	monthlyIncome *int64
 }
 
-func NewIncomingLimitsValidator(account, counterparty *core.Account, accountTrustLine core.Trustline, opAmount int64, opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions) *IncomingLimitsValidator {
-	limitsValidator := newLimitsValidator(PaymentTypeIncoming, account, counterparty, opAmount, opAsset, historyQ, anonUserRestr)
+func NewIncomingLimitsValidator(paymentData *statistics.PaymentData, accountTrustLine core.Trustline, historyQ history.QInterface,
+	statsManager statistics.ManagerInterface, anonUserRestr config.AnonymousUserRestrictions, now time.Time) *IncomingLimitsValidator {
+
+	limitsValidator := newLimitsValidator(statistics.PaymentDirectionIncoming, paymentData, statsManager, historyQ,
+		anonUserRestr, now)
 	result := &IncomingLimitsValidator{
 		limitsValidator:  *limitsValidator,
 		accountTrustLine: accountTrustLine,
+		statsManager:     statsManager,
 	}
 	result.log = log.WithField("service", "incoming_limits_validator")
 	return result
@@ -46,55 +53,44 @@ func (v *IncomingLimitsValidator) VerifyLimits() (*results.ExceededLimitError, e
 }
 
 func (v *IncomingLimitsValidator) verifyReceiverAccountLimits() (*results.ExceededLimitError, error) {
-	var limits history.AccountLimits
-	err := v.historyQ.GetAccountLimits(&limits, v.account.Accountid, v.opAsset.Code)
-	if err != nil {
-		// no limits to check for destination
-		if err == sql.ErrNoRows {
-			v.log.Debug("No limits found")
-			return nil, nil
-		}
+	limits, err := v.GetAccountLimits()
+	if err != nil || limits == nil {
 		return nil, err
 	}
 
 	v.log.WithField("limits", limits).Debug("Checking limits")
-	if limits.MaxOperationIn >= 0 && v.opAmount > limits.MaxOperationIn {
-		description := fmt.Sprintf(
-			"Maximal operation amount for account (%s) exceeded: %s of %s %s",
-			v.account.Accountid,
-			amount.String(xdr.Int64(v.opAmount)),
-			amount.String(xdr.Int64(limits.MaxOperationIn)),
-			v.opAsset.Code,
-		)
+	if limits.MaxOperationIn >= 0 && v.paymentData.Amount > limits.MaxOperationIn {
+		description := v.opMaxAmountExceededDescription(limits.MaxOperationIn)
 		return &results.ExceededLimitError{Description: description}, nil
 	}
 
 	if limits.DailyMaxIn >= 0 {
-		dailyIncome, err := v.getDailyIncome()
+		updatedDailyIncome, err := v.getUpdatedDailyIncome()
 		if err != nil {
 			return nil, err
 		}
+
 		v.log.WithFields(log.F{
-			"newIncome": dailyIncome + v.opAmount,
+			"newIncome": updatedDailyIncome,
 			"limit":     limits.DailyMaxIn,
-		}).Debug("Checking daily outcome for limits")
-		if dailyIncome+v.opAmount > limits.DailyMaxIn {
-			description := v.limitExceededDescription("Daily", false, dailyIncome, limits.DailyMaxIn)
+		}).Debug("Checking daily income for limits")
+		if updatedDailyIncome > limits.DailyMaxIn {
+			description := v.limitExceededDescription("Daily", false, updatedDailyIncome, limits.DailyMaxIn)
 			return &results.ExceededLimitError{Description: description}, nil
 		}
 	}
 
 	if limits.MonthlyMaxIn >= 0 {
-		monthlyIncome, err := v.getMonthlyIncome()
+		updatedMonthlyIncome, err := v.getUpdatedMonthlyIncome()
 		if err != nil {
 			return nil, err
 		}
 		v.log.WithFields(log.F{
-			"newIncome": monthlyIncome + v.opAmount,
+			"newIncome": updatedMonthlyIncome,
 			"limit":     limits.MonthlyMaxIn,
 		}).Debug("Checking daily income for limits")
-		if monthlyIncome+v.opAmount > limits.MonthlyMaxIn {
-			description := v.limitExceededDescription("Monthly", false, monthlyIncome, limits.MonthlyMaxIn)
+		if updatedMonthlyIncome > limits.MonthlyMaxIn {
+			description := v.limitExceededDescription("Monthly", false, updatedMonthlyIncome, limits.MonthlyMaxIn)
 			return &results.ExceededLimitError{Description: description}, nil
 		}
 	}
@@ -103,16 +99,16 @@ func (v *IncomingLimitsValidator) verifyReceiverAccountLimits() (*results.Exceed
 
 // VerifyLimitsForReceiver checks limits  and restrictions for receiver
 func (v *IncomingLimitsValidator) verifyAnonymousAssetLimits() (*results.ExceededLimitError, error) {
-	if !v.opAsset.IsAnonymous || !helpers.IsUser(v.account.AccountType) {
+	if !v.paymentData.Asset.IsAnonymous || !helpers.IsUser(v.getAccount().AccountType) {
 		// Nothing to be checked
 		return nil, nil
 	}
 
-	if int64(v.accountTrustLine.Balance)+v.opAmount > v.anonUserRest.MaxBalance {
+	if int64(v.accountTrustLine.Balance)+v.paymentData.Amount > v.anonUserRest.MaxBalance {
 		description := fmt.Sprintf(
 			"User's max balance exceeded: %s + %s out of %s UAH.",
 			amount.String(v.accountTrustLine.Balance),
-			amount.String(xdr.Int64(v.opAmount)),
+			amount.String(xdr.Int64(v.paymentData.Amount)),
 			amount.String(xdr.Int64(v.anonUserRest.MaxBalance)),
 		)
 		return &results.ExceededLimitError{Description: description}, nil
@@ -120,12 +116,12 @@ func (v *IncomingLimitsValidator) verifyAnonymousAssetLimits() (*results.Exceede
 	return nil, nil
 }
 
-func (v *IncomingLimitsValidator) getDailyIncome() (int64, error) {
+func (v *IncomingLimitsValidator) getUpdatedDailyIncome() (int64, error) {
 	if v.dailyIncome != nil {
 		return *v.dailyIncome, nil
 	}
 	v.dailyIncome = new(int64)
-	stats, err := v.getAccountStats()
+	stats, err := v.updateGetAccountStats()
 	if err != nil {
 		return 0, err
 	}
@@ -140,12 +136,12 @@ func (v *IncomingLimitsValidator) getDailyIncome() (int64, error) {
 	return *v.dailyIncome, nil
 }
 
-func (v *IncomingLimitsValidator) getMonthlyIncome() (int64, error) {
+func (v *IncomingLimitsValidator) getUpdatedMonthlyIncome() (int64, error) {
 	if v.monthlyIncome != nil {
 		return *v.monthlyIncome, nil
 	}
 	v.monthlyIncome = new(int64)
-	stats, err := v.getAccountStats()
+	stats, err := v.updateGetAccountStats()
 	if err != nil {
 		return 0, err
 	}

@@ -362,57 +362,21 @@ func (is *Session) ingestOperation() {
 	switch is.Cursor.Operation().Body.Type {
 	case xdr.OperationTypePayment:
 		// Update statistics for both accounts
-		// TODO: paste aggregation here
-		source := is.Cursor.OperationSourceAccount()
 		op := is.Cursor.Operation().Body.MustPaymentOp()
-		from := source.Address()
-		to := op.Destination.Address()
-		opAmount := int64(op.Amount)
+		from := is.Cursor.OperationSourceAccount()
+		to := op.Destination
 		assetCode, _ := getAssetCode(op.Asset)
-		timestamp := time.Unix(is.Cursor.Ledger().CloseTime, 0).Local()
-		now := time.Now()
-
-		var sourceType, destinationType xdr.AccountType
-
-		is.Err = is.getAccountType(&sourceType, from)
-		if is.Err != nil {
-			println(is.Err.Error())
-			return
-		}
-
-		is.Err = is.getAccountType(&destinationType, to)
-		if is.Err != nil {
-			println(is.Err.Error())
-			return
-		}
-
-		if destinationType == xdr.AccountTypeAccountAnonymousUser {
-			is.Err = is.Ingestion.Account(is.Cursor.OperationID(), to)
-			if is.Err != nil {
-				log.Error("Failed to ingest anonymous account created by payment!")
-				return
-			}
-		}
-
-		log.Info(
-			fmt.Printf("Payment from: %s(%s), to: %s(%s), amount: %s %s, at: %s",
-				from,
-				sourceType.String(),
-				to,
-				destinationType.String(),
-				amount.String(op.Amount),
-				assetCode,
-				timestamp,
-			))
-
-		is.Err = is.Ingestion.UpdateAccountOutcome(from, assetCode, destinationType, opAmount, timestamp, now)
-		if is.Err != nil {
-			return
-		}
-		is.Err = is.Ingestion.UpdateAccountIncome(to, assetCode, sourceType, opAmount, timestamp, now)
-		if is.Err != nil {
-			return
-		}
+		is.ingestPayment(from.Address(), to.Address(), op.Amount, op.Amount, assetCode, assetCode)
+	case xdr.OperationTypePathPayment:
+		op := is.Cursor.Operation().Body.MustPathPaymentOp()
+		from := is.Cursor.OperationSourceAccount()
+		to := op.Destination
+		result := is.Cursor.OperationResult().MustPathPaymentResult()
+		sourceAmount := result.SendAmount()
+		destAmount := op.DestAmount
+		sourceAsset, _ := getAssetCode(op.SendAsset)
+		destAsset, _ := getAssetCode(op.DestAsset)
+		is.ingestPayment(from.Address(), to.Address(), sourceAmount, destAmount, sourceAsset, destAsset)
 	case xdr.OperationTypeCreateAccount:
 		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()

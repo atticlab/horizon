@@ -8,7 +8,6 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
 	"time"
 )
 
@@ -82,12 +81,12 @@ func TestAccountStatistics(t *testing.T) {
 		}
 		stats := make(map[xdr.AccountType]AccountStatistics)
 		for _, t := range accountTypes {
-			stats[t] = createRandomAccountStats(account.Address(), t, asset)
-			err := q.CreateStats(stats[t])
+			stats[t] = CreateRandomAccountStats(account.Address(), t, asset)
+			err := q.CreateAccountStats(stats[t])
 			So(err, ShouldBeNil)
 		}
 		storedStats := make(map[xdr.AccountType]AccountStatistics)
-		err = q.GetStatisticsByAccountAndAsset(storedStats, account.Address(), asset)
+		err = q.GetStatisticsByAccountAndAsset(storedStats, account.Address(), asset, time.Now())
 		So(err, ShouldBeNil)
 		for key, value := range storedStats {
 			stat, ok := stats[key]
@@ -96,21 +95,4 @@ func TestAccountStatistics(t *testing.T) {
 			assert.Equal(t, stat, value)
 		}
 	})
-}
-
-func createRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {
-	return AccountStatistics{
-		Account:          account,
-		AssetCode:        asset,
-		CounterpartyType: int16(counterpartyType),
-		DailyIncome:      rand.Int63(),
-		DailyOutcome:     rand.Int63(),
-		WeeklyIncome:     rand.Int63(),
-		WeeklyOutcome:    rand.Int63(),
-		MonthlyIncome:    rand.Int63(),
-		MonthlyOutcome:   rand.Int63(),
-		AnnualIncome:     rand.Int63(),
-		AnnualOutcome:    rand.Int63(),
-		UpdatedAt: time.Now(),
-	}
 }

@@ -16,10 +16,10 @@ var (
 
 	// ErrBadSequence is a canned error response for transactions whose sequence
 	// number is wrong.
-	ErrBadSequence = &FailedTransactionError{"AAAAAP////sAAAAA"}
+	ErrBadSequence = &FailedTransactionError{"////+wAAAAA="}
 	// ErrNoAccount is returned when the source account for the transaction
 	// cannot be found in the database
-	ErrNoAccount = &FailedTransactionError{"AAAAAP////gAAAAA"}
+	ErrNoAccount = &FailedTransactionError{"////+AAAAAA="}
 )
 
 // FailedTransactionError represent an error that occurred because

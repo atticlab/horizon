@@ -7,52 +7,50 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
+	stat "bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"database/sql"
 	"fmt"
-)
-
-type PaymentType string
-
-const (
-	PaymentTypeOutgoing PaymentType = "outgoing"
-	PaymentTypeIncoming PaymentType = "incoming"
+	"time"
 )
 
 type limitsValidator struct {
-	account      *core.Account
-	counterparty *core.Account
-	opAmount     int64
-	opAsset      history.Asset
-	historyQ     history.QInterface
-	anonUserRest config.AnonymousUserRestrictions
-	accountStats map[xdr.AccountType]history.AccountStatistics
-	paymentType  PaymentType
-	log          *log.Entry
+	paymentData      *statistics.PaymentData
+	statsManager     statistics.ManagerInterface
+	anonUserRest     config.AnonymousUserRestrictions
+	accountStats     map[xdr.AccountType]history.AccountStatistics
+	historyQ         history.QInterface
+	paymentDirection stat.PaymentDirection
+	log              *log.Entry
+	now              time.Time
 }
 
-func newLimitsValidator(paymentType PaymentType, sender, destination *core.Account, opAmount int64, opAsset history.Asset, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions) *limitsValidator {
+func newLimitsValidator(paymentDirection stat.PaymentDirection, paymentData *stat.PaymentData,
+	statsManager statistics.ManagerInterface, historyQ history.QInterface, anonUserRestr config.AnonymousUserRestrictions,
+	now time.Time) *limitsValidator {
 	return &limitsValidator{
-		account:       sender,
-		counterparty:  destination,
-		opAsset:      opAsset,
-		opAmount:     opAmount,
-		historyQ:     historyQ,
-		anonUserRest: anonUserRestr,
-		paymentType:  paymentType,
-		log:          log.WithField("service", "limits_validator"),
+		paymentData:      paymentData,
+		statsManager:     statsManager,
+		historyQ:         historyQ,
+		anonUserRest:     anonUserRestr,
+		paymentDirection: paymentDirection,
+		log:              log.WithField("service", "limits_validator"),
+		now:              now,
 	}
 }
 
-func (v *limitsValidator) getAccountStats() (map[xdr.AccountType]history.AccountStatistics, error) {
+func (v *limitsValidator) isIncoming() bool {
+	return v.paymentDirection == stat.PaymentDirectionIncoming
+}
+
+func (v *limitsValidator) updateGetAccountStats() (map[xdr.AccountType]history.AccountStatistics, error) {
 	if v.accountStats != nil {
 		return v.accountStats, nil
 	}
-	v.accountStats = make(map[xdr.AccountType]history.AccountStatistics)
-	err := v.historyQ.GetStatisticsByAccountAndAsset(v.accountStats, v.account.Accountid, v.opAsset.Code)
+	var err error
+	v.accountStats, err = v.statsManager.UpdateGet(v.paymentData, v.paymentDirection, v.now)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return nil, err
-		}
+		return nil, err
 	}
 	return v.accountStats, nil
 }
@@ -62,13 +60,44 @@ func (v *limitsValidator) limitExceededDescription(periodName string, isAnonymou
 	if isAnonymous {
 		anonymous = "anonymous "
 	}
-	return fmt.Sprintf("%s %s payments limit for %saccount exceeded: %s + %s out of %s %s.",
+	return fmt.Sprintf("%s %s payments limit for %saccount exceeded: %s out of %s %s.",
 		periodName,
-		v.paymentType,
+		v.paymentDirection,
 		anonymous,
 		amount.String(xdr.Int64(xdr.Int64(outcome))),
-		amount.String(xdr.Int64(v.opAmount)),
 		amount.String(xdr.Int64(limit)),
-		v.opAsset.Code,
+		v.paymentData.Asset.Code,
 	)
+}
+
+func (v *limitsValidator) opMaxAmountExceededDescription(limit int64) string {
+	return fmt.Sprintf(
+		"Maximal operation amount for account (%s) exceeded: %s of %s %s",
+		v.getAccount().Accountid,
+		amount.String(xdr.Int64(v.paymentData.Amount)),
+		amount.String(xdr.Int64(limit)),
+		v.paymentData.Asset.Code,
+	)
+}
+
+func (v *limitsValidator) getAccount() *core.Account {
+	return v.paymentData.GetAccount(v.paymentDirection)
+}
+
+func (v *limitsValidator) getCounterparty() *core.Account {
+	return v.paymentData.GetCounterparty(v.paymentDirection)
+}
+
+func (v *limitsValidator) GetAccountLimits() (*history.AccountLimits, error) {
+	var limits history.AccountLimits
+	err := v.historyQ.GetAccountLimits(&limits, v.getAccount().Accountid, v.paymentData.Asset.Code)
+	if err != nil {
+		// no limits to check for sender
+		if err == sql.ErrNoRows {
+			v.log.Debug("No limits found")
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &limits, nil
 }

@@ -9,8 +9,9 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
+	"time"
 )
 
 func TestAccountMergeOpFrame(t *testing.T) {
@@ -34,9 +35,12 @@ func TestAccountMergeOpFrame(t *testing.T) {
 	Convey("Test Account Merge Op Frame:", t, func() {
 		accountMerge := build.AccountMerge(build.Destination{newAccount.Address()})
 		tx := build.Transaction(accountMerge, build.Sequence{1}, build.SourceAccount{root.Address()})
-		txE := tx.Sign(root.Seed()).E
-		opFrame := NewOperationFrame(&txE.Tx.Operations[0], txE)
-		isValid, err := opFrame.CheckValid(historyQ, coreQ, &config)
+		txE := NewTransactionFrame(&EnvelopeInfo{
+			Tx: tx.Sign(root.Seed()).E,
+		})
+		opFrame := NewOperationFrame(&txE.Tx.Tx.Operations[0], txE, 1, time.Now())
+		manager := NewManager(coreQ, historyQ, nil, &config)
+		isValid, err := opFrame.CheckValid(manager)
 		So(err, ShouldBeNil)
 		So(isValid, ShouldBeTrue)
 		So(opFrame.GetResult().Result.MustTr().MustAccountMergeResult().Code, ShouldEqual, xdr.AccountMergeResultCodeAccountMergeSuccess)

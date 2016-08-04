@@ -10,8 +10,8 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"testing"
 	"math/rand"
+	"testing"
 )
 
 func TestCommissionHash(t *testing.T) {
@@ -81,8 +81,12 @@ func checkGreater(t *testing.T, key CommissionKey, others []CommissionKey) {
 }
 
 func TestCommissionStore(t *testing.T) {
+	tt := test.Start(t).Scenario("base")
+	defer tt.Finish()
+
 	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
-	q := &Q{test.Start(t).HorizonRepo()}
+
+	q := &Q{tt.HorizonRepo()}
 	err := q.DeleteCommissions()
 	assert.Nil(t, err)
 	Convey("not exist", t, func() {
@@ -170,11 +174,11 @@ func TestCommissionSelector(t *testing.T) {
 	assert.Nil(t, err)
 	newAccountType := accountType + 1
 	otherCommission, err := NewCommission(CommissionKey{
-		From:   getRandomAccountId(t),
-		To: getRandomAccountId(t),
-		ToType: &newAccountType,
+		From:     getRandomAccountId(t),
+		To:       getRandomAccountId(t),
+		ToType:   &newAccountType,
 		FromType: &newAccountType,
-		Asset:  asset,
+		Asset:    asset,
 	}, 10*amount.One, 12*amount.One)
 	assert.Nil(t, err)
 	err = q.InsertCommission(otherCommission)
@@ -237,8 +241,8 @@ func TestCommissionSelector(t *testing.T) {
 	//err = q.deleteCommissions()
 	assert.Nil(t, err)
 	keys := CreateCommissionKeys(getRandomAccountId(t), getRandomAccountId(t), int32(1), int32(2), base.Asset{
-		Type: assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
-		Code: "EUR",
+		Type:   assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
+		Code:   "EUR",
 		Issuer: getRandomAccountId(t),
 	})
 	for _, key := range keys {

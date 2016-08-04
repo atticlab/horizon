@@ -2,8 +2,6 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
@@ -12,13 +10,15 @@ import (
 
 type PaymentOpFrame struct {
 	OperationFrame
-	payment xdr.PaymentOp
+	payment                   xdr.PaymentOp
 
 	accountTypeValidator      validators.AccountTypeValidatorInterface
 	assetsValidator           validators.AssetsValidatorInterface
 	defaultOutLimitsValidator validators.OutgoingLimitsValidatorInterface
 	defaultInLimitsValidator  validators.IncomingLimitsValidatorInterface
 	traitsValidator           validators.TraitsValidatorInterface
+
+	pathPayment               *PathPaymentOpFrame
 }
 
 func (p *PaymentOpFrame) GetAccountTypeValidator() validators.AccountTypeValidatorInterface {
@@ -35,19 +35,19 @@ func NewPaymentOpFrame(opFrame OperationFrame) *PaymentOpFrame {
 	}
 }
 
-func (p *PaymentOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (p *PaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	//creating path payment op
-	ppayment := p.createPathPayment(historyQ)
-	isValid, err := ppayment.DoCheckValid(historyQ, coreQ, config)
+	p.pathPayment = p.createPathPayment(manager)
+	isValid, err := p.pathPayment.DoCheckValid(manager)
 	if err != nil {
 		return isValid, err
 	}
 
 	if !isValid {
-		p.Result.Info = ppayment.Result.Info
+		p.Result.Info = p.pathPayment.Result.Info
 
 		var code xdr.PaymentResultCode
-		switch ppayment.getInnerResult().Code {
+		switch p.pathPayment.getInnerResult().Code {
 		case xdr.PathPaymentResultCodePathPaymentMalformed:
 			code = xdr.PaymentResultCodePaymentMalformed
 		case xdr.PathPaymentResultCodePathPaymentUnderfunded:
@@ -84,8 +84,7 @@ func (p *PaymentOpFrame) getInnerResult() *xdr.PaymentResult {
 	return p.Result.Result.Tr.PaymentResult
 }
 
-func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPaymentOpFrame {
-	p.log.WithField("createPathPayment", p.SourceAccount.Accountid).Debug("ASD")
+func (p *PaymentOpFrame) createPathPayment(manager *Manager) *PathPaymentOpFrame {
 	op := xdr.Operation{
 		SourceAccount: p.Op.SourceAccount,
 		Body: xdr.OperationBody{
@@ -99,7 +98,7 @@ func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPay
 			},
 		},
 	}
-	opFrame := NewOperationFrame(&op, p.ParentTx)
+	opFrame := NewOperationFrame(&op, p.ParentTxFrame, p.Index, *p.now)
 	opFrame.Result = &results.OperationResult{
 		Result: xdr.OperationResult{
 			Code: xdr.OperationResultCodeOpInner,
@@ -113,11 +112,10 @@ func (p *PaymentOpFrame) createPathPayment(historyQ history.QInterface) *PathPay
 	innerOp, _ := opFrame.GetInnerOp()
 	ppayment := innerOp.(*PathPaymentOpFrame)
 	ppayment.accountTypeValidator = p.GetAccountTypeValidator()
-	ppayment.assetsValidator = p.GetAssetsValidator(historyQ)
-	ppayment.traitsValidator = p.GetTraitsValidator(historyQ)
+	ppayment.assetsValidator = p.GetAssetsValidator(manager.HistoryQ)
+	ppayment.traitsValidator = p.GetTraitsValidator(manager.HistoryQ)
 	ppayment.defaultOutLimitsValidator = p.defaultOutLimitsValidator
 	ppayment.defaultInLimitsValidator = p.defaultInLimitsValidator
-	p.log.WithField("createPathPayment", ppayment.SourceAccount.Accountid).Debug("ASD")
 	return ppayment
 }
 
@@ -134,4 +132,8 @@ func (p *PaymentOpFrame) GetTraitsValidator(historyQ history.QInterface) validat
 		p.traitsValidator = validators.NewTraitsValidator(historyQ)
 	}
 	return p.traitsValidator
+}
+
+func (p *PaymentOpFrame) DoRollbackCachedData(manager *Manager) error {
+	return p.pathPayment.DoRollbackCachedData(manager)
 }

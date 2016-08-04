@@ -30,7 +30,10 @@ func TestDefaultSubmitter(t *testing.T) {
 		createAccount := build.CreateAccount(build.Destination{newAccount.Address()})
 		tx := build.Transaction(createAccount, build.Sequence{1}, build.SourceAccount{newAccount.Address()})
 		txE := tx.Sign(newAccount.Seed())
+		So(txE.Err, ShouldBeNil)
 		rawTxE, err := txE.Base64()
+		So(err, ShouldBeNil)
+		envelopeInfo, err := extractEnvelopeInfo(ctx, rawTxE, build.DefaultNetwork.Passphrase)
 		So(err, ShouldBeNil)
 		txValidator := &TransactionValidatorMock{}
 		txValidator.On("CheckTransaction", mock.Anything).Return(nil)
@@ -44,7 +47,7 @@ func TestDefaultSubmitter(t *testing.T) {
 
 			s := createSubmitterWithTxV(http.DefaultClient, server.URL, coreQ, historyQ, &config, txValidator)
 			log.Debug("Submiting tx")
-			sr := s.Submit(ctx, rawTxE)
+			sr := s.Submit(ctx, &envelopeInfo)
 			log.Debug("Checking submition result")
 			So(sr.Err, ShouldBeNil)
 			So(sr.Duration, ShouldBeGreaterThan, 0)
@@ -58,13 +61,13 @@ func TestDefaultSubmitter(t *testing.T) {
 			defer server.Close()
 
 			s := createSubmitterWithTxV(http.DefaultClient, server.URL, coreQ, historyQ, &config, txValidator)
-			sr := s.Submit(ctx, rawTxE)
+			sr := s.Submit(ctx, &envelopeInfo)
 			So(sr.Err, ShouldBeNil)
 		})
 
 		Convey("errors when the stellar-core url is not reachable", func() {
 			s := createSubmitterWithTxV(http.DefaultClient, "http://127.0.0.1:65535", coreQ, historyQ, &config, txValidator)
-			sr := s.Submit(ctx, rawTxE)
+			sr := s.Submit(ctx, &envelopeInfo)
 			So(sr.Err, ShouldNotBeNil)
 		})
 
@@ -73,7 +76,7 @@ func TestDefaultSubmitter(t *testing.T) {
 			defer server.Close()
 
 			s := createSubmitterWithTxV(http.DefaultClient, server.URL, coreQ, historyQ, &config, txValidator)
-			sr := s.Submit(ctx, rawTxE)
+			sr := s.Submit(ctx, &envelopeInfo)
 			So(sr.Err, ShouldNotBeNil)
 		})
 
@@ -82,7 +85,7 @@ func TestDefaultSubmitter(t *testing.T) {
 			defer server.Close()
 
 			s := createSubmitterWithTxV(http.DefaultClient, server.URL, coreQ, historyQ, &config, txValidator)
-			sr := s.Submit(ctx, rawTxE)
+			sr := s.Submit(ctx, &envelopeInfo)
 			So(sr.Err, ShouldNotBeNil)
 			So(sr.Err.Error(), ShouldContainSubstring, "Invalid XDR")
 		})
@@ -92,7 +95,7 @@ func TestDefaultSubmitter(t *testing.T) {
 			defer server.Close()
 
 			s := createSubmitterWithTxV(http.DefaultClient, server.URL, coreQ, historyQ, &config, txValidator)
-			sr := s.Submit(ctx, rawTxE)
+			sr := s.Submit(ctx, &envelopeInfo)
 			So(sr.Err, ShouldNotBeNil)
 			So(sr.Err.Error(), ShouldContainSubstring, "NOTREAL")
 		})
@@ -102,7 +105,7 @@ func TestDefaultSubmitter(t *testing.T) {
 			defer server.Close()
 
 			s := createSubmitterWithTxV(http.DefaultClient, server.URL, coreQ, historyQ, &config, txValidator)
-			sr := s.Submit(ctx, rawTxE)
+			sr := s.Submit(ctx, &envelopeInfo)
 			So(sr.Err, ShouldHaveSameTypeAs, &results.FailedTransactionError{})
 			ferr := sr.Err.(*results.FailedTransactionError)
 			So(ferr.ResultXDR, ShouldEqual, "1234")

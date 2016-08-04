@@ -2,9 +2,6 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
-	"bitbucket.org/atticlab/horizon/db2/history"
 )
 
 type CreateAccountOpFrame struct {
@@ -19,7 +16,7 @@ func NewCreateAccountOpFrame(opFrame OperationFrame) *CreateAccountOpFrame {
 	}
 }
 
-func (frame *CreateAccountOpFrame) DoCheckValid(historyQ history.QInterface, coreQ core.QInterface, config *config.Config) (bool, error) {
+func (frame *CreateAccountOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	frame.getInnerResult().Code = xdr.CreateAccountResultCodeCreateAccountSuccess
 	return true, nil
 }
