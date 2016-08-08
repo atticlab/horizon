@@ -20,11 +20,13 @@ import (
 
 // TransactionIndexAction renders a page of ledger resources, identified by
 // a normal page query.
+// Allows to select operations by before & after filters. Time must be passed as 2006-01-02T15:04:05Z
 type TransactionIndexAction struct {
 	Action
 	LedgerFilter  int32
 	AccountFilter string
 	PagingParams  db2.PageQuery
+	CloseAtQuery  db2.CloseAtQuery
 	Records       []history.Transaction
 	Page          hal.Page
 }
@@ -64,9 +66,14 @@ func (action *TransactionIndexAction) loadParams() {
 	action.AccountFilter = action.GetString("account_id")
 	action.LedgerFilter = action.GetInt32("ledger_id")
 	action.PagingParams = action.GetPageQuery()
+	action.CloseAtQuery = action.GetCloseAtQuery()
 }
 
 func (action *TransactionIndexAction) loadRecords() {
+	if action.Err != nil {
+		return
+	}
+
 	q := action.HistoryQ()
 	txs := q.Transactions()
 
@@ -77,10 +84,14 @@ func (action *TransactionIndexAction) loadRecords() {
 		txs.ForLedger(action.LedgerFilter)
 	}
 
-	action.Err = txs.Page(action.PagingParams).Select(&action.Records)
+	action.Err = txs.Page(action.PagingParams).ClosedAt(action.CloseAtQuery).Select(&action.Records)
 }
 
 func (action *TransactionIndexAction) loadPage() {
+	if action.Err != nil {
+		return
+	}
+
 	for _, record := range action.Records {
 		var res resource.Transaction
 		res.Populate(action.Ctx, record)

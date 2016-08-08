@@ -93,6 +93,22 @@ func (action *Action) GetPageQuery() db2.PageQuery {
 	return r
 }
 
+// GetCloseAtQuery is a helper that returns a new db.CloseAtQuery struct initialized
+// using the results from a call to GetCloseAtParams()
+func (action *Action) GetCloseAtQuery() db2.CloseAtQuery {
+	if action.Err != nil {
+		return db2.CloseAtQuery{}
+	}
+
+	after, before := action.GetCloseAtParams()
+	if action.Err != nil {
+		return db2.CloseAtQuery{}
+	}
+	var result db2.CloseAtQuery
+	result, action.Err = db2.NewCloseAtQuery(after, before)
+	return result
+}
+
 // HistoryQ provides access to queries that access the history portion of
 // horizon's database.
 func (action *Action) HistoryQ() *history.Q {

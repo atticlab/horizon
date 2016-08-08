@@ -120,6 +120,14 @@ func (q *OperationsQ) Page(page db2.PageQuery) *OperationsQ {
 	return q
 }
 
+func (q *OperationsQ) ClosedAt(closeAt db2.CloseAtQuery) *OperationsQ {
+	if q.Err != nil {
+		return q
+	}
+	q.sql, q.Err = closeAt.ApplyTo(q.sql, "hl.closed_at")
+	return q
+}
+
 // Select loads the results of the query specified by `q` into `dest`.
 func (q *OperationsQ) Select(dest interface{}) error {
 	if q.Err != nil {

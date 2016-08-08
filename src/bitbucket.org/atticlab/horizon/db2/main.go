@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"golang.org/x/net/context"
+	"time"
 )
 
 // Conn represents a connection to a single database.
@@ -34,6 +35,12 @@ type PageQuery struct {
 	Cursor string
 	Order  string
 	Limit  uint64
+}
+
+// ClosedAtQuery represents a portion of a Query struct concerned with filtering by close time of ledger
+type CloseAtQuery struct {
+	Start *time.Time
+	End   *time.Time
 }
 
 // Repo provides helper methods for making queries against `Conn`, such as

@@ -71,6 +71,14 @@ func (q *TransactionsQ) Page(page db2.PageQuery) *TransactionsQ {
 	return q
 }
 
+func (q *TransactionsQ) ClosedAt(closeAt db2.CloseAtQuery) *TransactionsQ {
+	if q.Err != nil {
+		return q
+	}
+	q.sql, q.Err = closeAt.ApplyTo(q.sql, "hl.closed_at")
+	return q
+}
+
 // Select loads the results of the query specified by `q` into `dest`.
 func (q *TransactionsQ) Select(dest interface{}) error {
 	if q.Err != nil {

@@ -16,12 +16,14 @@ import (
 // OperationIndexAction renders a page of operations resources, identified by
 // a normal page query and optionally filtered by an account, ledger, or
 // transaction.
+// Allows to select operations by before & after filters. Time must be passed as 2006-01-02T15:04:05Z
 type OperationIndexAction struct {
 	Action
 	LedgerFilter      int32
 	AccountFilter     string
 	TransactionFilter string
 	PagingParams      db2.PageQuery
+	CloseAtQuery      db2.CloseAtQuery
 	Records           []history.Operation
 	Page              hal.Page
 }
@@ -66,9 +68,14 @@ func (action *OperationIndexAction) loadParams() {
 	action.LedgerFilter = action.GetInt32("ledger_id")
 	action.TransactionFilter = action.GetString("tx_id")
 	action.PagingParams = action.GetPageQuery()
+	action.CloseAtQuery = action.GetCloseAtQuery()
 }
 
 func (action *OperationIndexAction) loadRecords() {
+	if action.Err != nil {
+		return
+	}
+
 	q := action.HistoryQ()
 	ops := q.Operations()
 
@@ -81,10 +88,14 @@ func (action *OperationIndexAction) loadRecords() {
 		ops.ForTransaction(action.TransactionFilter)
 	}
 
-	action.Err = ops.Page(action.PagingParams).Select(&action.Records)
+	action.Err = ops.Page(action.PagingParams).ClosedAt(action.CloseAtQuery).Select(&action.Records)
 }
 
 func (action *OperationIndexAction) loadPage() {
+	if action.Err != nil {
+		return
+	}
+
 	for _, record := range action.Records {
 		var res hal.Pageable
 		res, action.Err = resource.NewOperation(action.Ctx, record)

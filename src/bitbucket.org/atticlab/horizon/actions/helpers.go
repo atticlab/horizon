@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/atticlab/horizon/helpers"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
+	"time"
 )
 
 const (
@@ -100,6 +101,16 @@ func (base *Base) GetPagingParams() (cursor string, order string, limit uint64) 
 	return
 }
 
+func (base *Base) GetCloseAtParams() (after, before *time.Time) {
+	if base.Err != nil {
+		return
+	}
+
+	after = base.GetOptionalTime("after")
+	before = base.GetOptionalTime("before")
+	return
+}
+
 // GetPageQuery is a helper that returns a new db.PageQuery struct initialized
 // using the results from a call to GetPagingParams()
 func (base *Base) GetPageQuery() db2.PageQuery {
@@ -120,6 +131,10 @@ func (base *Base) GetPageQuery() db2.PageQuery {
 // valid stellar address, setting an invalid field error if it is not.
 func (base *Base) GetAddress(name string) (result string) {
 	return helpers.GetAddress(base, name)
+}
+
+func (base *Base) GetOptionalTime(name string) (*time.Time) {
+	return helpers.GetOptionalTime(base, name)
 }
 
 func (base *Base) GetOptionalAddress(name string) (result string) {

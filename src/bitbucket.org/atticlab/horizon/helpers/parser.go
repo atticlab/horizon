@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/atticlab/horizon/assets"
 	"errors"
 	"strconv"
+	"time"
 )
 
 type ParserInterface interface {
@@ -106,6 +107,27 @@ func GetAddress(base ParserInterface, name string) (result string) {
 	if result == "" {
 		base.SetInvalidField(name, errors.New("Can't be empty"))
 		return ""
+	}
+
+	return result
+}
+
+func GetOptionalTime(base ParserInterface, name string) *time.Time {
+	if base.HasError() {
+		return nil
+	}
+
+	str := base.GetString(name)
+	if str == "" {
+		return nil
+	}
+
+	result := new(time.Time)
+	var err error
+	*result, err = time.Parse("2006-01-02T15:04:05Z", str)
+	if err != nil {
+		base.SetInvalidField(name, err)
+		return nil
 	}
 
 	return result
@@ -303,7 +325,7 @@ func GetAsset(base ParserInterface, prefix string) (result xdr.Asset) {
 }
 
 func GetOptionalAsset(base ParserInterface, prefix string) (result *xdr.Asset) {
-	if base.GetString(prefix + "asset_type") == "" {
+	if base.GetString(prefix+"asset_type") == "" {
 		return nil
 	}
 	asset := GetAsset(base, prefix)
