@@ -36,12 +36,6 @@ func (ingest *Ingestion) Account(id int64, address string) error {
 	if err != nil {
 		return err
 	}
-	
-	sql = ingest.account_traits.Values(id, false, false)
-	_, err = ingest.DB.Exec(sql)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -349,12 +343,6 @@ func (ingest *Ingestion) createInsertBuilders() {
 		"\"order\"",
 		"type",
 		"details",
-	)
-	
-	ingest.account_traits = sq.Insert("account_traits").Columns(
-		"id",
-		"block_incoming_payments",
-		"block_outcoming_payments",
 	)
 }
 

@@ -8,10 +8,12 @@ import (
 
 type SetTraitsAction struct {
 	AdminAction
-	Account  history.Account
 	Address  string
 	BlockIn  *bool
 	BlockOut *bool
+
+	accountTraits history.AccountTraits
+	isNew         bool
 }
 
 func NewSetTraitsAction(adminAction AdminAction) *SetTraitsAction {
@@ -25,18 +27,56 @@ func (action *SetTraitsAction) Validate() {
 	if action.Err != nil {
 		return
 	}
-	// 1. Check if account exists
-	err := action.HistoryQ().AccountByAddress(&action.Account, action.Address)
 
+	var err error
+	action.accountTraits, err = action.HistoryQ().AccountTraitsQ().ForAccount(action.Address)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err != sql.ErrNoRows {
+			action.Err = &problem.ServerError
+			action.Log.WithStack(err).WithError(err).Error("Failed to get account traits")
+			return
+		}
+
+		// account traits does not exists
+		action.isNew = true
+		action.accountTraits.BlockIncomingPayments = false
+		action.accountTraits.BlockOutcomingPayments = false
+	}
+
+	//Set traits
+	if action.BlockIn != nil {
+		action.accountTraits.BlockIncomingPayments = *action.BlockIn
+	}
+
+	if action.BlockOut != nil {
+		action.accountTraits.BlockOutcomingPayments = *action.BlockOut
+	}
+
+	if action.isNew {
+		if action.toDelete() {
 			action.Err = &problem.NotFound
 			return
 		}
-		action.Log.WithStack(err).WithError(err).Error("Failed to load account by address")
-		action.Err = &problem.ServerError
-		return
+
+		// Check if account exists
+		var account history.Account
+		err = action.HistoryQ().AccountByAddress(&account, action.Address)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				action.Err = &problem.NotFound
+				return
+			}
+
+			action.Log.WithStack(err).WithError(err).Error("Failed to load account by address")
+			action.Err = &problem.ServerError
+			return
+		}
+		action.accountTraits.ID = account.ID
 	}
+}
+
+func (action *SetTraitsAction) toDelete() bool {
+	return !action.accountTraits.BlockIncomingPayments && !action.accountTraits.BlockOutcomingPayments
 }
 
 func (action *SetTraitsAction) Apply() {
@@ -44,40 +84,19 @@ func (action *SetTraitsAction) Apply() {
 		return
 	}
 
-	// 2. Try get traits for account
-	var isNew = false
-	accTraits, err := action.HistoryQ().AccountTraitsQ().ForAccount(action.Address)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			action.Err = &problem.ServerError
-			action.Log.WithStack(err).WithError(err).Error("Failed to get account traits")
-			return
-		}
-		isNew = true
-		accTraits.ID = action.Account.ID
-		accTraits.BlockIncomingPayments = false
-		accTraits.BlockOutcomingPayments = false
-	}
-
-	// 3. Set traits
-	if action.BlockIn != nil {
-		accTraits.BlockIncomingPayments = *action.BlockIn
-	}
-
-	if action.BlockOut != nil {
-		accTraits.BlockOutcomingPayments = *action.BlockOut
-	}
-
-	// 4. Persist changes
-	if isNew {
-		err = action.HistoryQ().CreateAccountTraits(accTraits)
+	var err error
+	if action.isNew {
+		err = action.HistoryQ().InsertAccountTraits(action.accountTraits)
+	} else if action.toDelete() {
+		err = action.HistoryQ().DeleteAccountTraits(action.accountTraits.ID)
 	} else {
-		err = action.HistoryQ().UpdateAccountTraits(accTraits)
+		err = action.HistoryQ().UpdateAccountTraits(action.accountTraits)
 	}
 
 	if err != nil {
 		action.Log.WithStack(err).WithError(err).Error("Failed to insert/update account traits")
 		action.Err = &problem.ServerError
+		return
 	}
 }
 

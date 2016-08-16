@@ -77,13 +77,17 @@ func (m *QMock) AccountTraitsQ() AccountTraitsQInterface {
 }
 
 // Inserts new instance of account traits
-func (m *QMock) CreateAccountTraits(traits AccountTraits) error {
+func (m *QMock) InsertAccountTraits(traits AccountTraits) error {
 	return m.Called(traits).Error(0)
 }
 
 // Updates account traits
 func (m *QMock) UpdateAccountTraits(traits AccountTraits) error {
 	return m.Called(traits).Error(0)
+}
+
+func (m *QMock) DeleteAccountTraits(id int64) error {
+	return m.Called(id).Error(0)
 }
 
 func (m *QMock) Asset(dest interface{}, asset xdr.Asset) error {

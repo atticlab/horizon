@@ -2,6 +2,7 @@ package history
 
 import (
 	"bitbucket.org/atticlab/horizon/test"
+	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -16,21 +17,27 @@ func TestAccountTraitsQueries(t *testing.T) {
 		err := q.Accounts().Select(&accounts)
 		So(err, ShouldBeNil)
 		So(len(accounts), ShouldBeGreaterThanOrEqualTo, 2)
-		accounts = accounts[0:2]
-		Convey("Select for account", func() {
-			var storedTrait AccountTraits
-			storedTrait, err = q.AccountTraitsQ().ForAccount(accounts[0].Address)
-			So(err, ShouldBeNil)
-			So(accounts[0].Address, ShouldEqual, storedTrait.AccountAddress)
-			So(accounts[0].ID, ShouldEqual, storedTrait.ID)
+		account := accounts[0]
+		// create
+		err = q.InsertAccountTraits(AccountTraits{
+			TotalOrderID:           account.TotalOrderID,
+			AccountAddress:         account.Address,
+			BlockOutcomingPayments: true,
 		})
-		Convey("Select by id", func() {
-			var storedTrait AccountTraits
-			storedTrait, err = q.AccountTraitsQ().ByID(accounts[0].ID)
-			So(err, ShouldBeNil)
-			So(accounts[0].Address, ShouldEqual, storedTrait.AccountAddress)
-			So(accounts[0].ID, ShouldEqual, storedTrait.ID)
-		})
+		So(err, ShouldBeNil)
+		var storedTrait AccountTraits
+		storedTrait, err = q.AccountTraitsQ().ForAccount(account.Address)
+		So(err, ShouldBeNil)
+		So(account.Address, ShouldEqual, storedTrait.AccountAddress)
+		So(account.ID, ShouldEqual, storedTrait.ID)
+		storedTrait, err = q.AccountTraitsQ().ByID(account.ID)
+		So(err, ShouldBeNil)
+		So(account.Address, ShouldEqual, storedTrait.AccountAddress)
+		So(account.ID, ShouldEqual, storedTrait.ID)
+		err = q.DeleteAccountTraits(account.ID)
+		So(err, ShouldBeNil)
+		_, err = q.AccountTraitsQ().ForAccount(account.Address)
+		So(err, ShouldEqual, sql.ErrNoRows)
 
 	})
 }

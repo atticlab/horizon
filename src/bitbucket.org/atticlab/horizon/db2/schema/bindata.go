@@ -151,7 +151,7 @@ func migrations3_aggregate_expenses_for_accountsSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/3_aggregate_expenses_for_accounts.sql", size: 900, mode: os.FileMode(438), modTime: time.Unix(1470663290, 0)}
+	info := bindataFileInfo{name: "migrations/3_aggregate_expenses_for_accounts.sql", size: 900, mode: os.FileMode(438), modTime: time.Unix(1471345861, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

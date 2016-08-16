@@ -4,7 +4,9 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/test"
+	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -18,7 +20,7 @@ func TestActionsSetTraits(t *testing.T) {
 	historyQ := &history.Q{tt.HorizonRepo()}
 	account := test.NewTestConfig().BankMasterKey
 
-	Convey("Set traits", t, func() {
+	Convey("Invalid params", t, func() {
 		Convey("Invalid account", func() {
 			action := NewSetTraitsAction(NewAdminAction(map[string]interface{}{
 				"account_id": "invalid_id",
@@ -45,6 +47,8 @@ func TestActionsSetTraits(t *testing.T) {
 			So(action.Err, ShouldNotBeNil)
 			So(action.Err, ShouldBeInvalidField, "block_outcoming_payments")
 		})
+	})
+	Convey("Set traits", t, func() {
 		Convey("account does not exist", func() {
 			newAccount, err := keypair.Random()
 			assert.Nil(t, err)
@@ -55,6 +59,19 @@ func TestActionsSetTraits(t *testing.T) {
 			action.Validate()
 			So(action.Err, ShouldNotBeNil)
 			So(action.Err, ShouldBeInvalidField, "block_outcoming_payments")
+		})
+		Convey("Try delete non existing", func() {
+			var storedAcc history.Account
+			err := historyQ.AccountByAddress(&storedAcc, account)
+			So(err, ShouldBeNil)
+			_, err = historyQ.AccountTraitsQ().ForAccount(account)
+			So(err, ShouldEqual, sql.ErrNoRows)
+			action := NewSetTraitsAction(NewAdminAction(map[string]interface{}{
+				"account_id":              account,
+				"block_incoming_payments": "false",
+			}, historyQ))
+			action.Validate()
+			assert.Equal(t, action.Err, &problem.NotFound)
 		})
 		Convey("happy path", func() {
 			// create new trait
@@ -86,7 +103,12 @@ func TestActionsSetTraits(t *testing.T) {
 				"block_incoming_payments":  "false",
 				"block_outcoming_payments": "false",
 			}, historyQ))
-			checkTraitsAction(action, account, expected, historyQ)
+			action.Validate()
+			So(action.Err, ShouldBeNil)
+			action.Apply()
+			So(action.Err, ShouldBeNil)
+			_, err = historyQ.AccountTraitsQ().ForAccount(account)
+			So(err, ShouldEqual, sql.ErrNoRows)
 		})
 	})
 }

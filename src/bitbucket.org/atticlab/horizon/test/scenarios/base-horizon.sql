@@ -91,13 +91,6 @@ CREATE SCHEMA public;
 
 
 --
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON SCHEMA public IS 'standard public schema';
-
-
---
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -154,6 +147,7 @@ CREATE TABLE account_limits (
 CREATE TABLE account_statistics (
     address character varying(64) NOT NULL,
     asset_code character varying(12) NOT NULL,
+    counterparty_type smallint DEFAULT 0 NOT NULL,
     daily_income bigint DEFAULT 0 NOT NULL,
     daily_outcome bigint DEFAULT 0 NOT NULL,
     weekly_income bigint DEFAULT 0 NOT NULL,
@@ -162,8 +156,7 @@ CREATE TABLE account_statistics (
     monthly_outcome bigint DEFAULT 0 NOT NULL,
     annual_income bigint DEFAULT 0 NOT NULL,
     annual_outcome bigint DEFAULT 0 NOT NULL,
-    updated_at timestamp with time zone NOT NULL,
-    counterparty_type smallint DEFAULT 0 NOT NULL
+    updated_at timestamp with time zone NOT NULL
 );
 
 
@@ -482,9 +475,6 @@ ALTER TABLE ONLY history_transaction_participants ALTER COLUMN id SET DEFAULT ne
 -- Data for Name: account_traits; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO account_traits VALUES (1, false, false);
-INSERT INTO account_traits VALUES (2, false, false);
-
 
 --
 -- Data for Name: asset; Type: TABLE DATA; Schema: public; Owner: -
@@ -498,7 +488,7 @@ INSERT INTO asset VALUES (2, 1, 'AUAH', 'GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6
 -- Name: asset_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('asset_id_seq', 2, true);
+SELECT pg_catalog.setval('asset_id_seq', 3, true);
 
 
 --
@@ -531,16 +521,14 @@ SELECT pg_catalog.setval('commission_id_seq', 1, false);
 -- Data for Name: gorp_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-07-21 15:04:51.941251+03');
-INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-07-21 15:04:52.055517+03');
-INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-07-21 15:04:52.153636+03');
-INSERT INTO gorp_migrations VALUES ('4_account_statistics_updated_at_timezone.sql', '2016-07-21 15:04:52.240717+03');
-INSERT INTO gorp_migrations VALUES ('5_account_statistics_account_type.sql', '2016-07-21 15:04:52.381877+03');
-INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-07-21 15:04:52.567022+03');
-INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-07-21 15:04:52.60905+03');
-INSERT INTO gorp_migrations VALUES ('8_account_limits_two_way.sql', '2016-07-21 15:04:52.665088+03');
-INSERT INTO gorp_migrations VALUES ('9_1_assets.sql', '2016-07-21 15:04:52.757148+03');
-INSERT INTO gorp_migrations VALUES ('9_commission.sql', '2016-07-21 15:04:53.126393+03');
+INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-08-16 17:38:46.42851+03');
+INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-08-16 17:38:46.538681+03');
+INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-08-16 17:38:46.632425+03');
+INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-08-16 17:38:46.742437+03');
+INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-08-16 17:38:46.804957+03');
+INSERT INTO gorp_migrations VALUES ('8_account_limits_two_way.sql', '2016-08-16 17:38:46.851818+03');
+INSERT INTO gorp_migrations VALUES ('9_1_assets.sql', '2016-08-16 17:38:46.948658+03');
+INSERT INTO gorp_migrations VALUES ('9_commission.sql', '2016-08-16 17:38:47.255677+03');
 
 
 --
@@ -561,9 +549,10 @@ INSERT INTO history_accounts VALUES (2, 'GB45Q4BIHV52PK34LB56KKU4YDELVB3NGIZECZ4
 -- Data for Name: history_ledgers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO history_ledgers VALUES (1, '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', NULL, 0, 0, '1970-01-01 00:00:00', '2016-07-21 12:05:25.035963', '2016-07-21 12:05:25.035963', 4294967296, 8, 0, 0, 0, 0, 100);
-INSERT INTO history_ledgers VALUES (2, '0085276517d019f80f962d766c744080d62cd9cd94bfd9557c68a3790ec19220', '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', 0, 0, '2016-07-21 12:05:19', '2016-07-21 12:05:25.174053', '2016-07-21 12:05:25.174053', 8589934592, 8, 0, 0, 0, 0, 50);
-INSERT INTO history_ledgers VALUES (3, 'a3782a302e08c4da5e7fc968dccf1af693f1d6b71eced56e76391b36d2dc31bd', '0085276517d019f80f962d766c744080d62cd9cd94bfd9557c68a3790ec19220', 0, 0, '2016-07-21 12:05:24', '2016-07-21 12:05:25.996673', '2016-07-21 12:05:25.996673', 12884901888, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (1, '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', NULL, 0, 0, '1970-01-01 00:00:00', '2016-08-16 14:38:59.0238', '2016-08-16 14:38:59.0238', 4294967296, 8, 0, 0, 0, 0, 100);
+INSERT INTO history_ledgers VALUES (2, '2676c38de2a0ef7b52fd506719667d41522435e3e875363f34e5ac24b9a907a9', '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', 0, 0, '2016-08-16 14:38:55', '2016-08-16 14:38:59.056964', '2016-08-16 14:38:59.056964', 8589934592, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (3, 'b5a739ff727e470d2f844d928ccca6a84e053a869ac9e4ee542762fbce1a3e41', '2676c38de2a0ef7b52fd506719667d41522435e3e875363f34e5ac24b9a907a9', 0, 0, '2016-08-16 14:39:00', '2016-08-16 14:39:00.993807', '2016-08-16 14:39:00.993807', 12884901888, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (4, 'e7c5d0b2dc15348a91e57c6f7dd36ebe6e0b4022fb54a5b1efb8ef3f306eb330', 'b5a739ff727e470d2f844d928ccca6a84e053a869ac9e4ee542762fbce1a3e41', 0, 0, '2016-08-16 14:39:05', '2016-08-16 14:39:06.001414', '2016-08-16 14:39:06.001414', 17179869184, 8, 0, 0, 0, 0, 50);
 
 
 --

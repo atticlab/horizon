@@ -62,7 +62,7 @@ func (t *TransactionFrame) checkOperations(manager *Manager) (bool, error) {
 		isOpValid, err := opFrames[i].CheckValid(manager)
 		// failed to validate
 		if err != nil {
-			t.log.WithField("operation_i", i).Error("Failed to validate")
+			t.log.WithField("operation_i", i).WithError(err).Error("Failed to validate")
 			return false, err
 		}
 

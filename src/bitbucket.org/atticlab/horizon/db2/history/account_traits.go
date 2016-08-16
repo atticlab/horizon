@@ -14,9 +14,13 @@ type AccountTraits struct {
 }
 
 type AccountTraitsQInterface interface {
+	// Selects account's traits by account address
 	ForAccount(aid string) (traits AccountTraits, err error)
+	// Selects account's traits by id
 	ByID(id int64) (traits AccountTraits, err error)
+	// And page filters to query
 	Page(page db2.PageQuery) AccountTraitsQInterface
+	// Selects account's traits
 	Select(dest interface{}) error
 }
 
@@ -79,8 +83,8 @@ func (q *AccountTraitsQ) Select(dest interface{}) error {
 	return q.Err
 }
 
-// CreateAccountTraits inserts new account_traits row
-func (q *Q) CreateAccountTraits(traits AccountTraits) error {
+// InsertAccountTraits inserts new account_traits row
+func (q *Q) InsertAccountTraits(traits AccountTraits) error {
 	sql := createAccountTraits.Values(traits.ID, traits.BlockIncomingPayments, traits.BlockOutcomingPayments)
 	_, err := q.Exec(sql)
 
@@ -98,6 +102,12 @@ func (q *Q) UpdateAccountTraits(traits AccountTraits) error {
 	return err
 }
 
+func (q *Q) DeleteAccountTraits(id int64) error {
+	sql := deleteAccountTraits.Where("at.id = ?", id)
+	_, err := q.Exec(sql)
+	return err
+}
+
 var selectAccountTraits = sq.Select("at.*, ha.address").From("account_traits at").Join("history_accounts ha ON at.id = ha.id")
 var createAccountTraits = sq.Insert("account_traits").Columns(
 	"id",
@@ -105,3 +115,4 @@ var createAccountTraits = sq.Insert("account_traits").Columns(
 	"block_outcoming_payments",
 )
 var updateAccountTraits = sq.Update("account_traits")
+var deleteAccountTraits = sq.Delete("account_traits at")

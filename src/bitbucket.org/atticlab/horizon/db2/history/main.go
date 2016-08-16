@@ -203,9 +203,11 @@ type QInterface interface {
 	// Returns query helper for account traits
 	AccountTraitsQ() AccountTraitsQInterface
 	// Inserts new instance of account traits
-	CreateAccountTraits(traits AccountTraits) error
+	InsertAccountTraits(traits AccountTraits) error
 	// Updates account traits
 	UpdateAccountTraits(traits AccountTraits) error
+	// Deletes account traits by id
+	DeleteAccountTraits(id int64) error
 
 	// Asset
 	// Returns asset for specified xdr.Asset
