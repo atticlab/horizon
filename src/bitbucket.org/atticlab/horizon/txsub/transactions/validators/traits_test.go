@@ -14,6 +14,8 @@ import (
 
 func TestTraits(t *testing.T) {
 	histMock := history.QMock{}
+	traitsMock := history.AccountTraitsQMock{}
+	histMock.On("AccountTraitsQ").Return(&traitsMock)
 	traits := NewTraitsValidator(&histMock)
 	Convey("Traits test:", t, func() {
 		source, err := keypair.Random()
@@ -21,29 +23,30 @@ func TestTraits(t *testing.T) {
 		dest, err := keypair.Random()
 		So(err, ShouldBeNil)
 		Convey("Both accounts does not have traits", func() {
-			histMock.On("GetAccountTraitsByAddress", source.Address()).Return(nil, sql.ErrNoRows)
-			histMock.On("GetAccountTraitsByAddress", dest.Address()).Return(nil, sql.ErrNoRows)
+			traitsMock.On("ForAccount", source.Address()).Return(history.AccountTraits{}, sql.ErrNoRows).Once()
+			traitsMock.On("ForAccount", dest.Address()).Return(history.AccountTraits{}, sql.ErrNoRows).Once()
 			result, err := traits.CheckTraits(source.Address(), dest.Address())
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
 		})
 		Convey("Both accounts have traits, but not blocked", func() {
-			histMock.On("GetAccountTraitsByAddress", source.Address()).Return(history.AccountTraits{
-				BlockIncomingPayments:  true,
+			traitsMock.On("ForAccount", source.Address()).Return(history.AccountTraits{
 				BlockOutcomingPayments: false,
-			}, nil)
-			histMock.On("GetAccountTraitsByAddress", dest.Address()).Return(history.AccountTraits{
-				BlockIncomingPayments:  false,
+				BlockIncomingPayments:  true,
+			}, nil).Once()
+			traitsMock.On("ForAccount", dest.Address()).Return(history.AccountTraits{
 				BlockOutcomingPayments: true,
-			}, nil)
+				BlockIncomingPayments:  false,
+			}, nil).Once()
 			result, err := traits.CheckTraits(source.Address(), dest.Address())
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
 		})
 		Convey("Source is blocked", func() {
-			histMock.On("GetAccountTraitsByAddress", source.Address()).Return(history.AccountTraits{
+			traitsMock.On("ForAccount", source.Address()).Return(history.AccountTraits{
 				BlockOutcomingPayments: true,
-			}, nil)
+				BlockIncomingPayments:  false,
+			}, nil).Once()
 			result, err := traits.CheckTraits(source.Address(), dest.Address())
 			So(err, ShouldBeNil)
 			assert.Equal(t, result, &results.RestrictedForAccountError{
@@ -51,12 +54,14 @@ func TestTraits(t *testing.T) {
 			})
 		})
 		Convey("Dest is blocked", func() {
-			histMock.On("GetAccountTraitsByAddress", source.Address()).Return(history.AccountTraits{
+			traitsMock.On("ForAccount", source.Address()).Return(history.AccountTraits{
 				BlockOutcomingPayments: false,
-			}, nil)
-			histMock.On("GetAccountTraitsByAddress", dest.Address()).Return(history.AccountTraits{
-				BlockIncomingPayments: true,
-			}, nil)
+				BlockIncomingPayments:  true,
+			}, nil).Once()
+			traitsMock.On("ForAccount", dest.Address()).Return(history.AccountTraits{
+				BlockOutcomingPayments: false,
+				BlockIncomingPayments:  true,
+			}, nil).Once()
 			result, err := traits.CheckTraits(source.Address(), dest.Address())
 			So(err, ShouldBeNil)
 			assert.Equal(t, result, &results.RestrictedForAccountError{

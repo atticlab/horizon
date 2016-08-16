@@ -2,6 +2,7 @@ package history
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/log"
 	"github.com/stretchr/testify/mock"
 	"math/rand"
@@ -46,10 +47,33 @@ func (m *QMock) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountS
 	return a.Error(1)
 }
 
-// Returns account traits instance by history.account id
-func (m *QMock) GetAccountTraits(dest interface{}, id int64) error {
-	log.Panic("Not implemented")
-	return nil
+// Traits
+
+type AccountTraitsQMock struct {
+	mock.Mock
+}
+
+func (q *AccountTraitsQMock) ForAccount(aid string) (traits AccountTraits, err error) {
+	a := q.Called(aid)
+	return a.Get(0).(AccountTraits), a.Error(1)
+}
+func (q *AccountTraitsQMock) ByID(id int64) (traits AccountTraits, err error) {
+	a := q.Called(id)
+	return a.Get(0).(AccountTraits), a.Error(1)
+}
+func (q *AccountTraitsQMock) Page(page db2.PageQuery) AccountTraitsQInterface {
+	a := q.Called(page)
+	return a.Get(0).(AccountTraitsQInterface)
+}
+
+func (q *AccountTraitsQMock) Select(dest interface{}) error {
+	a := q.Called(dest)
+	return a.Error(0)
+}
+
+func (m *QMock) AccountTraitsQ() AccountTraitsQInterface {
+	a := m.Called()
+	return a.Get(0).(AccountTraitsQInterface)
 }
 
 // Inserts new instance of account traits
@@ -60,18 +84,6 @@ func (m *QMock) CreateAccountTraits(traits AccountTraits) error {
 // Updates account traits
 func (m *QMock) UpdateAccountTraits(traits AccountTraits) error {
 	return m.Called(traits).Error(0)
-}
-
-// GetAccountTraitsByAddress returns traits for specified account
-func (m *QMock) GetAccountTraitsByAddress(dest interface{}, accountID string) error {
-	a := m.Called(accountID)
-	rawTraits := a.Get(0)
-	if rawTraits != nil {
-		traits := a.Get(0).(AccountTraits)
-		destTraits := dest.(*AccountTraits)
-		*destTraits = traits
-	}
-	return a.Error(1)
 }
 
 func (m *QMock) Asset(dest interface{}, asset xdr.Asset) error {

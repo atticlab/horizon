@@ -110,16 +110,6 @@ type AccountStatisticsEntry struct {
 	} `json:"outcome"`
 }
 
-// AccountTraits is the detailed income/outcome statistics of an account
-type AccountTraits struct {
-	Links struct {
-		Self    hal.Link `json:"self"`
-		Account hal.Link `json:"account"`
-	} `json:"_links"`
-	BlockIncomingPayments  bool `json:"block_incoming_payments"`
-	BlockOutcomingPayments bool `json:"block_outcoming_payments"`
-}
-
 // AccountFlags represents the state of an account's flags
 type AccountFlags struct {
 	AuthRequired  bool `json:"auth_required"`

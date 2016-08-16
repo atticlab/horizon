@@ -96,8 +96,7 @@ func checkTraitsAction(action *SetTraitsAction, account string, expected history
 	So(action.Err, ShouldBeNil)
 	action.Apply()
 	So(action.Err, ShouldBeNil)
-	var actual history.AccountTraits
-	err := historyQ.GetAccountTraitsByAddress(&actual, account)
+	actual, err := historyQ.AccountTraitsQ().ForAccount(account)
 	So(err, ShouldBeNil)
 	So(actual.TotalOrderID.ID, ShouldEqual, expected.TotalOrderID.ID)
 	So(actual.BlockIncomingPayments, ShouldEqual, expected.BlockIncomingPayments)

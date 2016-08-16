@@ -200,10 +200,8 @@ type QInterface interface {
 	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error
 
 	// Account traits
-	// Returns account traits instance by history.account id
-	GetAccountTraits(dest interface{}, id int64) error
-	// GetAccountTraitsByAddress returns traits for specified account
-	GetAccountTraitsByAddress(dest interface{}, accountID string) error
+	// Returns query helper for account traits
+	AccountTraitsQ() AccountTraitsQInterface
 	// Inserts new instance of account traits
 	CreateAccountTraits(traits AccountTraits) error
 	// Updates account traits
@@ -336,13 +334,6 @@ type AccountLimitsQ struct {
 	Err    error
 	parent *Q
 	sql    sq.SelectBuilder
-}
-
-// AccountTraits is a row of data from the `account_traits` table
-type AccountTraits struct {
-	TotalOrderID
-	BlockIncomingPayments  bool `db:"block_incoming_payments"`
-	BlockOutcomingPayments bool `db:"block_outcoming_payments"`
 }
 
 type Commission struct {

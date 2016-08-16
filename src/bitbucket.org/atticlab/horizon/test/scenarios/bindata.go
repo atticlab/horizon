@@ -251,7 +251,7 @@ func baseHorizonSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "base-horizon.sql", size: 26342, mode: os.FileMode(438), modTime: time.Unix(1470044791, 0)}
+	info := bindataFileInfo{name: "base-horizon.sql", size: 26342, mode: os.FileMode(438), modTime: time.Unix(1470410686, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
