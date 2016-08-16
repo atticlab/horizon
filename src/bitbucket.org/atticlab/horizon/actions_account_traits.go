@@ -1,19 +1,79 @@
 package horizon
 
 import (
-
+	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/resource"
 )
 
-// AccountTraitsAction detailed income/outcome statistics for single account
+// This file contains the actions:
+//
+// AccountTraitsIndexAction: pages of account's traits in order of creation of accounts
+type AccountTraitsIndexAction struct {
+	Action
+	PagingParams db2.PageQuery
+	Records      []history.AccountTraits
+	Page         hal.Page
+}
+
+// JSON is a method for actions.JSON
+func (action *AccountTraitsIndexAction) JSON() {
+	action.Do(
+		action.loadParams,
+		action.loadRecords,
+		action.loadPage,
+		func() { hal.Render(action.W, action.Page) },
+	)
+}
+
+// SSE is a method for actions.SSE
+func (action *AccountTraitsIndexAction) SSE(stream sse.Stream) {
+	action.Setup(action.loadParams)
+	action.Do(
+		action.loadRecords,
+		func() {
+			stream.SetLimit(int(action.PagingParams.Limit))
+			var res resource.AccountTraits
+			for _, record := range action.Records[stream.SentCount():] {
+				res.Populate(action.Ctx, record)
+				stream.Send(sse.Event{ID: record.PagingToken(), Data: res})
+			}
+		},
+	)
+}
+
+func (action *AccountTraitsIndexAction) loadParams() {
+	action.ValidateCursorAsDefault()
+	action.PagingParams = action.GetPageQuery()
+}
+
+func (action *AccountTraitsIndexAction) loadRecords() {
+	action.Err = action.HistoryQ().AccountTraitsQ().Page(action.PagingParams).Select(&action.Records)
+}
+
+// LoadPage populates action.Page
+func (action *AccountTraitsIndexAction) loadPage() {
+	for _, record := range action.Records {
+		var res resource.AccountTraits
+		res.Populate(action.Ctx, record)
+		action.Page.Add(res)
+	}
+	action.Page.BaseURL = action.BaseURL()
+	action.Page.BasePath = "/traits"
+	action.Page.Limit = action.PagingParams.Limit
+	action.Page.Cursor = action.PagingParams.Cursor
+	action.Page.Order = action.PagingParams.Order
+	action.Page.PopulateLinks()
+}
+
+// AccountTraitsAction renders a account traits found by its address.
 type AccountTraitsAction struct {
 	Action
-	Address       string
-	AccountTraits history.AccountTraits
-	Resource      resource.AccountTraits
+	Address        string
+	HistoryRecord  history.AccountTraits
+	Resource       resource.AccountTraits
 }
 
 // JSON is a method for actions.JSON
@@ -30,12 +90,12 @@ func (action *AccountTraitsAction) JSON() {
 
 // SSE is a method for actions.SSE
 func (action *AccountTraitsAction) SSE(stream sse.Stream) {
-	// TODO: check
 	action.Do(
 		action.loadParams,
 		action.loadRecord,
 		action.loadResource,
 		func() {
+			stream.SetLimit(10)
 			stream.Send(sse.Event{Data: action.Resource})
 		},
 	)
@@ -46,16 +106,16 @@ func (action *AccountTraitsAction) loadParams() {
 }
 
 func (action *AccountTraitsAction) loadRecord() {
-	action.Err = action.HistoryQ().GetAccountTraitsByAddress(&action.AccountTraits, action.Address)
 	if action.Err != nil {
 		return
 	}
+
+	action.HistoryRecord, action.Err = action.HistoryQ().AccountTraitsQ().ForAccount(action.Address)
 }
 
 func (action *AccountTraitsAction) loadResource() {
 	action.Err = action.Resource.Populate(
 		action.Ctx,
-		action.Address,
-		action.AccountTraits,
+		action.HistoryRecord,
 	)
 }

@@ -33,8 +33,7 @@ func (v *TraitsValidator) CheckTraits(source string, destination string) (*resul
 
 func (v *TraitsValidator) CheckTraitsForAccount(account string, isSource bool) (*results.RestrictedForAccountError, error) {
 	// Get account traits
-	var accountTraits history.AccountTraits
-	err := v.historyQ.GetAccountTraitsByAddress(&accountTraits, account)
+	accountTraits, err := v.historyQ.AccountTraitsQ().ForAccount(account)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

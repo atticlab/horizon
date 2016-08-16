@@ -45,9 +45,8 @@ func (action *SetTraitsAction) Apply() {
 	}
 
 	// 2. Try get traits for account
-	var accTraits history.AccountTraits
 	var isNew = false
-	err := action.HistoryQ().GetAccountTraits(&accTraits, action.Account.ID)
+	accTraits, err := action.HistoryQ().AccountTraitsQ().ForAccount(action.Address)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			action.Err = &problem.ServerError
