@@ -16,6 +16,7 @@ type PaymentsIndexAction struct {
 	AccountFilter     string
 	TransactionFilter string
 	PagingParams      db2.PageQuery
+	CloseAtQuery      db2.CloseAtQuery
 	Records           []history.Operation
 	Page              hal.Page
 }
@@ -59,6 +60,7 @@ func (action *PaymentsIndexAction) loadParams() {
 	action.LedgerFilter = action.GetInt32("ledger_id")
 	action.TransactionFilter = action.GetString("tx_id")
 	action.PagingParams = action.GetPageQuery()
+	action.CloseAtQuery = action.GetCloseAtQuery()
 }
 
 func (action *PaymentsIndexAction) loadRecords() {
@@ -74,7 +76,7 @@ func (action *PaymentsIndexAction) loadRecords() {
 		ops.ForTransaction(action.TransactionFilter)
 	}
 
-	action.Err = ops.Page(action.PagingParams).Select(&action.Records)
+	action.Err = ops.Page(action.PagingParams).ClosedAt(action.CloseAtQuery).Select(&action.Records)
 }
 
 func (action *PaymentsIndexAction) loadPage() {
