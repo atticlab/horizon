@@ -1,8 +1,9 @@
 package horizon
 
 import (
-	"github.com/rcrowley/go-metrics"
+	"bitbucket.org/atticlab/horizon/helpers"
 	"bitbucket.org/atticlab/horizon/render/hal"
+	"github.com/rcrowley/go-metrics"
 )
 
 // MetricsAction collects and renders a snapshot from the metrics system that
@@ -67,23 +68,8 @@ func (action *MetricsAction) LoadSnapshot() {
 			values["mean.rate"] = m.RateMean()
 		case metrics.Timer:
 			t := metric.Snapshot()
-			ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
-			values["count"] = t.Count()
-			values["min"] = t.Min()
-			values["max"] = t.Max()
-			values["mean"] = t.Mean()
-			values["stddev"] = t.StdDev()
-			values["median"] = ps[0]
-			values["75%"] = ps[1]
-			values["95%"] = ps[2]
-			values["99%"] = ps[3]
-			values["99.9%"] = ps[4]
-			values["1m.rate"] = t.Rate1()
-			values["5m.rate"] = t.Rate5()
-			values["15m.rate"] = t.Rate15()
-			values["mean.rate"] = t.RateMean()
+			helpers.PopulateTimer(values, t)
 		}
 		action.Snapshot[name] = values
 	})
-
 }
