@@ -19,11 +19,11 @@ func NewAccountStatistics(account, assetCode string, counterparty xdr.AccountTyp
 
 func (stats *AccountStatistics) Update(delta int64, receivedAt time.Time, now time.Time, isIncome bool) {
 	log.WithFields(log.F{
-		"service": "account_statistics",
-		"delta": delta,
+		"service":    "account_statistics",
+		"delta":      delta,
 		"receivedAt": receivedAt,
-		"now": now,
-		"isIncome": isIncome,
+		"now":        now,
+		"isIncome":   isIncome,
 	}).Debug("Updating")
 	if isIncome {
 		stats.AddIncome(delta, receivedAt, now)
@@ -203,7 +203,7 @@ func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
 			"day":               isDay,
 			"now":               now.String(),
 			"updated":           stats.UpdatedAt.String(),
-		}).Info("Ereasing obsolete stats")
+		}).Debug("Erasing obsolete stats")
 	if isDay {
 		stats.DailyIncome = 0
 		stats.DailyOutcome = 0

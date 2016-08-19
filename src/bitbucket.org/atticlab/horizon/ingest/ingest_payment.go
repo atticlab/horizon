@@ -38,7 +38,7 @@ func (is *Session) ingestPayment(from, to string, sourceAmount, destAmount xdr.I
 		"source_asset":      sourceAsset,
 		"dest_asset":        destAsset,
 		"ledger_close_time": ledgerCloseTime,
-	}).Info("Payment")
+	}).Debug("Payment")
 
 	now := time.Now()
 	is.Err = is.Ingestion.UpdateAccountOutcome(from, sourceAsset, destinationType, int64(sourceAmount), ledgerCloseTime, now)
