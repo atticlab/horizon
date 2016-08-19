@@ -87,7 +87,7 @@ func RunOnce(network string, core, horizon *db2.Repo) (*session.Session, error) 
 		CurrentVersion,
 	)
 
-	is.Run()
+	err = is.Run()
 
-	return is, is.Err
+	return is, err
 }

@@ -7,24 +7,24 @@ import (
 	"time"
 )
 
-func (is *Session) ingestPayment(from, to string, sourceAmount, destAmount xdr.Int64, sourceAsset, destAsset string) {
+func (is *Session) ingestPayment(from, to string, sourceAmount, destAmount xdr.Int64, sourceAsset, destAsset string) error {
 	var sourceType, destinationType xdr.AccountType
 
-	is.Err = is.getAccountType(&sourceType, from)
-	if is.Err != nil {
-		return
+	err := is.getAccountType(&sourceType, from)
+	if err != nil {
+		return err
 	}
 
-	is.Err = is.getAccountType(&destinationType, to)
-	if is.Err != nil {
-		return
+	err = is.getAccountType(&destinationType, to)
+	if err != nil {
+		return err
 	}
 
 	if destinationType == xdr.AccountTypeAccountAnonymousUser {
-		is.Err = is.Ingestion.Account(is.Cursor.OperationID(), to)
-		if is.Err != nil {
+		err = is.Ingestion.Account(is.Cursor.OperationID(), to)
+		if err != nil {
 			log.Error("Failed to ingest anonymous account created by payment!")
-			return
+			return err
 		}
 	}
 
@@ -41,10 +41,10 @@ func (is *Session) ingestPayment(from, to string, sourceAmount, destAmount xdr.I
 	}).Debug("Payment")
 
 	now := time.Now()
-	is.Err = is.Ingestion.UpdateAccountOutcome(from, sourceAsset, destinationType, int64(sourceAmount), ledgerCloseTime, now)
-	if is.Err != nil {
-		return
+	err = is.Ingestion.UpdateAccountOutcome(from, sourceAsset, destinationType, int64(sourceAmount), ledgerCloseTime, now)
+	if err != nil {
+		return err
 	}
 
-	is.Err = is.Ingestion.UpdateAccountIncome(to, destAsset, sourceType, int64(destAmount), ledgerCloseTime, now)
+	return is.Ingestion.UpdateAccountIncome(to, destAsset, sourceType, int64(destAmount), ledgerCloseTime, now)
 }

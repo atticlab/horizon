@@ -19,18 +19,15 @@ type Session struct {
 	// Metrics is a reference to where the session should record its metric information
 	Metrics *IngesterMetrics
 
+	accountCache *cache.HistoryAccount
+
 	//
 	// Results fields
 	//
 
-	// Err is the error that caused this session to fail, if any.
-	Err error
-
 	// Ingested is the number of ledgers that were successfully ingested during
 	// this session.
 	Ingested int
-
-	accountCache *cache.HistoryAccount
 }
 
 // NewSession initialize a new ingestion session, from `first` to `last`

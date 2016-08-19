@@ -20,86 +20,89 @@ import (
 
 // Run starts an attempt to ingest the range of ledgers specified in this
 // session.
-func (is *Session) Run() {
-	is.Err = is.Ingestion.Start()
-	if is.Err != nil {
-		return
+func (is *Session) Run() error {
+	err := is.Ingestion.Start()
+	if err != nil {
+		return err
 	}
 
 	defer is.Ingestion.Rollback()
 
 	for is.Cursor.NextLedger() {
-		if is.Err != nil {
-			return
+		err = is.clearLedger()
+		if err != nil {
+			return err
 		}
 
-		is.clearLedger()
-		is.ingestLedger()
-		is.flush()
+		err = is.ingestLedger()
+		if err != nil {
+			return err
+		}
+
+		err = is.flush()
+		if err != nil {
+			return err
+		}
 	}
 
-	if is.Err != nil {
-		is.Ingestion.Rollback()
-		return
-	}
-
-	is.Err = is.Ingestion.Close()
+	return is.Ingestion.Close()
 
 	// TODO: validate ledger chain
 
 }
 
-func (is *Session) clearLedger() {
-	if is.Err != nil {
-		return
-	}
-
+func (is *Session) clearLedger() error {
 	if !is.ClearExisting {
-		return
+		return nil
 	}
 	start := time.Now()
-	is.Err = is.Ingestion.Clear(is.Cursor.LedgerRange())
-	if is.Metrics != nil {
+	err := is.Ingestion.Clear(is.Cursor.LedgerRange())
+	if err != nil {
 		is.Metrics.ClearLedgerTimer.Update(time.Since(start))
 	}
+
+	return err
 }
 
-func (is *Session) flush() {
-	if is.Err != nil {
-		return
-	}
-	is.Err = is.Ingestion.Flush()
+func (is *Session) flush() error {
+	return is.Ingestion.Flush()
 }
 
 // ingestLedger ingests the current ledger
-func (is *Session) ingestLedger() {
-	if is.Err != nil {
-		return
-	}
-
+func (is *Session) ingestLedger() error {
 	start := time.Now()
-	is.Ingestion.Ledger(
+	err := is.Ingestion.Ledger(
 		is.Cursor.LedgerID(),
 		is.Cursor.Ledger(),
 		is.Cursor.SuccessfulTransactionCount(),
 		is.Cursor.SuccessfulLedgerOperationCount(),
 	)
+	if err != nil {
+		return err
+	}
 
 	// If this is ledger 1, create the root account
 	if is.Cursor.LedgerSequence() == 1 {
-		//config := app.Config
 		masterKey := viper.GetString("bank-master-key")
-		//config.BankMasterKey //
-		commisionKey := viper.GetString("bank-commission-key") // config.BankCommissionKey //
-		is.Ingestion.Account(1, masterKey)
-		//keypair.Master(is.Network).Address())
-		if masterKey != commisionKey {
-			is.Ingestion.Account(2, commisionKey)
+		commissionKey := viper.GetString("bank-commission-key")
+		err = is.Ingestion.Account(1, masterKey)
+		if err != nil {
+			return err
+		}
+
+		if masterKey != commissionKey {
+			err = is.Ingestion.Account(2, commissionKey)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	for is.Cursor.NextTx() {
-		is.ingestTransaction()
+		err = is.ingestTransaction()
+		if err != nil {
+			return err
+		}
 	}
 
 	is.Ingested++
@@ -107,15 +110,11 @@ func (is *Session) ingestLedger() {
 		is.Metrics.IngestLedgerTimer.Update(time.Since(start))
 	}
 
-	return
+	return nil
 }
 
-func (is *Session) ingestOperation() {
-	if is.Err != nil {
-		return
-	}
-
-	is.Err = is.Ingestion.Operation(
+func (is *Session) ingestOperation() error {
+	err := is.Ingestion.Operation(
 		is.Cursor.OperationID(),
 		is.Cursor.TransactionID(),
 		is.Cursor.OperationOrder(),
@@ -123,8 +122,9 @@ func (is *Session) ingestOperation() {
 		is.Cursor.OperationType(),
 		is.operationDetails(),
 	)
-	if is.Err != nil {
-		return
+
+	if err != nil {
+		return err
 	}
 
 	switch is.Cursor.Operation().Body.Type {
@@ -133,8 +133,14 @@ func (is *Session) ingestOperation() {
 		op := is.Cursor.Operation().Body.MustPaymentOp()
 		from := is.Cursor.OperationSourceAccount()
 		to := op.Destination
-		assetCode, _ := getAssetCode(op.Asset)
-		is.ingestPayment(from.Address(), to.Address(), op.Amount, op.Amount, assetCode, assetCode)
+		assetCode, err := getAssetCode(op.Asset)
+		if err != nil {
+			return err
+		}
+		err = is.ingestPayment(from.Address(), to.Address(), op.Amount, op.Amount, assetCode, assetCode)
+		if err != nil {
+			return err
+		}
 	case xdr.OperationTypePathPayment:
 		op := is.Cursor.Operation().Body.MustPathPaymentOp()
 		from := is.Cursor.OperationSourceAccount()
@@ -142,13 +148,28 @@ func (is *Session) ingestOperation() {
 		result := is.Cursor.OperationResult().MustPathPaymentResult()
 		sourceAmount := result.SendAmount()
 		destAmount := op.DestAmount
-		sourceAsset, _ := getAssetCode(op.SendAsset)
-		destAsset, _ := getAssetCode(op.DestAsset)
-		is.ingestPayment(from.Address(), to.Address(), sourceAmount, destAmount, sourceAsset, destAsset)
+		sourceAsset, err := getAssetCode(op.SendAsset)
+		if err != nil {
+			return err
+		}
+
+		destAsset, err := getAssetCode(op.DestAsset)
+		if err != nil {
+			return err
+		}
+
+		err = is.ingestPayment(from.Address(), to.Address(), sourceAmount, destAmount, sourceAsset, destAsset)
+		if err != nil {
+			return err
+		}
+
 	case xdr.OperationTypeCreateAccount:
 		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()
-		is.Err = is.Ingestion.Account(is.Cursor.OperationID(), op.Destination.Address())
+		err = is.Ingestion.Account(is.Cursor.OperationID(), op.Destination.Address())
+		if err != nil {
+			return err
+		}
 	case xdr.OperationTypeAdministrative:
 		log := log.WithFields(log.F{
 			"tx_hash":      is.Cursor.Transaction().TransactionHash,
@@ -156,16 +177,16 @@ func (is *Session) ingestOperation() {
 		})
 		op := is.Cursor.Operation().Body.MustAdminOp()
 		var opData map[string]interface{}
-		err := json.Unmarshal([]byte(op.OpData), &opData)
-		if err != nil {
+		adminErr := json.Unmarshal([]byte(op.OpData), &opData)
+		if adminErr != nil {
 			// skip silently
 			log.WithError(err).Error("Failed to unmarshal json data")
 			break
 		}
 		adminActionProvider := admin.NewAdminActionProvider(&history.Q{is.Ingestion.DB})
-		adminAction, err := adminActionProvider.CreateNewParser(opData)
-		if err != nil {
-			log.WithError(err).Error("Failed to create admin action")
+		adminAction, adminErr := adminActionProvider.CreateNewParser(opData)
+		if adminErr != nil {
+			log.WithError(adminErr).Error("Failed to create admin action")
 			break
 		}
 		adminAction.Validate()
@@ -180,98 +201,83 @@ func (is *Session) ingestOperation() {
 		}
 	}
 
-	is.ingestOperationParticipants()
-	is.ingestEffects()
-}
-
-func (is *Session) ingestOperationParticipants() {
-	if is.Err != nil {
-		return
+	err = is.ingestOperationParticipants()
+	if err != nil {
+		return err
 	}
 
+	return is.ingestEffects()
+}
+
+func (is *Session) ingestOperationParticipants() error {
 	// Find the participants
 	var p []xdr.AccountId
-	p, is.Err = participants.ForOperation(
+	p, err := participants.ForOperation(
 		&is.Cursor.Transaction().Envelope.Tx,
 		is.Cursor.Operation(),
 	)
-	if is.Err != nil {
-		return
+	if err != nil {
+		return err
 	}
 
 	var aids []int64
-	aids, is.Err = is.lookupParticipantIDs(p)
-	if is.Err != nil {
-		return
+	aids, err = is.lookupParticipantIDs(p)
+	if err != nil {
+		return err
 	}
 
-	is.Err = is.Ingestion.OperationParticipants(is.Cursor.OperationID(), aids)
-	if is.Err != nil {
-		return
-	}
+	return is.Ingestion.OperationParticipants(is.Cursor.OperationID(), aids)
 }
-func (is *Session) ingestTransaction() {
-	if is.Err != nil {
-		return
-	}
-
+func (is *Session) ingestTransaction() error {
 	// skip ingesting failed transactions
 	if !is.Cursor.Transaction().IsSuccessful() {
-		return
+		return nil
 	}
 
-	is.Ingestion.Transaction(
+	err := is.Ingestion.Transaction(
 		is.Cursor.TransactionID(),
 		is.Cursor.Transaction(),
 		is.Cursor.TransactionFee(),
 	)
+	if err != nil {
+		return err
+	}
 
 	for is.Cursor.NextOp() {
-		is.ingestOperation()
+		err = is.ingestOperation()
+		if err != nil {
+			return err
+		}
 	}
 
-	is.ingestTransactionParticipants()
+	return is.ingestTransactionParticipants()
 }
 
-func (is *Session) ingestTransactionParticipants() {
-	if is.Err != nil {
-		return
-	}
-
+func (is *Session) ingestTransactionParticipants() error {
 	// Find the participants
 	var p []xdr.AccountId
-	p, is.Err = participants.ForTransaction(
+	p, err := participants.ForTransaction(
 		&is.Cursor.Transaction().Envelope.Tx,
 		&is.Cursor.Transaction().ResultMeta,
 		&is.Cursor.TransactionFee().Changes,
 	)
-	if is.Err != nil {
-		return
+	if err != nil {
+		return err
 	}
 
 	var aids []int64
-	aids, is.Err = is.lookupParticipantIDs(p)
-	if is.Err != nil {
-		return
+	aids, err = is.lookupParticipantIDs(p)
+	if err != nil {
+		return err
 	}
 
-	is.Err = is.Ingestion.TransactionParticipants(is.Cursor.TransactionID(), aids)
-	if is.Err != nil {
-		return
-	}
-
+	return is.Ingestion.TransactionParticipants(is.Cursor.TransactionID(), aids)
 }
 
-func (is *Session) ingestEffects() {
-	if is.Err != nil {
-		return
-	}
-
+func (is *Session) ingestEffects() error {
 	effects := NewEffectIngestion(is.Ingestion, is.accountCache, is.Cursor.OperationID())
-
 	effects.Ingest(is.Cursor)
-
-	is.Err = effects.Finish()
+	return effects.Finish()
 }
 
 func (is *Session) lookupParticipantIDs(aids []xdr.AccountId) (ret []int64, err error) {

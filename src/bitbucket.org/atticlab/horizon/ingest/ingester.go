@@ -97,8 +97,8 @@ func (i *System) ReingestRange(start, end int32) (int, error) {
 		CurrentVersion,
 	)
 	is.ClearExisting = true
-	is.Run()
-	return is.Ingested, is.Err
+	err := is.Run()
+	return is.Ingested, err
 }
 
 // ReingestSingle re-ingests a single ledger
@@ -157,10 +157,10 @@ func (i *System) runOnce() {
 			CurrentVersion,
 		)
 
-		is.Run()
+		err = is.Run()
 
-		if is.Err != nil {
-			log.Errorf("import session failed: %s", is.Err)
+		if err != nil {
+			log.WithStack(err).Errorf("import session failed: %s", err)
 			return
 		}
 
