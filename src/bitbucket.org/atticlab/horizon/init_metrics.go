@@ -32,6 +32,8 @@ func initIngesterMetrics(app *App) {
 		app.ingester.Metrics.IngestLedgerTimer)
 	app.metrics.Register("ingester.clear_ledger",
 		app.ingester.Metrics.ClearLedgerTimer)
+	app.metrics.Register("indester.load_ledger",
+		app.ingester.Metrics.LoadLedgerTimer)
 }
 
 func initLogMetrics(app *App) {
