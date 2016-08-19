@@ -1,9 +1,18 @@
-package ingest
+package session
 
 import (
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/core"
 )
+
+// LedgerBundle represents a single ledger's worth of novelty created by one
+// ledger close
+type LedgerBundle struct {
+	Sequence        int32
+	Header          core.LedgerHeader
+	TransactionFees []core.TransactionFee
+	Transactions    []core.Transaction
+}
 
 // Load runs queries against `core` to fill in the records of the bundle.
 func (lb *LedgerBundle) Load(db *db2.Repo) error {

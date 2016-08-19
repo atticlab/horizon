@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/errors"
+	"bitbucket.org/atticlab/horizon/ingest/session"
 	"bitbucket.org/atticlab/horizon/log"
 )
 
@@ -87,7 +88,14 @@ func (i *System) ReingestOutdated() (n int, err error) {
 
 // ReingestRange reingests a range of ledgers, from `start` to `end`, inclusive.
 func (i *System) ReingestRange(start, end int32) (int, error) {
-	is := NewSession(start, end, i)
+	is := session.NewSession(
+		i.historySequence+1,
+		i.coreSequence,
+		i.HorizonDB,
+		i.CoreDB,
+		i.Metrics,
+		CurrentVersion,
+	)
 	is.ClearExisting = true
 	is.Run()
 	return is.Ingested, is.Err
@@ -140,10 +148,13 @@ func (i *System) runOnce() {
 		if i.historySequence >= i.coreSequence {
 			return
 		}
-		is := NewSession(
+		is := session.NewSession(
 			i.historySequence+1,
 			i.coreSequence,
-			i,
+			i.HorizonDB,
+			i.CoreDB,
+			i.Metrics,
+			CurrentVersion,
 		)
 
 		is.Run()

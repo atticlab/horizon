@@ -1,4 +1,4 @@
-package ingest
+package session
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/amount"

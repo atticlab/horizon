@@ -1,6 +1,8 @@
-package ingest
+package session
 
 import (
+	"bitbucket.org/atticlab/horizon/db2"
+	"github.com/rcrowley/go-metrics"
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/meta"
@@ -8,6 +10,38 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/toid"
 )
+
+// Cursor iterates through a stellar core database's ledgers
+type Cursor struct {
+	// FirstLedger is the beginning of the range of ledgers (inclusive) that will
+	// attempt to be ingested in this session.
+	FirstLedger int32
+	// LastLedger is the end of the range of ledgers (inclusive) that will
+	// attempt to be ingested in this session.
+	LastLedger int32
+	// DB is the stellar-core db that data is ingested from.
+	DB *db2.Repo
+
+	// Stores metrics about ledger's loading time
+	LoadLedgerTimer metrics.Timer
+
+	// Err is the error that caused this iteration to fail, if any.
+	Err error
+
+	lg   int32
+	tx   int
+	op   int
+	data *LedgerBundle
+}
+
+func NewCursor(db *db2.Repo, firstLedger, lastLedger int32, loadLedgerTimer metrics.Timer) *Cursor {
+	return &Cursor{
+		DB:              db,
+		FirstLedger:     firstLedger,
+		LastLedger:      lastLedger,
+		LoadLedgerTimer: loadLedgerTimer,
+	}
+}
 
 // BeforeAndAfter loads the ledger entry for `target` before the current
 // operation was applied and after the operation was applied.
@@ -103,9 +137,7 @@ func (c *Cursor) NextLedger() bool {
 		return false
 	}
 
-	if c.Metrics != nil {
-		c.Metrics.LoadLedgerTimer.Update(time.Since(start))
-	}
+	c.LoadLedgerTimer.Update(time.Since(start))
 
 	c.tx = -1
 	c.op = -1

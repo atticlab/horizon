@@ -1,4 +1,4 @@
-package ingest
+package session
 
 import (
 	"encoding/base64"
@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/amount"
-	"bitbucket.org/atticlab/go-smart-base/keypair"
-	"bitbucket.org/atticlab/go-smart-base/meta"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/admin"
 	"bitbucket.org/atticlab/horizon/db2/core"
@@ -15,6 +13,7 @@ import (
 	"bitbucket.org/atticlab/horizon/ingest/participants"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/resource/operations"
+	"bitbucket.org/atticlab/horizon/ingest/session/helpers"
 	"encoding/json"
 	"github.com/spf13/viper"
 )
@@ -65,242 +64,11 @@ func (is *Session) clearLedger() {
 	}
 }
 
-func (is *Session) effectFlagDetails(flagDetails map[string]bool, flagPtr *xdr.Uint32, setValue bool) {
-	if flagPtr != nil {
-		flags := xdr.AccountFlags(*flagPtr)
-
-		if flags&xdr.AccountFlagsAuthRequiredFlag != 0 {
-			flagDetails["auth_required_flag"] = setValue
-		}
-		if flags&xdr.AccountFlagsAuthRevocableFlag != 0 {
-			flagDetails["auth_revocable_flag"] = setValue
-		}
-		if flags&xdr.AccountFlagsAuthImmutableFlag != 0 {
-			flagDetails["auth_immutable_flag"] = setValue
-		}
-	}
-}
-
 func (is *Session) flush() {
 	if is.Err != nil {
 		return
 	}
 	is.Err = is.Ingestion.Flush()
-}
-
-func (is *Session) ingestEffects() {
-	if is.Err != nil {
-		return
-	}
-
-	effects := &EffectIngestion{
-		Dest:        is.Ingestion,
-		Accounts:    is.accountCache,
-		OperationID: is.Cursor.OperationID(),
-	}
-	source := is.Cursor.OperationSourceAccount()
-	opbody := is.Cursor.Operation().Body
-
-	switch is.Cursor.OperationType() {
-	case xdr.OperationTypeCreateAccount:
-		op := opbody.MustCreateAccountOp()
-
-		effects.Add(op.Destination, history.EffectAccountCreated,
-			map[string]interface{}{
-				"account_type": uint32(op.AccountType),
-			},
-		)
-
-		effects.Add(op.Destination, history.EffectSignerCreated,
-			map[string]interface{}{
-				"public_key": op.Destination.Address(),
-				"weight":     keypair.DefaultSignerWeight,
-			},
-		)
-
-	case xdr.OperationTypePayment:
-		op := opbody.MustPaymentOp()
-		dets := map[string]interface{}{"amount": amount.String(op.Amount)}
-		is.assetDetails(dets, op.Asset, "")
-		effects.Add(op.Destination, history.EffectAccountCredited, dets)
-		effects.Add(source, history.EffectAccountDebited, dets)
-	case xdr.OperationTypePathPayment:
-		op := opbody.MustPathPaymentOp()
-		dets := map[string]interface{}{"amount": amount.String(op.DestAmount)}
-		is.assetDetails(dets, op.DestAsset, "")
-		effects.Add(op.Destination, history.EffectAccountCredited, dets)
-
-		result := is.Cursor.OperationResult().MustPathPaymentResult()
-		dets = map[string]interface{}{"amount": amount.String(result.SendAmount())}
-		is.assetDetails(dets, op.SendAsset, "")
-		effects.Add(source, history.EffectAccountDebited, dets)
-		is.ingestTrades(effects, source, result.MustSuccess().Offers)
-	case xdr.OperationTypeManageOffer:
-		result := is.Cursor.OperationResult().MustManageOfferResult().MustSuccess()
-		is.ingestTrades(effects, source, result.OffersClaimed)
-	case xdr.OperationTypeCreatePassiveOffer:
-		claims := []xdr.ClaimOfferAtom{}
-		result := is.Cursor.OperationResult()
-
-		// KNOWN ISSUE:  stellar-core creates results for CreatePassiveOffer operations
-		// with the wrong result arm set.
-		if result.Type == xdr.OperationTypeManageOffer {
-			claims = result.MustManageOfferResult().MustSuccess().OffersClaimed
-		} else {
-			claims = result.MustCreatePassiveOfferResult().MustSuccess().OffersClaimed
-		}
-
-		is.ingestTrades(effects, source, claims)
-	case xdr.OperationTypeSetOptions:
-		op := opbody.MustSetOptionsOp()
-
-		if op.HomeDomain != nil {
-			effects.Add(source, history.EffectAccountHomeDomainUpdated,
-				map[string]interface{}{
-					"home_domain": string(*op.HomeDomain),
-				},
-			)
-		}
-
-		thresholdDetails := map[string]interface{}{}
-
-		if op.LowThreshold != nil {
-			thresholdDetails["low_threshold"] = *op.LowThreshold
-		}
-
-		if op.MedThreshold != nil {
-			thresholdDetails["med_threshold"] = *op.MedThreshold
-		}
-
-		if op.HighThreshold != nil {
-			thresholdDetails["high_threshold"] = *op.HighThreshold
-		}
-
-		if len(thresholdDetails) > 0 {
-			effects.Add(source, history.EffectAccountThresholdsUpdated, thresholdDetails)
-		}
-
-		flagDetails := map[string]bool{}
-		is.effectFlagDetails(flagDetails, op.SetFlags, true)
-		is.effectFlagDetails(flagDetails, op.ClearFlags, false)
-
-		if len(flagDetails) > 0 {
-			effects.Add(source, history.EffectAccountFlagsUpdated, flagDetails)
-		}
-
-		is.ingestSignerEffects(effects, op)
-
-	case xdr.OperationTypeChangeTrust:
-		op := opbody.MustChangeTrustOp()
-		dets := map[string]interface{}{"limit": amount.String(op.Limit)}
-		key := xdr.LedgerKey{}
-		effect := history.EffectType(0)
-
-		is.assetDetails(dets, op.Line, "")
-
-		key.SetTrustline(source, op.Line)
-
-		before, after, err := is.Cursor.BeforeAndAfter(key)
-
-		// NOTE:  when an account trusts itself, the transaction is successful but
-		// no ledger entries are actually modified, leading to an "empty meta"
-		// situation.  We simply continue on to the next operation in that scenario.
-		if err == meta.ErrMetaNotFound {
-			return
-		}
-
-		if err != nil {
-			is.Err = err
-			return
-		}
-
-		switch {
-		case before == nil && after != nil:
-			effect = history.EffectTrustlineCreated
-		case before != nil && after == nil:
-			effect = history.EffectTrustlineRemoved
-		case before != nil && after != nil:
-			effect = history.EffectTrustlineUpdated
-		default:
-			panic("Invalid before-and-after state")
-		}
-
-		effects.Add(source, effect, dets)
-	case xdr.OperationTypeAllowTrust:
-		op := opbody.MustAllowTrustOp()
-		asset := op.Asset.ToAsset(source)
-		dets := map[string]interface{}{
-			"trustor": op.Trustor.Address(),
-		}
-		is.assetDetails(dets, asset, "")
-
-		if op.Authorize {
-			effects.Add(source, history.EffectTrustlineAuthorized, dets)
-		} else {
-			effects.Add(source, history.EffectTrustlineDeauthorized, dets)
-		}
-
-	case xdr.OperationTypeAccountMerge:
-		dest := opbody.MustDestination()
-		result := is.Cursor.OperationResult().MustAccountMergeResult()
-		dets := map[string]interface{}{
-			"amount":     amount.String(result.MustSourceAccountBalance()),
-			"asset_type": "native",
-		}
-		effects.Add(source, history.EffectAccountDebited, dets)
-		effects.Add(dest, history.EffectAccountCredited, dets)
-		effects.Add(source, history.EffectAccountRemoved, map[string]interface{}{})
-	case xdr.OperationTypeInflation:
-		payouts := is.Cursor.OperationResult().MustInflationResult().MustPayouts()
-		for _, payout := range payouts {
-			effects.Add(payout.Destination, history.EffectAccountCredited,
-				map[string]interface{}{
-					"amount":     amount.String(payout.Amount),
-					"asset_type": "native",
-				},
-			)
-		}
-	case xdr.OperationTypeManageData:
-		op := opbody.MustManageDataOp()
-		dets := map[string]interface{}{"name": op.DataName}
-		key := xdr.LedgerKey{}
-		effect := history.EffectType(0)
-
-		key.SetData(source, string(op.DataName))
-
-		before, after, err := is.Cursor.BeforeAndAfter(key)
-		if err != nil {
-			is.Err = err
-			return
-		}
-
-		if after != nil {
-			raw := after.Data.MustData().DataValue
-			dets["value"] = base64.StdEncoding.EncodeToString(raw)
-		}
-
-		switch {
-		case before == nil && after != nil:
-			effect = history.EffectDataCreated
-		case before != nil && after == nil:
-			effect = history.EffectDataRemoved
-		case before != nil && after != nil:
-			effect = history.EffectDataUpdated
-		default:
-			panic("Invalid before-and-after state")
-		}
-
-		effects.Add(source, effect, dets)
-	case xdr.OperationTypeAdministrative:
-		opbody.MustAdminOp()
-		// no need to duplicate data
-
-	default:
-		is.Err = fmt.Errorf("Unknown operation type: %s", is.Cursor.OperationType())
-		return
-	}
-
-	is.Err = effects.Finish()
 }
 
 // ingestLedger ingests the current ledger
@@ -442,82 +210,6 @@ func (is *Session) ingestOperationParticipants() {
 		return
 	}
 }
-
-func (is *Session) ingestSignerEffects(effects *EffectIngestion, op xdr.SetOptionsOp) {
-	source := is.Cursor.OperationSourceAccount()
-
-	be, ae, err := is.Cursor.BeforeAndAfter(source.LedgerKey())
-	if err != nil {
-		is.Err = err
-		return
-	}
-
-	beforeAccount := be.Data.MustAccount()
-	afterAccount := ae.Data.MustAccount()
-
-	before := beforeAccount.SignerSummary()
-	after := afterAccount.SignerSummary()
-
-	for addy := range before {
-		weight, ok := after[addy]
-		if !ok {
-			effects.Add(source, history.EffectSignerRemoved, map[string]interface{}{
-				"public_key": addy,
-			})
-			continue
-		}
-		effects.Add(source, history.EffectSignerUpdated, map[string]interface{}{
-			"public_key": addy,
-			"weight":     weight,
-		})
-	}
-	// Add the "created" effects
-	for addy, weight := range after {
-		// if `addy` is in before, the previous for loop should have recorded
-		// the update, so skip this key
-		if _, ok := before[addy]; ok {
-			continue
-		}
-
-		effects.Add(source, history.EffectSignerCreated, map[string]interface{}{
-			"public_key": addy,
-			"weight":     weight,
-		})
-	}
-
-}
-
-func (is *Session) ingestTrades(effects *EffectIngestion, buyer xdr.AccountId, claims []xdr.ClaimOfferAtom) {
-	for _, claim := range claims {
-		seller := claim.SellerId
-		bd, sd := is.tradeDetails(buyer, seller, claim)
-		effects.Add(buyer, history.EffectTrade, bd)
-		effects.Add(seller, history.EffectTrade, sd)
-	}
-}
-
-func (is *Session) tradeDetails(buyer, seller xdr.AccountId, claim xdr.ClaimOfferAtom) (bd map[string]interface{}, sd map[string]interface{}) {
-	bd = map[string]interface{}{
-		"offer_id":      claim.OfferId,
-		"seller":        seller.Address(),
-		"bought_amount": amount.String(claim.AmountSold),
-		"sold_amount":   amount.String(claim.AmountBought),
-	}
-	is.assetDetails(bd, claim.AssetSold, "bought_")
-	is.assetDetails(bd, claim.AssetBought, "sold_")
-
-	sd = map[string]interface{}{
-		"offer_id":      claim.OfferId,
-		"seller":        buyer.Address(),
-		"bought_amount": amount.String(claim.AmountBought),
-		"sold_amount":   amount.String(claim.AmountSold),
-	}
-	is.assetDetails(sd, claim.AssetBought, "bought_")
-	is.assetDetails(sd, claim.AssetSold, "sold_")
-
-	return
-}
-
 func (is *Session) ingestTransaction() {
 	if is.Err != nil {
 		return
@@ -570,6 +262,18 @@ func (is *Session) ingestTransactionParticipants() {
 
 }
 
+func (is *Session) ingestEffects() {
+	if is.Err != nil {
+		return
+	}
+
+	effects := NewEffectIngestion(is.Ingestion, is.accountCache, is.Cursor.OperationID())
+
+	effects.Ingest(is.Cursor)
+
+	is.Err = effects.Finish()
+}
+
 func (is *Session) lookupParticipantIDs(aids []xdr.AccountId) (ret []int64, err error) {
 	found := map[int64]bool{}
 
@@ -609,28 +313,6 @@ func (is *Session) feeDetails(xdrFee xdr.OperationFee) map[string]interface{} {
 	return fee.ToMap()
 }
 
-// assetDetails sets the details for `a` on `result` using keys with `prefix`
-func (is *Session) assetDetails(result map[string]interface{}, a xdr.Asset, prefix string) error {
-	var (
-		t    string
-		code string
-		i    string
-	)
-	err := a.Extract(&t, &code, &i)
-	if err != nil {
-		return err
-	}
-	result[prefix+"asset_type"] = t
-
-	if a.Type == xdr.AssetTypeAssetTypeNative {
-		return nil
-	}
-
-	result[prefix+"asset_code"] = code
-	result[prefix+"asset_issuer"] = i
-	return nil
-}
-
 // operationDetails returns the details regarding the current operation, suitable
 // for ingestion into a history_operation row
 func (is *Session) operationDetails() map[string]interface{} {
@@ -652,7 +334,7 @@ func (is *Session) operationDetails() map[string]interface{} {
 		details["from"] = source.Address()
 		details["to"] = op.Destination.Address()
 		details["amount"] = amount.String(op.Amount)
-		is.assetDetails(details, op.Asset, "")
+		helpers.AssetDetails(details, op.Asset, "")
 	case xdr.OperationTypePathPayment:
 		op := c.Operation().Body.MustPathPaymentOp()
 		details["from"] = source.Address()
@@ -663,13 +345,13 @@ func (is *Session) operationDetails() map[string]interface{} {
 		details["amount"] = amount.String(op.DestAmount)
 		details["source_amount"] = amount.String(result.SendAmount())
 		details["source_max"] = amount.String(op.SendMax)
-		is.assetDetails(details, op.DestAsset, "")
-		is.assetDetails(details, op.SendAsset, "source_")
+		helpers.AssetDetails(details, op.DestAsset, "")
+		helpers.AssetDetails(details, op.SendAsset, "source_")
 
 		var path = make([]map[string]interface{}, len(op.Path))
 		for i := range op.Path {
 			path[i] = make(map[string]interface{})
-			is.assetDetails(path[i], op.Path[i], "")
+			helpers.AssetDetails(path[i], op.Path[i], "")
 		}
 		details["path"] = path
 	case xdr.OperationTypeManageOffer:
@@ -681,8 +363,8 @@ func (is *Session) operationDetails() map[string]interface{} {
 			"n": op.Price.N,
 			"d": op.Price.D,
 		}
-		is.assetDetails(details, op.Buying, "buying_")
-		is.assetDetails(details, op.Selling, "selling_")
+		helpers.AssetDetails(details, op.Buying, "buying_")
+		helpers.AssetDetails(details, op.Selling, "selling_")
 
 	case xdr.OperationTypeCreatePassiveOffer:
 		op := c.Operation().Body.MustCreatePassiveOfferOp()
@@ -692,8 +374,8 @@ func (is *Session) operationDetails() map[string]interface{} {
 			"n": op.Price.N,
 			"d": op.Price.D,
 		}
-		is.assetDetails(details, op.Buying, "buying_")
-		is.assetDetails(details, op.Selling, "selling_")
+		helpers.AssetDetails(details, op.Buying, "buying_")
+		helpers.AssetDetails(details, op.Selling, "selling_")
 	case xdr.OperationTypeSetOptions:
 		op := c.Operation().Body.MustSetOptionsOp()
 
@@ -735,13 +417,13 @@ func (is *Session) operationDetails() map[string]interface{} {
 		}
 	case xdr.OperationTypeChangeTrust:
 		op := c.Operation().Body.MustChangeTrustOp()
-		is.assetDetails(details, op.Line, "")
+		helpers.AssetDetails(details, op.Line, "")
 		details["trustor"] = source.Address()
 		details["trustee"] = details["asset_issuer"]
 		details["limit"] = amount.String(op.Limit)
 	case xdr.OperationTypeAllowTrust:
 		op := c.Operation().Body.MustAllowTrustOp()
-		is.assetDetails(details, op.Asset.ToAsset(source), "")
+		helpers.AssetDetails(details, op.Asset.ToAsset(source), "")
 		details["trustee"] = source.Address()
 		details["trustor"] = op.Trustor.Address()
 		details["authorize"] = op.Authorize

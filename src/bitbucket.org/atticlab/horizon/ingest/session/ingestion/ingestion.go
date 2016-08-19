@@ -1,16 +1,16 @@
-package ingest
+package ingestion
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/guregu/null"
-	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/db2/sqx"
+	"github.com/guregu/null"
+	sq "github.com/lann/squirrel"
 )
 
 // Account ingests the provided account data into a new row in the
@@ -122,7 +122,7 @@ func (ingest *Ingestion) Ledger(
 ) error {
 
 	sql := ingest.ledgers.Values(
-		CurrentVersion,
+		ingest.CurrentVersion,
 		id,
 		header.Sequence,
 		header.LedgerHash,

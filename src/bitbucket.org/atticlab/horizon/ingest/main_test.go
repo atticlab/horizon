@@ -6,6 +6,7 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/network"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/ingest/session"
 	"bitbucket.org/atticlab/horizon/test"
 )
 
@@ -39,7 +40,7 @@ func _TestIngest(t *testing.T) {
 	tt.Require.NoError(s.Err, "Couldn't re-import, even with clear allowed")
 }
 
-func ingest(tt *test.T) *Session {
+func ingest(tt *test.T) *session.Session {
 	s, _ := RunOnce(
 		network.TestNetworkPassphrase,
 		tt.CoreRepo(),
