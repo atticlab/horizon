@@ -177,18 +177,17 @@ func (is *Session) ingestOperation() error {
 		})
 		op := is.Cursor.Operation().Body.MustAdminOp()
 		var opData map[string]interface{}
-		adminErr := json.Unmarshal([]byte(op.OpData), &opData)
-		if adminErr != nil {
-			// skip silently
-			log.WithError(err).Error("Failed to unmarshal json data")
-			break
+		err = json.Unmarshal([]byte(op.OpData), &opData)
+		if err != nil {
+			return err
 		}
+
 		adminActionProvider := admin.NewAdminActionProvider(&history.Q{is.Ingestion.DB})
-		adminAction, adminErr := adminActionProvider.CreateNewParser(opData)
-		if adminErr != nil {
-			log.WithError(adminErr).Error("Failed to create admin action")
-			break
+		adminAction, err := adminActionProvider.CreateNewParser(opData)
+		if err != nil {
+			return err
 		}
+
 		adminAction.Validate()
 		if adminAction.GetError() != nil {
 			log.WithError(adminAction.GetError()).Error("Failed to validate admin action")

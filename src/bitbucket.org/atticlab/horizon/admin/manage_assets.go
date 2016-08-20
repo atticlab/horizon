@@ -68,7 +68,7 @@ func (action *ManageAssetsAction) Apply() {
 	}
 
 	if action.isNew {
-		action.Log.WithField("Asset", action.storedAsset).Error("Inserting asset!!!")
+		action.Log.WithField("Asset", action.storedAsset).Warn("Inserting asset!")
 		action.Err = action.HistoryQ().InsertAsset(&action.storedAsset)
 		return
 	}
