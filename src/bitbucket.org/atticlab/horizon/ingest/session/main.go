@@ -35,7 +35,7 @@ func NewSession(first, last int32, horizonDB *db2.Repo, coreDB *db2.Repo, metric
 	hdb := horizonDB.Clone()
 
 	return &Session{
-		Ingestion:    ingestion.New(horizonDB, currentVersion),
+		Ingestion:    ingestion.New(hdb, currentVersion),
 		Cursor:       NewCursor(coreDB, first, last, metrics.LoadLedgerTimer),
 		Metrics:      metrics,
 		accountCache: cache.NewHistoryAccount(hdb),
