@@ -11,23 +11,17 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/sqx"
 	"github.com/guregu/null"
 	sq "github.com/lann/squirrel"
+	"database/sql"
 )
 
 // Account ingests the provided account data into a new row in the
 // `history_accounts` table
 func (ingest *Ingestion) Account(id int64, address string) error {
 
-	q := history.Q{Repo: ingest.DB}
-	var existing history.Account
-	err := q.AccountByAddress(&existing, address)
+	_, err := ingest.accountCache.Get(address)
 
-	if err != nil && !q.NoRows(err) {
+	if err != sql.ErrNoRows {
 		return err
-	}
-
-	// already imported
-	if !q.NoRows(err) {
-		return nil
 	}
 
 	sql := ingest.accounts.Values(id, address)
@@ -36,6 +30,8 @@ func (ingest *Ingestion) Account(id int64, address string) error {
 	if err != nil {
 		return err
 	}
+
+	ingest.accountCache.Add(address, id)
 
 	return nil
 }

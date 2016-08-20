@@ -1,6 +1,7 @@
 package ingestion
 
 import (
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2"
 	sq "github.com/lann/squirrel"
 )
@@ -10,6 +11,7 @@ type Ingestion struct {
 	// DB is the sql repo to be used for writing any rows into the horizon
 	// database.
 	DB             *db2.Repo
+	accountCache   *cache.HistoryAccount
 	CurrentVersion int
 
 	ledgers                  sq.InsertBuilder
@@ -21,9 +23,10 @@ type Ingestion struct {
 	accounts                 sq.InsertBuilder
 }
 
-func New(db *db2.Repo, currentVersion int) *Ingestion {
+func New(db *db2.Repo, accountCache *cache.HistoryAccount, currentVersion int) *Ingestion {
 	return &Ingestion{
 		DB:             db,
+		accountCache:   accountCache,
 		CurrentVersion: currentVersion,
 	}
 }

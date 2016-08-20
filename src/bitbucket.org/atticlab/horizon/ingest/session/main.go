@@ -34,10 +34,11 @@ type Session struct {
 func NewSession(first, last int32, horizonDB *db2.Repo, coreDB *db2.Repo, metrics *IngesterMetrics, currentVersion int) *Session {
 	hdb := horizonDB.Clone()
 
+	cache := cache.NewHistoryAccount(hdb)
 	return &Session{
-		Ingestion:    ingestion.New(hdb, currentVersion),
+		Ingestion:    ingestion.New(hdb, cache, currentVersion),
 		Cursor:       NewCursor(coreDB, first, last, metrics.LoadLedgerTimer),
 		Metrics:      metrics,
-		accountCache: cache.NewHistoryAccount(hdb),
+		accountCache: cache,
 	}
 }

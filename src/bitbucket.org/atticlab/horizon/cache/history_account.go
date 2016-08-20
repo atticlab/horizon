@@ -45,3 +45,8 @@ func (c *HistoryAccount) Get(address string) (result int64, err error) {
 	c.cached.Add(address, result)
 	return
 }
+
+// Adds address-id pair into cache
+func (c *HistoryAccount) Add(address string, id int64) {
+	c.cached.Add(address, id)
+}
