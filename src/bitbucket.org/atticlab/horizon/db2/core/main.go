@@ -73,6 +73,7 @@ type OrderBookSummary []OrderBookSummaryPriceLevel
 type QInterface interface {
 	TrustlineByAddressAndAsset(dest interface{}, addy string, assetCode string, issuer string) error
 	AccountByAddress(dest interface{}, addy string) error
+	AccountTypeByAddress(addy string) (xdr.AccountType, error)
 }
 
 // Q is a helper struct on which to hang common queries against a stellar

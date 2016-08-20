@@ -15,12 +15,12 @@ import (
 type EffectIngestion struct {
 	Dest        *ingestion.Ingestion
 	OperationID int64
-	Accounts    *cache.HistoryAccount
+	Accounts    *cache.HistoryAccountID
 	err         error
 	added       int
 }
 
-func NewEffectIngestion(dest *ingestion.Ingestion, accounts *cache.HistoryAccount, operationId int64) *EffectIngestion {
+func NewEffectIngestion(dest *ingestion.Ingestion, accounts *cache.HistoryAccountID, operationId int64) *EffectIngestion {
 	return &EffectIngestion{
 		Dest:        dest,
 		Accounts:    accounts,

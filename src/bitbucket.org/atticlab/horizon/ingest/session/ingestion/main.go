@@ -11,7 +11,7 @@ type Ingestion struct {
 	// DB is the sql repo to be used for writing any rows into the horizon
 	// database.
 	DB             *db2.Repo
-	accountCache   *cache.HistoryAccount
+	accountCache   *cache.HistoryAccountID
 	CurrentVersion int
 
 	ledgers                  sq.InsertBuilder
@@ -23,7 +23,7 @@ type Ingestion struct {
 	accounts                 sq.InsertBuilder
 }
 
-func New(db *db2.Repo, accountCache *cache.HistoryAccount, currentVersion int) *Ingestion {
+func New(db *db2.Repo, accountCache *cache.HistoryAccountID, currentVersion int) *Ingestion {
 	return &Ingestion{
 		DB:             db,
 		accountCache:   accountCache,

@@ -8,12 +8,11 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/admin"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/participants"
+	"bitbucket.org/atticlab/horizon/ingest/session/helpers"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/resource/operations"
-	"bitbucket.org/atticlab/horizon/ingest/session/helpers"
 	"encoding/json"
 	"github.com/spf13/viper"
 )
@@ -274,7 +273,7 @@ func (is *Session) ingestTransactionParticipants() error {
 }
 
 func (is *Session) ingestEffects() error {
-	effects := NewEffectIngestion(is.Ingestion, is.accountCache, is.Cursor.OperationID())
+	effects := NewEffectIngestion(is.Ingestion, is.accountIDCache, is.Cursor.OperationID())
 	effects.Ingest(is.Cursor)
 	return effects.Finish()
 }
@@ -284,7 +283,7 @@ func (is *Session) lookupParticipantIDs(aids []xdr.AccountId) (ret []int64, err 
 
 	for _, in := range aids {
 		var out int64
-		out, err = is.accountCache.Get(in.Address())
+		out, err = is.accountIDCache.Get(in.Address())
 		if err != nil {
 			return
 		}
@@ -459,19 +458,6 @@ func (is *Session) operationDetails() map[string]interface{} {
 	}
 
 	return details
-}
-
-func (is *Session) getAccountType(accountType *xdr.AccountType, address string) error {
-	var acc core.Account
-	sql := core.SelectAccount.Limit(1).Where("accountid = ?", address)
-	err := is.Cursor.DB.Get(&acc, sql)
-
-	if err != nil {
-		return err
-	}
-	*accountType = acc.AccountType
-
-	return nil
 }
 
 // operationFlagDetails sets the account flag details for `f` on `result`.

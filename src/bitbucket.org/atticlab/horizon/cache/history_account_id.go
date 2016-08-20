@@ -2,28 +2,28 @@
 package cache
 
 import (
-	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/history"
 )
 
 // HistoryAccount provides a cached lookup of history_account_id values from
 // account addresses.
-type HistoryAccount struct {
+type HistoryAccountID struct {
 	Cache
-	db *db2.Repo
+	q history.QInterface
 }
 
 // NewHistoryAccount initializes a new instance of `HistoryAccount`
-func NewHistoryAccount(db *db2.Repo) *HistoryAccount {
+func NewHistoryAccount(historyQ history.QInterface) *HistoryAccountID {
 	cache := NewCache(100, nil)
-	return &HistoryAccount{
+	return &HistoryAccountID{
 		Cache: *cache,
-		db:    db,
+		q:     historyQ,
 	}
 }
 
 // Get looks up the History Account ID (i.e. the ID of the operation that
 // created the account) for the given strkey encoded address.
-func (c *HistoryAccount) Get(address string) (result int64, err error) {
+func (c *HistoryAccountID) Get(address string) (result int64, err error) {
 	found, ok := c.cached.Get(address)
 
 	if ok {
@@ -31,12 +31,7 @@ func (c *HistoryAccount) Get(address string) (result int64, err error) {
 		return
 	}
 
-	err = c.db.GetRaw(&result, `
-		SELECT id
-		FROM history_accounts
-		WHERE address = $1
-		ORDER BY id DESC
-	`, address)
+	result, err = c.q.AccountIDByAddress(address)
 
 	if err != nil {
 		return
@@ -47,6 +42,6 @@ func (c *HistoryAccount) Get(address string) (result int64, err error) {
 }
 
 // Adds address-id pair into cache
-func (c *HistoryAccount) Add(address string, id int64) {
+func (c *HistoryAccountID) Add(address string, id int64) {
 	c.cached.Add(address, id)
 }

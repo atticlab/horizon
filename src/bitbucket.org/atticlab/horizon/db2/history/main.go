@@ -222,6 +222,8 @@ type QInterface interface {
 	// Account
 	// AccountByAddress loads a row from `history_accounts`, by address
 	AccountByAddress(dest interface{}, addy string) error
+	// loads a id from `history_accounts`, by address
+	AccountIDByAddress(addy string) (int64, error)
 
 	// Commission
 	// selects commission by hash
