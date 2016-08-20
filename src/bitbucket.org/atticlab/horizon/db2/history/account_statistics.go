@@ -109,7 +109,7 @@ func (q *Q) GetStatisticsByAccount(dest *[]AccountStatistics, addy string) error
 
 // CreateAccountStats creates new row in the account_statistics table
 // and populates it with values from the AccountStatistics struct
-func (q *Q) CreateAccountStats(stats AccountStatistics) error {
+func (q *Q) CreateAccountStats(stats *AccountStatistics) error {
 	sql := createAccountStatisticsTemplate.Values(
 		stats.Account,
 		stats.AssetCode,
@@ -149,7 +149,7 @@ func (q *Q) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStati
 
 // updateStats updates entry in the account_statistics table
 // with values from the AccountStatistics struct
-func (q *Q) UpdateAccountStats(stats AccountStatistics) error {
+func (q *Q) UpdateAccountStats(stats *AccountStatistics) error {
 	update := updateAccountStatisticsTemplate.SetMap(map[string]interface{}{
 		"daily_income":    stats.DailyIncome,
 		"daily_outcome":   stats.DailyOutcome,

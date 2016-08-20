@@ -26,15 +26,16 @@ func (ingest *Ingestion) updateAccountStats(address string, assetCode string, co
 	ledgerClosedAt time.Time, now time.Time,
 	income bool, // payment direction
 ) error {
-	historyQ := history.Q{ingest.DB}
 	isNew := false
-	stats, err := historyQ.GetAccountStatistics(address, assetCode, counterpartyType)
+	stats, err := ingest.accountStatsCache.Get(address, assetCode, counterpartyType)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return err
 		}
 		isNew = true
-		stats = history.NewAccountStatistics(address, assetCode, counterpartyType)
+		rawStats := history.NewAccountStatistics(address, assetCode, counterpartyType)
+		stats = &rawStats
+		ingest.accountStatsCache.Add(stats)
 	} else {
 		stats.ClearObsoleteStats(now)
 	}
@@ -43,9 +44,9 @@ func (ingest *Ingestion) updateAccountStats(address string, assetCode string, co
 	stats.UpdatedAt = now
 
 	if isNew {
-		err = historyQ.CreateAccountStats(stats)
+		err = ingest.historyQ.CreateAccountStats(stats)
 	} else {
-		err = historyQ.UpdateAccountStats(stats)
+		err = ingest.historyQ.UpdateAccountStats(stats)
 	}
 	return err
 }

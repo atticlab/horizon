@@ -21,8 +21,8 @@ type Session struct {
 	// Metrics is a reference to where the session should record its metric information
 	Metrics *IngesterMetrics
 
-	accountIDCache   *cache.HistoryAccountID
-	accountTypeCache *cache.AccountType
+	accountIDCache    *cache.HistoryAccountID
+	accountTypeCache  *cache.AccountType
 
 	//
 	// Results fields
@@ -42,7 +42,7 @@ func NewSession(first, last int32, horizonDB *db2.Repo, coreDB *db2.Repo, metric
 	}
 	accountIdCache := cache.NewHistoryAccount(historyQ)
 	return &Session{
-		Ingestion:      ingestion.New(hdb, accountIdCache, currentVersion),
+		Ingestion:      ingestion.New(hdb, accountIdCache, cache.NewAccountStatistics(historyQ), currentVersion),
 		Cursor:         NewCursor(coreDB, first, last, metrics.LoadLedgerTimer),
 		Metrics:        metrics,
 		accountIDCache: accountIdCache,

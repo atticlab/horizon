@@ -172,7 +172,7 @@ type Operation struct {
 	Type             xdr.OperationType `db:"type"`
 	DetailsString    null.String       `db:"details"`
 	SourceAccount    string            `db:"source_account"`
-	ClosedAt         time.Time   	   `db:"closed_at"`
+	ClosedAt         time.Time         `db:"closed_at"`
 }
 
 // OperationsQ is a helper struct to aid in configuring queries that loads
@@ -198,6 +198,13 @@ type QInterface interface {
 	// GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
 	// Now is used to clear obsolete stats
 	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error
+	GetAccountStatistics(address string, assetCode string, counterPartyType xdr.AccountType) (AccountStatistics, error)
+	// CreateAccountStats creates new row in the account_statistics table
+	// and populates it with values from the AccountStatistics struct
+	CreateAccountStats(stats *AccountStatistics) error
+	// updateStats updates entry in the account_statistics table
+	// with values from the AccountStatistics struct
+	UpdateAccountStats(stats *AccountStatistics) error
 
 	// Account traits
 	// Returns query helper for account traits
