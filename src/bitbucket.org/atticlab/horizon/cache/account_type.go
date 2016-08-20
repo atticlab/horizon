@@ -5,7 +5,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 )
 
-// AccountType provides a cached lookup of history_account_id values from
+// AccountType provides a cached lookup of core.AccountType values from
 // account addresses.
 type AccountType struct {
 	Cache
@@ -21,8 +21,7 @@ func NewAccountType(coreQ core.QInterface) *AccountType {
 	}
 }
 
-// Get looks up the History Account ID (i.e. the ID of the operation that
-// created the account) for the given strkey encoded address.
+// Get looks up the account type for the given strkey encoded address.
 func (c *AccountType) Get(address string) (result xdr.AccountType, err error) {
 	found, ok := c.cached.Get(address)
 	if ok {
@@ -39,7 +38,7 @@ func (c *AccountType) Get(address string) (result xdr.AccountType, err error) {
 	return
 }
 
-// Adds address-id pair into cache
+// Adds address-accountType pair into cache
 func (c *AccountType) Add(address string, accountType xdr.AccountType) {
 	c.cached.Add(address, accountType)
 }
