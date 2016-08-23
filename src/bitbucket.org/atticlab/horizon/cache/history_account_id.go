@@ -14,7 +14,7 @@ type HistoryAccountID struct {
 
 // NewHistoryAccount initializes a new instance of `HistoryAccount`
 func NewHistoryAccount(historyQ history.QInterface) *HistoryAccountID {
-	cache := NewCache(100, nil)
+	cache := NewCache(0, nil)
 	return &HistoryAccountID{
 		Cache: *cache,
 		q:     historyQ,
