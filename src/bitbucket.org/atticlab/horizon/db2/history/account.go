@@ -1,6 +1,8 @@
 package history
 
 import (
+	// "errors"
+	"strings"	
 	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/horizon/db2"
 )
@@ -19,6 +21,21 @@ func (q *Q) AccountByAddress(dest interface{}, addy string) error {
 	sql := selectAccount.Limit(1).Where("ha.address = ?", addy)
 	return q.Get(dest, sql)
 }
+
+// AccountsByAddresses loads rows from `history_accounts`, by addresses
+func (q *Q) AccountsByAddresses(dest interface{}, addresses []string) error {
+	// if len(addresses) < 1 {
+	// 	q.Err = errors.New("Empty request")
+	// 	return q
+	// }
+	addrInterface := make([]interface{}, len(addresses))
+	for i, v := range addresses {
+    	addrInterface[i] = v
+	}
+	sql := selectAccount.Where("ha.address in (?"+ strings.Repeat(",?", len(addresses)-1) +")", addrInterface...)
+	return q.Select(dest, sql)
+}
+
 
 // AccountByID loads a row from `history_accounts`, by id
 func (q *Q) AccountByID(dest interface{}, id int64) error {

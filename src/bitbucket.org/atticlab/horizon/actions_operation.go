@@ -1,6 +1,7 @@
 package horizon
 
 import (
+	"encoding/json"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/render/hal"
@@ -20,6 +21,7 @@ type OperationIndexAction struct {
 	Action
 	LedgerFilter      int32
 	AccountFilter     string
+	MultiAccountFilter	[]string
 	TransactionFilter string
 	PagingParams      db2.PageQuery
 	Records           []history.Operation
@@ -63,6 +65,14 @@ func (action *OperationIndexAction) SSE(stream sse.Stream) {
 func (action *OperationIndexAction) loadParams() {
 	action.ValidateCursorAsDefault()
 	action.AccountFilter = action.GetString("account_id")
+	addressesStr := action.GetString("multi_accounts")
+	if action.AccountFilter == "" && addressesStr != "" {
+		var addresses []string 
+		err := json.Unmarshal([]byte(addressesStr),&addresses)
+		if err == nil{
+			action.MultiAccountFilter = addresses
+		}
+	}
 	action.LedgerFilter = action.GetInt32("ledger_id")
 	action.TransactionFilter = action.GetString("tx_id")
 	action.PagingParams = action.GetPageQuery()
@@ -75,6 +85,8 @@ func (action *OperationIndexAction) loadRecords() {
 	switch {
 	case action.AccountFilter != "":
 		ops.ForAccount(action.AccountFilter)
+	case action.MultiAccountFilter != nil:
+		ops.ForAccounts(action.MultiAccountFilter)
 	case action.LedgerFilter > 0:
 		ops.ForLedger(action.LedgerFilter)
 	case action.TransactionFilter != "":

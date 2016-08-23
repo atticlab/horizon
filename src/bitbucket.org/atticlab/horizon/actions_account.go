@@ -1,12 +1,14 @@
 package horizon
 
 import (
+	
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/resource"
+	"github.com/go-errors/errors"
 	"encoding/json"
 )
 
@@ -186,13 +188,18 @@ func (action *AccountShowBalancesAction) JSON() {
 }
 
 func (action *AccountShowBalancesAction) loadParams() {
-	decoder := json.NewDecoder(action.R.Body)
+	addressesStr := action.GetString("multi_accounts")
+	if addressesStr == "" {
+		action.SetInvalidField("multi_accounts", errors.New("Can not be empty")) 
+		return
+	}
 	var addresses []string 
-	action.Err = decoder.Decode(&addresses)
-	if action.Err != nil{
+	err := json.Unmarshal([]byte(addressesStr),&addresses)
+	if err != nil{
 		return
 	}
 	action.Addresses = addresses
+	
 }
 
 func (action *AccountShowBalancesAction) loadRecord() {
