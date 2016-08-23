@@ -8,12 +8,12 @@ import (
 
 func (is *Session) ingestPayment(from, to string, sourceAmount, destAmount xdr.Int64, sourceAsset, destAsset string) error {
 
-	sourceType, err := is.accountTypeCache.Get(from)
+	sourceType, err := is.Cursor.AccountTypeProvider.Get(from)
 	if err != nil {
 		return err
 	}
 
-	destinationType, err := is.accountTypeCache.Get(to)
+	destinationType, err := is.Cursor.AccountTypeProvider.Get(to)
 	if err != nil {
 		return err
 	}
@@ -28,10 +28,10 @@ func (is *Session) ingestPayment(from, to string, sourceAmount, destAmount xdr.I
 
 	ledgerCloseTime := time.Unix(is.Cursor.Ledger().CloseTime, 0).Local()
 	now := time.Now()
-	err = is.Ingestion.UpdateAccountOutcome(from, sourceAsset, destinationType, int64(sourceAmount), ledgerCloseTime, now)
+	err = is.Ingestion.UpdateStatistics(from, sourceAsset, destinationType, int64(sourceAmount), ledgerCloseTime, now, false)
 	if err != nil {
 		return err
 	}
 
-	return is.Ingestion.UpdateAccountIncome(to, destAsset, sourceType, int64(destAmount), ledgerCloseTime, now)
+	return is.Ingestion.UpdateStatistics(to, destAsset, sourceType, int64(destAmount), ledgerCloseTime, now, true)
 }

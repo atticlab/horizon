@@ -138,6 +138,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/lann/ps",
+			"repository": "https://github.com/lann/ps",
+			"revision": "62de8c46ede02a7675c4c79c84883eb164cb71e3",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/lann/squirrel",
 			"repository": "https://github.com/lann/squirrel",
 			"revision": "e13dbacee404686afd0acf2d44b8d34869605e03",
@@ -146,7 +152,7 @@
 		{
 			"importpath": "github.com/lib/pq",
 			"repository": "https://github.com/lib/pq",
-			"revision": "a8d8d01c4f91602f876bf5aa210274e8203a6b45",
+			"revision": "80f8150043c80fb52dee6bc863a709cdac7ec8f8",
 			"branch": "master"
 		},
 		{

@@ -7,6 +7,7 @@ import (
 
 	"bitbucket.org/atticlab/go-smart-base/meta"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/toid"
 )
@@ -21,6 +22,8 @@ type Cursor struct {
 	LastLedger int32
 	// DB is the stellar-core db that data is ingested from.
 	DB *db2.Repo
+
+	AccountTypeProvider *cache.AccountType
 
 	// Stores metrics about ledger's loading time
 	LoadLedgerTimer metrics.Timer
@@ -40,6 +43,9 @@ func NewCursor(db *db2.Repo, firstLedger, lastLedger int32, loadLedgerTimer metr
 		FirstLedger:     firstLedger,
 		LastLedger:      lastLedger,
 		LoadLedgerTimer: loadLedgerTimer,
+		AccountTypeProvider: cache.NewAccountType(&core.Q{
+			Repo: db,
+		}),
 	}
 }
 

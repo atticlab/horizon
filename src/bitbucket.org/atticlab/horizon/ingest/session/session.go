@@ -273,7 +273,7 @@ func (is *Session) ingestTransactionParticipants() error {
 }
 
 func (is *Session) ingestEffects() error {
-	effects := NewEffectIngestion(is.Ingestion, is.accountIDCache, is.Cursor.OperationID())
+	effects := NewEffectIngestion(is.Ingestion, is.Cursor.OperationID())
 	effects.Ingest(is.Cursor)
 	return effects.Finish()
 }
@@ -283,7 +283,7 @@ func (is *Session) lookupParticipantIDs(aids []xdr.AccountId) (ret []int64, err 
 
 	for _, in := range aids {
 		var out int64
-		out, err = is.accountIDCache.Get(in.Address())
+		out, err = is.Ingestion.HistoryAccountCache.Get(in.Address())
 		if err != nil {
 			return
 		}

@@ -3,7 +3,6 @@ package session
 import (
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/session/helpers"
 	"bitbucket.org/atticlab/horizon/ingest/session/ingestion"
@@ -15,15 +14,13 @@ import (
 type EffectIngestion struct {
 	Dest        *ingestion.Ingestion
 	OperationID int64
-	Accounts    *cache.HistoryAccountID
 	err         error
 	added       int
 }
 
-func NewEffectIngestion(dest *ingestion.Ingestion, accounts *cache.HistoryAccountID, operationId int64) *EffectIngestion {
+func NewEffectIngestion(dest *ingestion.Ingestion, operationId int64) *EffectIngestion {
 	return &EffectIngestion{
 		Dest:        dest,
-		Accounts:    accounts,
 		OperationID: operationId,
 	}
 }
@@ -37,7 +34,7 @@ func (ei *EffectIngestion) Add(aid xdr.AccountId, typ history.EffectType, detail
 
 	ei.added++
 	var haid int64
-	haid, ei.err = ei.Accounts.Get(aid.Address())
+	haid, ei.err = ei.Dest.HistoryAccountCache.Get(aid.Address())
 	if ei.err != nil {
 		return false
 	}

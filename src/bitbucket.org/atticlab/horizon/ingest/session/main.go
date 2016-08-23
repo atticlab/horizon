@@ -3,7 +3,6 @@ package session
 import (
 	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/session/ingestion"
 )
@@ -21,9 +20,6 @@ type Session struct {
 	// Metrics is a reference to where the session should record its metric information
 	Metrics *IngesterMetrics
 
-	accountIDCache    *cache.HistoryAccountID
-	accountTypeCache  *cache.AccountType
-
 	//
 	// Results fields
 	//
@@ -40,14 +36,9 @@ func NewSession(first, last int32, horizonDB *db2.Repo, coreDB *db2.Repo, metric
 	historyQ := &history.Q{
 		Repo: hdb,
 	}
-	accountIdCache := cache.NewHistoryAccount(historyQ)
 	return &Session{
-		Ingestion:      ingestion.New(hdb, accountIdCache, cache.NewAccountStatistics(historyQ), currentVersion),
+		Ingestion:      ingestion.New(hdb, cache.NewAccountStatistics(historyQ), currentVersion),
 		Cursor:         NewCursor(coreDB, first, last, metrics.LoadLedgerTimer),
 		Metrics:        metrics,
-		accountIDCache: accountIdCache,
-		accountTypeCache: cache.NewAccountType(&core.Q{
-			Repo: coreDB,
-		}),
 	}
 }

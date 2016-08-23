@@ -9,6 +9,73 @@ import (
 	sq "github.com/lann/squirrel"
 )
 
+// AccountStatistics is a row of data from the `account_statistics` table
+type AccountStatistics struct {
+	Account          string    `db:"address"`
+	AssetCode        string    `db:"asset_code"`
+	CounterpartyType int16     `db:"counterparty_type"`
+	DailyIncome      int64     `db:"daily_income"`
+	DailyOutcome     int64     `db:"daily_outcome"`
+	WeeklyIncome     int64     `db:"weekly_income"`
+	WeeklyOutcome    int64     `db:"weekly_outcome"`
+	MonthlyIncome    int64     `db:"monthly_income"`
+	MonthlyOutcome   int64     `db:"monthly_outcome"`
+	AnnualIncome     int64     `db:"annual_income"`
+	AnnualOutcome    int64     `db:"annual_outcome"`
+	UpdatedAt        time.Time `db:"updated_at"`
+}
+
+// Returns array of params to be inserted/updated
+func (stats *AccountStatistics) GetParams() []interface{} {
+	return []interface{}{
+		stats.Account,
+		stats.AssetCode,
+		int16(stats.CounterpartyType),
+		stats.DailyIncome,
+		stats.DailyOutcome,
+		stats.WeeklyIncome,
+		stats.WeeklyOutcome,
+		stats.MonthlyIncome,
+		stats.MonthlyOutcome,
+		stats.AnnualIncome,
+		stats.AnnualOutcome,
+		stats.UpdatedAt,
+	}
+}
+
+// Returns hash of the object. Must be immutable
+func (stats *AccountStatistics) Hash() uint64 {
+	initialOddNumber := uint64(19)
+	result := initialOddNumber*uint64(23) + helpers.StringHashCode(stats.Account)
+	result = result*uint64(29) + helpers.StringHashCode(stats.AssetCode)
+	return result*uint64(31) + uint64(stats.CounterpartyType)
+}
+
+// Returns true if this and other are equals
+func (stats *AccountStatistics) Equals(rawOther interface{}) bool {
+	other, ok := rawOther.(*AccountStatistics)
+	if !ok {
+		return false
+	}
+	return stats.Account == other.Account && stats.AssetCode == other.AssetCode && stats.CounterpartyType == other.CounterpartyType
+}
+
+func (stats *AccountStatistics) GetKeyParams() []interface{} {
+	return []interface{}{
+		stats.Account,
+		stats.AssetCode,
+		stats.CounterpartyType,
+	}
+}
+
+// AccountStatisticsQ is a helper struct to aid in configuring queries that loads
+// slices of Ledger structs.
+type AccountStatisticsQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
+
 func NewAccountStatistics(account, assetCode string, counterparty xdr.AccountType) AccountStatistics {
 	return AccountStatistics{
 		Account:          account,
@@ -107,28 +174,6 @@ func (q *Q) GetStatisticsByAccount(dest *[]AccountStatistics, addy string) error
 	return err
 }
 
-// CreateAccountStats creates new row in the account_statistics table
-// and populates it with values from the AccountStatistics struct
-func (q *Q) CreateAccountStats(stats *AccountStatistics) error {
-	sql := createAccountStatisticsTemplate.Values(
-		stats.Account,
-		stats.AssetCode,
-		int16(stats.CounterpartyType),
-		stats.DailyIncome,
-		stats.DailyOutcome,
-		stats.WeeklyIncome,
-		stats.WeeklyOutcome,
-		stats.MonthlyIncome,
-		stats.MonthlyOutcome,
-		stats.AnnualIncome,
-		stats.AnnualOutcome,
-		stats.UpdatedAt,
-	)
-
-	_, err := q.Exec(sql)
-	return err
-}
-
 // GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
 func (q *Q) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error {
 	sql := selectAccountStatisticsTemplate.Where("a.address = ? AND a.asset_code = ?", addy, assetCode)
@@ -145,30 +190,6 @@ func (q *Q) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStati
 	}
 
 	return nil
-}
-
-// updateStats updates entry in the account_statistics table
-// with values from the AccountStatistics struct
-func (q *Q) UpdateAccountStats(stats *AccountStatistics) error {
-	update := updateAccountStatisticsTemplate.SetMap(map[string]interface{}{
-		"daily_income":    stats.DailyIncome,
-		"daily_outcome":   stats.DailyOutcome,
-		"weekly_income":   stats.WeeklyIncome,
-		"weekly_outcome":  stats.WeeklyOutcome,
-		"monthly_income":  stats.MonthlyIncome,
-		"monthly_outcome": stats.MonthlyOutcome,
-		"annual_income":   stats.AnnualIncome,
-		"annual_outcome":  stats.AnnualOutcome,
-		"updated_at":      stats.UpdatedAt,
-	}).Where(
-		"address = ? AND asset_code = ? AND counterparty_type = ?",
-		stats.Account,
-		stats.AssetCode,
-		stats.CounterpartyType,
-	)
-
-	_, err := q.Exec(update)
-	return err
 }
 
 // ClearObsoleteStats checks last update time and erases obsolete data
@@ -212,13 +233,11 @@ func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
 	}
 }
 
-// TODO: get all assets for account
-
 // SelectAccountStatisticsTemplate is a prepared statement for SELECT from the account_statistics
 var selectAccountStatisticsTemplate = sq.Select("a.*").From("account_statistics a")
 
 // CreateAccountStatisticsTemplate is a prepared statement for insertion into the account_statistics
-var createAccountStatisticsTemplate = sq.Insert("account_statistics").Columns(
+var AccountStatisticsCreate = sq.Insert("account_statistics").Columns(
 	"address",
 	"asset_code",
 	"counterparty_type",
@@ -232,5 +251,22 @@ var createAccountStatisticsTemplate = sq.Insert("account_statistics").Columns(
 	"annual_outcome",
 	"updated_at",
 )
+
+var AccountStatisticsUpdateParams = []string{
+	"address",
+	"asset_code",
+	"counterparty_type",
+	"daily_income",
+	"daily_outcome",
+	"weekly_income",
+	"weekly_outcome",
+	"monthly_income",
+	"monthly_outcome",
+	"annual_income",
+	"annual_outcome",
+	"updated_at",
+}
+
+var AccountStatisticsUpdateWhere = "address = ? AND asset_code = ? AND counterparty_type = ?"
 
 var updateAccountStatisticsTemplate = sq.Update("account_statistics")

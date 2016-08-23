@@ -18,7 +18,7 @@ import (
 // `history_accounts` table
 func (ingest *Ingestion) Account(id int64, address string) error {
 
-	_, err := ingest.accountCache.Get(address)
+	_, err := ingest.HistoryAccountCache.Get(address)
 
 	if err != sql.ErrNoRows {
 		return err
@@ -31,54 +31,9 @@ func (ingest *Ingestion) Account(id int64, address string) error {
 		return err
 	}
 
-	ingest.accountCache.Add(address, id)
+	ingest.HistoryAccountCache.Add(address, id)
 
 	return nil
-}
-
-// Clear removes data from the ledger
-func (ingest *Ingestion) Clear(start int64, end int64) error {
-
-	if start <= 1 {
-		del := sq.Delete("history_accounts").Where("id = 1")
-		ingest.DB.Exec(del)
-	}
-
-	err := ingest.clearRange(start, end, "history_effects", "history_operation_id")
-	if err != nil {
-		return err
-	}
-	err = ingest.clearRange(start, end, "history_operation_participants", "history_operation_id")
-	if err != nil {
-		return err
-	}
-	err = ingest.clearRange(start, end, "history_operations", "id")
-	if err != nil {
-		return err
-	}
-	err = ingest.clearRange(start, end, "history_transaction_participants", "history_transaction_id")
-	if err != nil {
-		return err
-	}
-	err = ingest.clearRange(start, end, "history_transactions", "id")
-	if err != nil {
-		return err
-	}
-	err = ingest.clearRange(start, end, "history_accounts", "id")
-	if err != nil {
-		return err
-	}
-	err = ingest.clearRange(start, end, "history_ledgers", "id")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Close finishes the current transaction and finishes this ingestion.
-func (ingest *Ingestion) Close() error {
-	return ingest.commit()
 }
 
 // Effect adds a new row into the `history_effects` table.
@@ -96,17 +51,6 @@ func (ingest *Ingestion) Effect(aid int64, opid int64, order int, typ history.Ef
 	}
 
 	return nil
-}
-
-// Flush writes the currently buffered rows to the db, and if successful
-// starts a new transaction.
-func (ingest *Ingestion) Flush() error {
-	err := ingest.commit()
-	if err != nil {
-		return err
-	}
-
-	return ingest.Start()
 }
 
 // Ledger adds a ledger to the current ingestion
@@ -186,24 +130,6 @@ func (ingest *Ingestion) OperationParticipants(op int64, aids []int64) error {
 	return nil
 }
 
-// Rollback aborts this ingestions transaction
-func (ingest *Ingestion) Rollback() (err error) {
-	err = ingest.DB.Rollback()
-	return
-}
-
-// Start makes the ingestion reeady, initializing the insert builders and tx
-func (ingest *Ingestion) Start() (err error) {
-	err = ingest.DB.Begin()
-	if err != nil {
-		return
-	}
-
-	ingest.createInsertBuilders()
-
-	return
-}
-
 // Transaction ingests the provided transaction data into a new row in the
 // `history_transactions` table
 func (ingest *Ingestion) Transaction(
@@ -226,7 +152,7 @@ func (ingest *Ingestion) Transaction(
 		tx.ResultMetaXDR(),
 		fee.ChangesXDR(),
 		sqx.StringArray(tx.Base64Signatures()),
-		ingest.formatTimeBounds(tx.Envelope.Tx.TimeBounds),
+		formatTimeBounds(tx.Envelope.Tx.TimeBounds),
 		tx.MemoType(),
 		tx.Memo(),
 		time.Now().UTC(),
@@ -269,79 +195,6 @@ func (ingest *Ingestion) clearRange(start int64, end int64, table string, idCol 
 	return err
 }
 
-func (ingest *Ingestion) createInsertBuilders() {
-	ingest.ledgers = sq.Insert("history_ledgers").Columns(
-		"importer_version",
-		"id",
-		"sequence",
-		"ledger_hash",
-		"previous_ledger_hash",
-		"total_coins",
-		"fee_pool",
-		"base_fee",
-		"base_reserve",
-		"max_tx_set_size",
-		"closed_at",
-		"created_at",
-		"updated_at",
-		"transaction_count",
-		"operation_count",
-	)
-
-	ingest.accounts = sq.Insert("history_accounts").Columns(
-		"id",
-		"address",
-	)
-
-	ingest.transactions = sq.Insert("history_transactions").Columns(
-		"id",
-		"transaction_hash",
-		"ledger_sequence",
-		"application_order",
-		"account",
-		"account_sequence",
-		"fee_paid",
-		"operation_count",
-		"tx_envelope",
-		"tx_result",
-		"tx_meta",
-		"tx_fee_meta",
-		"signatures",
-		"time_bounds",
-		"memo_type",
-		"memo",
-		"created_at",
-		"updated_at",
-	)
-
-	ingest.transaction_participants = sq.Insert("history_transaction_participants").Columns(
-		"history_transaction_id",
-		"history_account_id",
-	)
-
-	ingest.operations = sq.Insert("history_operations").Columns(
-		"id",
-		"transaction_id",
-		"application_order",
-		"source_account",
-		"type",
-		"details",
-	)
-
-	ingest.operation_participants = sq.Insert("history_operation_participants").Columns(
-		"history_operation_id",
-		"history_account_id",
-	)
-
-	ingest.effects = sq.Insert("history_effects").Columns(
-		"history_account_id",
-		"history_operation_id",
-		"\"order\"",
-		"type",
-		"details",
-	)
-}
-
 func (ingest *Ingestion) commit() error {
 	err := ingest.DB.Commit()
 	if err != nil {
@@ -349,16 +202,4 @@ func (ingest *Ingestion) commit() error {
 	}
 
 	return nil
-}
-
-func (ingest *Ingestion) formatTimeBounds(bounds *xdr.TimeBounds) interface{} {
-	if bounds == nil {
-		return nil
-	}
-
-	if bounds.MaxTime == 0 {
-		return sq.Expr("?::int8range", fmt.Sprintf("[%d,]", bounds.MinTime))
-	}
-
-	return sq.Expr("?::int8range", fmt.Sprintf("[%d,%d]", bounds.MinTime, bounds.MaxTime))
 }

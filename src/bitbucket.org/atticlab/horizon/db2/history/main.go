@@ -199,12 +199,6 @@ type QInterface interface {
 	// Now is used to clear obsolete stats
 	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error
 	GetAccountStatistics(address string, assetCode string, counterPartyType xdr.AccountType) (AccountStatistics, error)
-	// CreateAccountStats creates new row in the account_statistics table
-	// and populates it with values from the AccountStatistics struct
-	CreateAccountStats(stats *AccountStatistics) error
-	// updateStats updates entry in the account_statistics table
-	// with values from the AccountStatistics struct
-	UpdateAccountStats(stats *AccountStatistics) error
 
 	// Account traits
 	// Returns query helper for account traits
@@ -300,30 +294,6 @@ func (q *Q) OldestOutdatedLedgers(dest interface{}, currentVersion int) error {
 		WHERE importer_version < $1
 		ORDER BY sequence ASC
 		LIMIT 1000000`, currentVersion)
-}
-
-// AccountStatistics is a row of data from the `account_statistics` table
-type AccountStatistics struct {
-	Account          string    `db:"address"`
-	AssetCode        string    `db:"asset_code"`
-	CounterpartyType int16     `db:"counterparty_type"`
-	DailyIncome      int64     `db:"daily_income"`
-	DailyOutcome     int64     `db:"daily_outcome"`
-	WeeklyIncome     int64     `db:"weekly_income"`
-	WeeklyOutcome    int64     `db:"weekly_outcome"`
-	MonthlyIncome    int64     `db:"monthly_income"`
-	MonthlyOutcome   int64     `db:"monthly_outcome"`
-	AnnualIncome     int64     `db:"annual_income"`
-	AnnualOutcome    int64     `db:"annual_outcome"`
-	UpdatedAt        time.Time `db:"updated_at"`
-}
-
-// AccountStatisticsQ is a helper struct to aid in configuring queries that loads
-// slices of Ledger structs.
-type AccountStatisticsQ struct {
-	Err    error
-	parent *Q
-	sql    sq.SelectBuilder
 }
 
 // AccountLimits contains limits for account set by the admin of a bank and

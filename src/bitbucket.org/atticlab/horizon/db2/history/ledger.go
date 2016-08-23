@@ -60,3 +60,21 @@ var selectLedger = sq.Select(
 	"hl.base_reserve",
 	"hl.max_tx_set_size",
 ).From("history_ledgers hl")
+
+var LedgerInsert = sq.Insert("history_ledgers").Columns(
+	"importer_version",
+	"id",
+	"sequence",
+	"ledger_hash",
+	"previous_ledger_hash",
+	"total_coins",
+	"fee_pool",
+	"base_fee",
+	"base_reserve",
+	"max_tx_set_size",
+	"closed_at",
+	"created_at",
+	"updated_at",
+	"transaction_count",
+	"operation_count",
+)
