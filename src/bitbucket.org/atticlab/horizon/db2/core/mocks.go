@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/stretchr/testify/mock"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 )
 
 type SignersProviderMock struct {
@@ -42,4 +43,9 @@ func (m *QMock) AccountByAddress(dest interface{}, addy string) error {
 	destAccount := dest.(*Account)
 	*destAccount = account
 	return a.Error(1)
+}
+
+func (m *QMock) AccountTypeByAddress(addy string) (xdr.AccountType, error) {
+	a := m.Called(addy)
+	return a.Get(0).(xdr.AccountType), a.Error(1)
 }

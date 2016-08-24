@@ -1,10 +1,112 @@
 package history
 
 import (
-	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/toid"
+	"github.com/guregu/null"
+	sq "github.com/lann/squirrel"
+	"time"
 )
+
+// Transaction is a row of data from the `history_transactions` table
+type Transaction struct {
+	TotalOrderID
+	TransactionHash  string      `db:"transaction_hash"`
+	LedgerSequence   int32       `db:"ledger_sequence"`
+	LedgerCloseTime  time.Time   `db:"ledger_close_time"`
+	ApplicationOrder int32       `db:"application_order"`
+	Account          string      `db:"account"`
+	AccountSequence  string      `db:"account_sequence"`
+	FeePaid          int32       `db:"fee_paid"`
+	OperationCount   int32       `db:"operation_count"`
+	TxEnvelope       string      `db:"tx_envelope"`
+	TxResult         string      `db:"tx_result"`
+	TxMeta           string      `db:"tx_meta"`
+	TxFeeMeta        string      `db:"tx_fee_meta"`
+	SignatureString  string      `db:"signatures"`
+	MemoType         string      `db:"memo_type"`
+	Memo             null.String `db:"memo"`
+	ValidAfter       null.Int    `db:"valid_after"`
+	ValidBefore      null.Int    `db:"valid_before"`
+	CreatedAt        time.Time   `db:"created_at"`
+	UpdatedAt        time.Time   `db:"updated_at"`
+
+	rawAccountSequence int64
+	rawSignatures interface{}
+	rawTimeBounds interface{}
+}
+
+func NewTransaction(id int64, hash string, ledgerSeq, index int32, account string, accountSeq int64, fee, opCount int32,
+	envelope, result, meta, feeMeta string, rawSignatures, rawTimeBounds interface{}, memoType string,
+	memo null.String, created, updated time.Time) *Transaction {
+	return &Transaction{
+		TotalOrderID: TotalOrderID{
+			ID: id,
+		},
+		TransactionHash:  hash,
+		LedgerSequence:   ledgerSeq,
+		ApplicationOrder: index,
+		Account:          account,
+		rawAccountSequence:  accountSeq,
+		FeePaid:          fee,
+		OperationCount:   opCount,
+		TxEnvelope:       envelope,
+		TxResult:         result,
+		TxMeta:           meta,
+		rawSignatures:    rawSignatures,
+		rawTimeBounds:    rawTimeBounds,
+		MemoType:         memoType,
+		Memo:             memo,
+		CreatedAt:        created,
+		UpdatedAt:        updated,
+	}
+}
+
+// Returns array of params to be inserted/updated
+func (tx *Transaction) GetParams() []interface{} {
+	return []interface{}{
+		tx.ID,
+		tx.TransactionHash,
+		tx.LedgerSequence,
+		tx.ApplicationOrder,
+		tx.Account,
+		tx.rawAccountSequence,
+		tx.FeePaid,
+		tx.OperationCount,
+		tx.TxEnvelope,
+		tx.TxResult,
+		tx.TxMeta,
+		tx.TxFeeMeta,
+		tx.rawSignatures,
+		tx.rawTimeBounds,
+		tx.MemoType,
+		tx.Memo,
+		tx.CreatedAt,
+		tx.UpdatedAt,
+	}
+}
+
+// Returns hash of the object. Must be immutable
+func (tx *Transaction) Hash() uint64 {
+	return uint64(tx.ID)
+}
+
+// Returns true if this and other are equals
+func (tx *Transaction) Equals(rawOther interface{}) bool {
+	other, ok := rawOther.(*Transaction)
+	if !ok {
+		return false
+	}
+	return tx.ID == other.ID
+}
+
+// TransactionsQ is a helper struct to aid in configuring queries that loads
+// slices of transaction structs.
+type TransactionsQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
 
 // TransactionByHash is a query that loads a single row from the
 // `history_transactions` table based upon the provided hash.
@@ -112,3 +214,29 @@ var selectTransaction = sq.Select(
 		"hl.closed_at AS ledger_close_time").
 	From("history_transactions ht").
 	LeftJoin("history_ledgers hl ON ht.ledger_sequence = hl.sequence")
+
+var TransactionInsert = sq.Insert("history_transactions").Columns(
+	"id",
+	"transaction_hash",
+	"ledger_sequence",
+	"application_order",
+	"account",
+	"account_sequence",
+	"fee_paid",
+	"operation_count",
+	"tx_envelope",
+	"tx_result",
+	"tx_meta",
+	"tx_fee_meta",
+	"signatures",
+	"time_bounds",
+	"memo_type",
+	"memo",
+	"created_at",
+	"updated_at",
+)
+
+var TransactionParticipantInsert = sq.Insert("history_transaction_participants").Columns(
+	"history_transaction_id",
+	"history_account_id",
+)

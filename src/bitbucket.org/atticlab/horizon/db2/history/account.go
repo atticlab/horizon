@@ -5,6 +5,51 @@ import (
 	"bitbucket.org/atticlab/horizon/db2"
 )
 
+// Account is a row of data from the `history_accounts` table
+type Account struct {
+	TotalOrderID
+	Address string `db:"address"`
+}
+
+func NewAccount(id int64, address string) *Account {
+	return &Account {
+		TotalOrderID: TotalOrderID{
+			ID: id,
+		},
+		Address: address,
+	}
+}
+
+// Returns array of params to be inserted/updated
+func (account *Account) GetParams() []interface{} {
+	return []interface{}{
+		account.ID,
+		account.Address,
+	}
+}
+
+// Returns hash of the object. Must be immutable
+func (account *Account) Hash() uint64 {
+	return uint64(account.ID)
+}
+
+// Returns true if this and other are equals
+func (account *Account) Equals(rawOther interface{}) bool {
+	other, ok := rawOther.(*Account)
+	if !ok {
+		return false
+	}
+	return account.ID == other.ID
+}
+
+// AccountsQ is a helper struct to aid in configuring queries that loads
+// slices of account structs.
+type AccountsQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
+
 // Accounts provides a helper to filter rows from the `history_accounts` table
 // with pre-defined filters.  See `AccountsQ` methods for the available filters.
 func (q *Q) Accounts() *AccountsQ {
@@ -54,3 +99,8 @@ func (q *AccountsQ) Select(dest interface{}) error {
 }
 
 var selectAccount = sq.Select("ha.*").From("history_accounts ha")
+
+var AccountInsert = sq.Insert("history_accounts").Columns(
+	"id",
+	"address",
+)

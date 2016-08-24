@@ -24,7 +24,7 @@ func TestBatchUpdate(t *testing.T) {
 	Convey("", t, func() {
 		assetCode := "GBP"
 		expected := history.CreateRandomAccountStats(account, counterparty, assetCode)
-		update := BatchUpdate(BatchInsertFromInsert(repo, history.AccountStatisticsCreate), history.AccountStatisticsUpdateParams, history.AccountStatisticsUpdateWhere)
+		update := BatchUpdate(BatchInsertFromInsert(repo, history.AccountStatisticsInsert), history.AccountStatisticsUpdateParams, history.AccountStatisticsUpdateWhere)
 		update.Insert(&expected)
 
 		q := &history.Q{Repo: repo}

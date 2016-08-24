@@ -5,6 +5,7 @@ import (
 
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/sqx"
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -80,11 +81,15 @@ func TestAccountStatistics(t *testing.T) {
 			xdr.AccountTypeAccountBank,
 		}
 		stats := make(map[xdr.AccountType]AccountStatistics)
+		inserter := sqx.BatchInsertFromInsert(tt.HorizonRepo(), AccountStatisticsInsert)
 		for _, t := range accountTypes {
-			stats[t] = CreateRandomAccountStats(account.Address(), t, asset)
-			err := q.CreateAccountStats(stats[t])
+			newStat := CreateRandomAccountStats(account.Address(), t, asset)
+			err := inserter.Insert(&newStat)
 			So(err, ShouldBeNil)
+			stats[t] = newStat
 		}
+		err = inserter.Flush()
+		So(err, ShouldBeNil)
 		storedStats := make(map[xdr.AccountType]AccountStatistics)
 		err = q.GetStatisticsByAccountAndAsset(storedStats, account.Address(), asset, time.Now())
 		So(err, ShouldBeNil)

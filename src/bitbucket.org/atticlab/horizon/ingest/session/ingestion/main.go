@@ -15,15 +15,16 @@ type Ingestion struct {
 	DB                       *db2.Repo
 	CurrentVersion           int
 
-	ledgers                  sq.InsertBuilder
-	transactions             sq.InsertBuilder
-	transaction_participants sq.InsertBuilder
-	operations               sq.InsertBuilder
-	operation_participants   sq.InsertBuilder
-	effects                  sq.InsertBuilder
-	accounts                 sq.InsertBuilder
-
+	ledgers                  *sqx.BatchInsertBuilder
+	transactions             *sqx.BatchInsertBuilder
+	transaction_participants *sqx.BatchInsertBuilder
+	operations               *sqx.BatchInsertBuilder
+	operation_participants   *sqx.BatchInsertBuilder
+	effects                  *sqx.BatchInsertBuilder
+	accounts                 *sqx.BatchInsertBuilder
 	statistics               *sqx.BatchUpdateBuilder
+
+	needFlush []sqx.Flushable
 
 	// cache
 	statisticsCache          *cache.AccountStatistics
@@ -127,85 +128,42 @@ func (ingest *Ingestion) Flush() error {
 }
 
 func (ingest *Ingestion) flushInserters() error {
-	err := ingest.statistics.Flush()
-	if err != nil {
-		return err
+	for _, flusher := range ingest.needFlush {
+		err := flusher.Flush()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (ingest *Ingestion) createInsertBuilders() {
-	ingest.statistics = sqx.BatchUpdate(sqx.BatchInsertFromInsert(ingest.DB, history.AccountStatisticsCreate),
+	ingest.statistics = sqx.BatchUpdate(sqx.BatchInsertFromInsert(ingest.DB, history.AccountStatisticsInsert),
 		history.AccountStatisticsUpdateParams, history.AccountStatisticsUpdateWhere)
 
-	ingest.ledgers = sq.Insert("history_ledgers").Columns(
-		"importer_version",
-		"id",
-		"sequence",
-		"ledger_hash",
-		"previous_ledger_hash",
-		"total_coins",
-		"fee_pool",
-		"base_fee",
-		"base_reserve",
-		"max_tx_set_size",
-		"closed_at",
-		"created_at",
-		"updated_at",
-		"transaction_count",
-		"operation_count",
-	)
+	ingest.ledgers = sqx.BatchInsertFromInsert(ingest.DB, history.LedgerInsert)
 
-	ingest.accounts = sq.Insert("history_accounts").Columns(
-		"id",
-		"address",
-	)
+	ingest.accounts = sqx.BatchInsertFromInsert(ingest.DB, history.AccountInsert)
 
-	ingest.transactions = sq.Insert("history_transactions").Columns(
-		"id",
-		"transaction_hash",
-		"ledger_sequence",
-		"application_order",
-		"account",
-		"account_sequence",
-		"fee_paid",
-		"operation_count",
-		"tx_envelope",
-		"tx_result",
-		"tx_meta",
-		"tx_fee_meta",
-		"signatures",
-		"time_bounds",
-		"memo_type",
-		"memo",
-		"created_at",
-		"updated_at",
-	)
+	ingest.transactions = sqx.BatchInsertFromInsert(ingest.DB, history.TransactionInsert)
 
-	ingest.transaction_participants = sq.Insert("history_transaction_participants").Columns(
-		"history_transaction_id",
-		"history_account_id",
-	)
+	ingest.transaction_participants = sqx.BatchInsertFromInsert(ingest.DB, history.TransactionParticipantInsert)
 
-	ingest.operations = sq.Insert("history_operations").Columns(
-		"id",
-		"transaction_id",
-		"application_order",
-		"source_account",
-		"type",
-		"details",
-	)
+	ingest.operations = sqx.BatchInsertFromInsert(ingest.DB, history.OperationInsert)
 
-	ingest.operation_participants = sq.Insert("history_operation_participants").Columns(
-		"history_operation_id",
-		"history_account_id",
-	)
+	ingest.operation_participants = sqx.BatchInsertFromInsert(ingest.DB, history.OperationParticipantInsert)
 
-	ingest.effects = sq.Insert("history_effects").Columns(
-		"history_account_id",
-		"history_operation_id",
-		"\"order\"",
-		"type",
-		"details",
-	)
+	ingest.effects = sqx.BatchInsertFromInsert(ingest.DB, history.EffectInsert)
+
+	ingest.needFlush = []sqx.Flushable{
+		ingest.statistics,
+		ingest.ledgers,
+		ingest.accounts,
+		ingest.transactions,
+		ingest.transaction_participants,
+		ingest.operations,
+		ingest.operation_participants,
+		ingest.effects,
+
+	}
 }

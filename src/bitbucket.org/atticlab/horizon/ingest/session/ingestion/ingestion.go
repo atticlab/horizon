@@ -24,9 +24,7 @@ func (ingest *Ingestion) Account(id int64, address string) error {
 		return err
 	}
 
-	sql := ingest.accounts.Values(id, address)
-
-	_, err = ingest.DB.Exec(sql)
+	err = ingest.accounts.Insert(history.NewAccount(id, address))
 	if err != nil {
 		return err
 	}
@@ -43,14 +41,7 @@ func (ingest *Ingestion) Effect(aid int64, opid int64, order int, typ history.Ef
 		return err
 	}
 
-	sql := ingest.effects.Values(aid, opid, order, typ, djson)
-
-	_, err = ingest.DB.Exec(sql)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ingest.effects.Insert(history.NewEffect(aid, opid, int32(order), typ, djson))
 }
 
 // Ledger adds a ledger to the current ingestion
@@ -61,30 +52,25 @@ func (ingest *Ingestion) Ledger(
 	ops int,
 ) error {
 
-	sql := ingest.ledgers.Values(
-		ingest.CurrentVersion,
+	ledger := history.NewLedger(
+		int32(ingest.CurrentVersion),
 		id,
 		header.Sequence,
 		header.LedgerHash,
 		null.NewString(header.PrevHash, header.Sequence > 1),
-		header.Data.TotalCoins,
-		header.Data.FeePool,
-		header.Data.BaseFee,
-		header.Data.BaseReserve,
-		header.Data.MaxTxSetSize,
+		int64(header.Data.TotalCoins),
+		int64(header.Data.FeePool),
+		uint32(header.Data.BaseFee),
+		uint32(header.Data.BaseReserve),
+		uint32(header.Data.MaxTxSetSize),
 		time.Unix(header.CloseTime, 0).UTC(),
 		time.Now().UTC(),
 		time.Now().UTC(),
-		txs,
-		ops,
+		uint32(txs),
+		uint32(ops),
 	)
 
-	_, err := ingest.DB.Exec(sql)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ingest.ledgers.Insert(ledger)
 }
 
 // Operation ingests the provided operation data into a new row in the
@@ -103,8 +89,8 @@ func (ingest *Ingestion) Operation(
 		return err
 	}
 
-	sql := ingest.operations.Values(id, txid, order, source.Address(), typ, djson)
-	_, err = ingest.DB.Exec(sql)
+	operation := history.NewOperation(id, txid, order, source.Address(), typ, djson)
+	err = ingest.operations.Insert(operation)
 	if err != nil {
 		return err
 	}
@@ -116,15 +102,11 @@ func (ingest *Ingestion) Operation(
 // operation with id `op`, creating a new row in the
 // `history_operation_participants` table.
 func (ingest *Ingestion) OperationParticipants(op int64, aids []int64) error {
-	sql := ingest.operation_participants
-
 	for _, aid := range aids {
-		sql = sql.Values(op, aid)
-	}
-
-	_, err := ingest.DB.Exec(sql)
-	if err != nil {
-		return err
+		err := ingest.operation_participants.Insert(history.NewParticipant(op, aid))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -138,7 +120,7 @@ func (ingest *Ingestion) Transaction(
 	fee *core.TransactionFee,
 ) error {
 
-	sql := ingest.transactions.Values(
+	historyTx := history.NewTransaction(
 		id,
 		tx.TransactionHash,
 		tx.LedgerSequence,
@@ -146,7 +128,7 @@ func (ingest *Ingestion) Transaction(
 		tx.SourceAddress(),
 		tx.Sequence(),
 		tx.Fee(),
-		len(tx.Envelope.Tx.Operations),
+		int32(len(tx.Envelope.Tx.Operations)),
 		tx.EnvelopeXDR(),
 		tx.ResultXDR(),
 		tx.ResultMetaXDR(),
@@ -159,27 +141,19 @@ func (ingest *Ingestion) Transaction(
 		time.Now().UTC(),
 	)
 
-	_, err := ingest.DB.Exec(sql)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ingest.transactions.Insert(historyTx)
 }
 
 // TransactionParticipants ingests the provided account ids as participants of
 // transaction with id `tx`, creating a new row in the
 // `history_transaction_participants` table.
 func (ingest *Ingestion) TransactionParticipants(tx int64, aids []int64) error {
-	sql := ingest.transaction_participants
-
 	for _, aid := range aids {
-		sql = sql.Values(tx, aid)
-	}
-
-	_, err := ingest.DB.Exec(sql)
-	if err != nil {
-		return err
+		participant := history.NewParticipant(tx, aid)
+		err := ingest.transaction_participants.Insert(participant)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

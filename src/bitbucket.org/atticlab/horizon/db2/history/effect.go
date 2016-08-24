@@ -5,12 +5,163 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/go-errors/errors"
-	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/toid"
+	"github.com/go-errors/errors"
+	"github.com/guregu/null"
+	sq "github.com/lann/squirrel"
 )
+
+const (
+	// account effects
+
+	// EffectAccountCreated effects occur when a new account is created
+	EffectAccountCreated EffectType = 0 // from create_account
+
+	// EffectAccountRemoved effects occur when one account is merged into another
+	EffectAccountRemoved EffectType = 1 // from merge_account
+
+	// EffectAccountCredited effects occur when an account receives some currency
+	EffectAccountCredited EffectType = 2 // from create_account, payment, path_payment, merge_account
+
+	// EffectAccountDebited effects occur when an account sends some currency
+	EffectAccountDebited EffectType = 3 // from create_account, payment, path_payment, create_account
+
+	// EffectAccountThresholdsUpdated effects occur when an account changes its
+	// multisig thresholds.
+	EffectAccountThresholdsUpdated EffectType = 4 // from set_options
+
+	// EffectAccountHomeDomainUpdated effects occur when an account changes its
+	// home domain.
+	EffectAccountHomeDomainUpdated EffectType = 5 // from set_options
+
+	// EffectAccountFlagsUpdated effects occur when an account changes its
+	// account flags, either clearing or setting.
+	EffectAccountFlagsUpdated EffectType = 6 // from set_options
+
+	// signer effects
+
+	// EffectSignerCreated occurs when an account gains a signer
+	EffectSignerCreated EffectType = 10 // from set_options
+
+	// EffectSignerRemoved occurs when an account loses a signer
+	EffectSignerRemoved EffectType = 11 // from set_options
+
+	// EffectSignerUpdated occurs when an account changes the weight of one of its
+	// signers.
+	EffectSignerUpdated EffectType = 12 // from set_options
+
+	// trustline effects
+
+	// EffectTrustlineCreated occurs when an account trusts an anchor
+	EffectTrustlineCreated EffectType = 20 // from change_trust
+
+	// EffectTrustlineRemoved occurs when an account removes struct by setting the
+	// limit of a trustline to 0
+	EffectTrustlineRemoved EffectType = 21 // from change_trust
+
+	// EffectTrustlineUpdated occurs when an account changes a trustline's limit
+	EffectTrustlineUpdated EffectType = 22 // from change_trust, allow_trust
+
+	// EffectTrustlineAuthorized occurs when an anchor has AUTH_REQUIRED flag set
+	// to true and it authorizes another account's trustline
+	EffectTrustlineAuthorized EffectType = 23 // from allow_trust
+
+	// EffectTrustlineDeauthorized occurs when an anchor revokes access to a asset
+	// it issues.
+	EffectTrustlineDeauthorized EffectType = 24 // from allow_trust
+
+	// trading effects
+
+	// EffectOfferCreated occurs when an account offers to trade an asset
+	EffectOfferCreated EffectType = 30 // from manage_offer, creat_passive_offer
+
+	// EffectOfferRemoved occurs when an account removes an offer
+	EffectOfferRemoved EffectType = 31 // from manage_offer, creat_passive_offer, path_payment
+
+	// EffectOfferUpdated occurs when an offer is updated by the offering account.
+	EffectOfferUpdated EffectType = 32 // from manage_offer, creat_passive_offer, path_payment
+
+	// EffectTrade occurs when a trade is initiated because of a path payment or
+	// offer operation.
+	EffectTrade EffectType = 33 // from manage_offer, creat_passive_offer, path_payment
+
+	// data effects
+
+	// EffectDataCreated occurs when an account gets a new data field
+	EffectDataCreated EffectType = 40 // from manage_data
+
+	// EffectDataRemoved occurs when an account removes a data field
+	EffectDataRemoved EffectType = 41 // from manage_data
+
+	// EffectDataUpdated occurs when an account changes a data field's value
+	EffectDataUpdated EffectType = 42 // from manage_data
+
+	// EffectAdminOpPerformed occurs when an admin operation was performed
+	EffectAdminOpPerformed EffectType = 43
+)
+
+// EffectType is the numeric type for an effect, used as the `type` field in the
+// `history_effects` table.
+type EffectType int
+
+// Effect is a row of data from the `history_effects` table
+type Effect struct {
+	HistoryAccountID   int64       `db:"history_account_id"`
+	Account            string      `db:"address"`
+	HistoryOperationID int64       `db:"history_operation_id"`
+	Order              int32       `db:"order"`
+	Type               EffectType  `db:"type"`
+	DetailsString      null.String `db:"details"`
+
+	rawDetails []byte
+}
+
+func NewEffect(accountID int64, operationId int64, order int32, typ EffectType, details []byte) *Effect {
+	return &Effect{
+		HistoryAccountID:   accountID,
+		HistoryOperationID: operationId,
+		Order:              order,
+		Type:               typ,
+		rawDetails:         details,
+	}
+}
+
+// Returns array of params to be inserted/updated
+func (effect *Effect) GetParams() []interface{} {
+	return []interface{}{
+		effect.HistoryAccountID,
+		effect.HistoryOperationID,
+		effect.Order,
+		effect.Type,
+		effect.rawDetails,
+	}
+}
+
+// Returns hash of the object. Must be immutable
+func (effect *Effect) Hash() uint64 {
+	initialOddNumber := uint64(19)
+	result := initialOddNumber + uint64(effect.HistoryOperationID)
+	return result*uint64(29) + uint64(effect.Order)
+}
+
+// Returns true if this and other are equals
+func (effect *Effect) Equals(rawOther interface{}) bool {
+	other, ok := rawOther.(*Effect)
+	if !ok {
+		return false
+	}
+	return effect.HistoryOperationID == other.HistoryOperationID && effect.Order == other.Order
+}
+
+// EffectsQ is a helper struct to aid in configuring queries that loads
+// slices of Ledger structs.
+type EffectsQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
 
 // UnmarshalDetails unmarshals the details of this effect into `dest`
 func (r *Effect) UnmarshalDetails(dest interface{}) error {
@@ -215,3 +366,11 @@ var selectEffect = sq.
 	Select("heff.*, hacc.address").
 	From("history_effects heff").
 	LeftJoin("history_accounts hacc ON hacc.id = heff.history_account_id")
+
+var EffectInsert = sq.Insert("history_effects").Columns(
+	"history_account_id",
+	"history_operation_id",
+	"\"order\"",
+	"type",
+	"details",
+)

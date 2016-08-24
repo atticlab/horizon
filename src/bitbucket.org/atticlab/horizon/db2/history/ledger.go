@@ -1,9 +1,96 @@
 package history
 
 import (
-	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/horizon/db2"
+	"github.com/guregu/null"
+	sq "github.com/lann/squirrel"
+	"time"
 )
+
+// Ledger is a row of data from the `history_ledgers` table
+type Ledger struct {
+	TotalOrderID
+	Sequence           uint32      `db:"sequence"`
+	ImporterVersion    int32       `db:"importer_version"`
+	LedgerHash         string      `db:"ledger_hash"`
+	PreviousLedgerHash null.String `db:"previous_ledger_hash"`
+	TransactionCount   uint32      `db:"transaction_count"`
+	OperationCount     uint32      `db:"operation_count"`
+	ClosedAt           time.Time   `db:"closed_at"`
+	CreatedAt          time.Time   `db:"created_at"`
+	UpdatedAt          time.Time   `db:"updated_at"`
+	TotalCoins         int64       `db:"total_coins"`
+	FeePool            int64       `db:"fee_pool"`
+	BaseFee            uint32      `db:"base_fee"`
+	BaseReserve        uint32      `db:"base_reserve"`
+	MaxTxSetSize       uint32      `db:"max_tx_set_size"`
+}
+
+func NewLedger(importerV int32, id int64, sequence uint32, hash string, previousLedgerHash null.String, totalCoins, feePool int64,
+	baseFee, baseReserve, maxTxSetSize uint32, close, create, update time.Time, txs, ops uint32) *Ledger {
+	return &Ledger{
+		ImporterVersion: importerV,
+		TotalOrderID: TotalOrderID{
+			ID: id,
+		},
+		Sequence:           sequence,
+		LedgerHash:         hash,
+		PreviousLedgerHash: previousLedgerHash,
+		TotalCoins:         totalCoins,
+		FeePool:            feePool,
+		BaseFee:            baseFee,
+		BaseReserve:        baseReserve,
+		MaxTxSetSize:       maxTxSetSize,
+		ClosedAt:           close,
+		CreatedAt:          create,
+		UpdatedAt:          update,
+		TransactionCount:   txs,
+		OperationCount:     ops,
+	}
+}
+
+// Returns array of params to be inserted/updated
+func (ledger *Ledger) GetParams() []interface{} {
+	return []interface{}{
+		ledger.ImporterVersion,
+		ledger.ID,
+		ledger.Sequence,
+		ledger.LedgerHash,
+		ledger.PreviousLedgerHash,
+		ledger.TotalCoins,
+		ledger.FeePool,
+		ledger.BaseFee,
+		ledger.BaseReserve,
+		ledger.MaxTxSetSize,
+		ledger.ClosedAt,
+		ledger.CreatedAt,
+		ledger.UpdatedAt,
+		ledger.TransactionCount,
+		ledger.OperationCount,
+	}
+}
+
+// Returns hash of the object. Must be immutable
+func (ledger *Ledger) Hash() uint64 {
+	return uint64(ledger.ID)
+}
+
+// Returns true if this and other are equals
+func (ledger *Ledger) Equals(rawOther interface{}) bool {
+	other, ok := rawOther.(*Ledger)
+	if !ok {
+		return false
+	}
+	return ledger.ID == other.ID
+}
+
+// LedgersQ is a helper struct to aid in configuring queries that loads
+// slices of Ledger structs.
+type LedgersQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
 
 // LedgerBySequence loads the single ledger at `seq` into `dest`
 func (q *Q) LedgerBySequence(dest interface{}, seq int32) error {

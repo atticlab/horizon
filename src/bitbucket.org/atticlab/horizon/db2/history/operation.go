@@ -3,12 +3,110 @@ package history
 import (
 	"encoding/json"
 
-	"github.com/go-errors/errors"
-	sq "github.com/lann/squirrel"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/toid"
+	"github.com/go-errors/errors"
+	"github.com/guregu/null"
+	sq "github.com/lann/squirrel"
+	"time"
 )
+
+// Operation is a row of data from the `history_operations` table
+type Operation struct {
+	TotalOrderID
+	TransactionID    int64             `db:"transaction_id"`
+	TransactionHash  string            `db:"transaction_hash"`
+	ApplicationOrder int32             `db:"application_order"`
+	Type             xdr.OperationType `db:"type"`
+	DetailsString    null.String       `db:"details"`
+	SourceAccount    string            `db:"source_account"`
+	ClosedAt         time.Time         `db:"closed_at"`
+
+	rawDetails []byte
+}
+
+func NewOperation(id, txID int64, appOrder int32, sourceAccount string, typ xdr.OperationType, details []byte) *Operation {
+	return &Operation{
+		TotalOrderID: TotalOrderID{
+			ID: id,
+		},
+		TransactionID:    txID,
+		ApplicationOrder: appOrder,
+		SourceAccount:    sourceAccount,
+		Type:             typ,
+		rawDetails:       details,
+	}
+}
+
+// Returns array of params to be inserted/updated
+func (operation *Operation) GetParams() []interface{} {
+	return []interface{}{
+		operation.ID,
+		operation.TransactionID,
+		operation.ApplicationOrder,
+		operation.SourceAccount,
+		operation.Type,
+		operation.rawDetails,
+	}
+}
+
+// Returns hash of the object. Must be immutable
+func (operation *Operation) Hash() uint64 {
+	return uint64(operation.ID)
+}
+
+// Returns true if this and other are equals
+func (operation *Operation) Equals(rawOther interface{}) bool {
+	other, ok := rawOther.(*Operation)
+	if !ok {
+		return false
+	}
+	return operation.ID == other.ID
+}
+
+type Participant struct {
+	ActionID  int64
+	AccountID int64
+}
+
+func NewParticipant(actionID, account int64) *Participant {
+	return &Participant{
+		ActionID:  actionID,
+		AccountID: account,
+	}
+}
+
+// Returns array of params to be inserted/updated
+func (participant *Participant) GetParams() []interface{} {
+	return []interface{}{
+		participant.ActionID,
+		participant.AccountID,
+	}
+}
+
+// Returns hash of the object. Must be immutable
+func (participant *Participant) Hash() uint64 {
+	result := uint64(17) + uint64(participant.AccountID)
+	return result*uint64(29) + uint64(participant.ActionID)
+}
+
+// Returns true if this and other are equals
+func (participant *Participant) Equals(rawOther interface{}) bool {
+	other, ok := rawOther.(*Participant)
+	if !ok {
+		return false
+	}
+	return participant.ActionID == other.ActionID && participant.AccountID == other.AccountID
+}
+
+// OperationsQ is a helper struct to aid in configuring queries that loads
+// slices of Operation structs.
+type OperationsQ struct {
+	Err    error
+	parent *Q
+	sql    sq.SelectBuilder
+}
 
 // UnmarshalDetails unmarshals the details of this operation into `dest`
 func (r *Operation) UnmarshalDetails(dest interface{}) error {
@@ -150,3 +248,17 @@ var selectOperation = sq.Select(
 	From("history_operations hop").
 	LeftJoin("history_transactions ht ON ht.id = hop.transaction_id").
 	LeftJoin("history_ledgers hl ON hl.sequence = ht.ledger_sequence")
+
+var OperationInsert = sq.Insert("history_operations").Columns(
+	"id",
+	"transaction_id",
+	"application_order",
+	"source_account",
+	"type",
+	"details",
+)
+
+var OperationParticipantInsert = sq.Insert("history_operation_participants").Columns(
+	"history_operation_id",
+	"history_account_id",
+)

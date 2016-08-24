@@ -156,6 +156,16 @@ func (m *QMock) UpdateCommission(commission *Commission) (bool, error) {
 	return false, nil
 }
 
+func (m *QMock) AccountIDByAddress(addy string) (int64, error) {
+	a := m.Called(addy)
+	return a.Get(0).(int64), a.Error(1)
+}
+
+func (m *QMock) GetAccountStatistics(address string, assetCode string, counterPartyType xdr.AccountType) (AccountStatistics, error) {
+	a := m.Called(address, assetCode, counterPartyType)
+	return a.Get(0).(AccountStatistics), a.Error(1)
+}
+
 func CreateRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {
 	return CreateRandomAccountStatsWithMinValue(account, counterpartyType, asset, 0)
 }

@@ -11,6 +11,10 @@ import (
 
 const MAX_PARAMS = 65535
 
+type Flushable interface {
+	Flush() error
+}
+
 // NOT THREAD SAFE
 type BatchInsertBuilder struct {
 	batchSize          int

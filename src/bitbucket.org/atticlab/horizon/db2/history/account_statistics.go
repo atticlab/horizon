@@ -46,7 +46,7 @@ func (stats *AccountStatistics) GetParams() []interface{} {
 // Returns hash of the object. Must be immutable
 func (stats *AccountStatistics) Hash() uint64 {
 	initialOddNumber := uint64(19)
-	result := initialOddNumber*uint64(23) + helpers.StringHashCode(stats.Account)
+	result := initialOddNumber + helpers.StringHashCode(stats.Account)
 	result = result*uint64(29) + helpers.StringHashCode(stats.AssetCode)
 	return result*uint64(31) + uint64(stats.CounterpartyType)
 }
@@ -237,7 +237,7 @@ func (stats *AccountStatistics) ClearObsoleteStats(now time.Time) {
 var selectAccountStatisticsTemplate = sq.Select("a.*").From("account_statistics a")
 
 // CreateAccountStatisticsTemplate is a prepared statement for insertion into the account_statistics
-var AccountStatisticsCreate = sq.Insert("account_statistics").Columns(
+var AccountStatisticsInsert = sq.Insert("account_statistics").Columns(
 	"address",
 	"asset_code",
 	"counterparty_type",

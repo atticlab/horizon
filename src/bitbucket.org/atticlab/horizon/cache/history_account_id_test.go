@@ -1,9 +1,9 @@
 package cache
 
 import (
+	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/test"
 	"testing"
-	"bitbucket.org/atticlab/horizon/src/bitbucket.org/atticlab/horizon/db2/history"
 )
 
 func TestHistoryAccountID(t *testing.T) {

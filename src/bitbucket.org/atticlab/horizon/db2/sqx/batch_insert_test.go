@@ -29,12 +29,12 @@ func TestBatchInsert(t *testing.T) {
 		So(insert.Err.Error(), ShouldEqual, "Invalid builder. Columns must be set")
 	})
 	Convey("Flush of empty insert does not creates error", t, func() {
-		insert := BatchInsertFromInsert(repo, history.AccountStatisticsCreate)
+		insert := BatchInsertFromInsert(repo, history.AccountStatisticsInsert)
 		insert.Flush()
 		So(insert.Err, ShouldBeNil)
 	})
 	Convey("Can insert and flush after flush", t, func() {
-		insert := BatchInsertFromInsert(repo, history.AccountStatisticsCreate)
+		insert := BatchInsertFromInsert(repo, history.AccountStatisticsInsert)
 		insertFlushCheck(insert, "USD", repo, t)
 		insertFlushCheck(insert, "EUR", repo, t)
 		Convey("Can flush empty", func() {
@@ -47,7 +47,7 @@ func TestBatchInsert(t *testing.T) {
 	Convey("Insert of object, update and insert will trigger only one insert", t, func() {
 		assetCode := "GBP"
 		expected := history.CreateRandomAccountStats(account, counterparty, assetCode)
-		insert := BatchInsertFromInsert(repo, history.AccountStatisticsCreate)
+		insert := BatchInsertFromInsert(repo, history.AccountStatisticsInsert)
 		insert.Insert(&expected)
 		newExpected := expected
 		newExpected.AnnualIncome = 0
@@ -64,7 +64,7 @@ func TestBatchInsert(t *testing.T) {
 	Convey("auto flush", t, func() {
 		s1 := history.CreateRandomAccountStats(account, counterparty, "AAA")
 		paramsSize := len(s1.GetParams())
-		insert := BatchInsertFromInsert(repo, history.AccountStatisticsCreate)
+		insert := BatchInsertFromInsert(repo, history.AccountStatisticsInsert)
 		insert.BatchSize(paramsSize + 1)
 		insert.Insert(&s1)
 		So(insert.Err, ShouldBeNil)

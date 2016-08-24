@@ -161,15 +161,15 @@ type Ledger struct {
 	PT               string    `json:"paging_token"`
 	Hash             string    `json:"hash"`
 	PrevHash         string    `json:"prev_hash,omitempty"`
-	Sequence         int32     `json:"sequence"`
-	TransactionCount int32     `json:"transaction_count"`
-	OperationCount   int32     `json:"operation_count"`
+	Sequence         uint32    `json:"sequence"`
+	TransactionCount uint32    `json:"transaction_count"`
+	OperationCount   uint32    `json:"operation_count"`
 	ClosedAt         time.Time `json:"closed_at"`
 	TotalCoins       string    `json:"total_coins"`
 	FeePool          string    `json:"fee_pool"`
-	BaseFee          int32     `json:"base_fee"`
+	BaseFee          uint32    `json:"base_fee"`
 	BaseReserve      string    `json:"base_reserve"`
-	MaxTxSetSize     int32     `json:"max_tx_set_size"`
+	MaxTxSetSize     uint32    `json:"max_tx_set_size"`
 }
 
 // Offer is the display form of an offer to trade currency.
