@@ -1,36 +1,27 @@
 package cache
 
 import (
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/db2/history"
+	"github.com/patrickmn/go-cache"
+	"strconv"
 )
 
-type accountStatsKey struct {
-	Address string
-	AssetCode string
-	CounterpartyType xdr.AccountType
-}
-
-func newAccountStatsKey(address string, assetCode string, counterpartyType xdr.AccountType) accountStatsKey {
-	return accountStatsKey{
-		Address: address,
-		AssetCode: assetCode,
-		CounterpartyType: counterpartyType,
-	}
+func newAccountStatsKey(address string, assetCode string, counterpartyType xdr.AccountType) string {
+	return address + assetCode + strconv.Itoa(int(counterpartyType))
 }
 
 // AccountStatistics provides a cached lookup of history_account_id values from
 // account addresses.
 type AccountStatistics struct {
-	Cache
+	*cache.Cache
 	q history.QInterface
 }
 
 // NewAccountStatistics initializes a new instance of `AccountStatistics`
 func NewAccountStatistics(q history.QInterface) *AccountStatistics {
-	cache := NewCache(100, nil)
 	return &AccountStatistics{
-		Cache: *cache,
+		Cache: cache.New(cache.NoExpiration, cache.NoExpiration),
 		q:     q,
 	}
 }
@@ -38,7 +29,7 @@ func NewAccountStatistics(q history.QInterface) *AccountStatistics {
 // Get looks up the history account statistics for the given strkey encoded address, assetCode and counterparty type.
 func (c *AccountStatistics) Get(address string, assetCode string, counterPartyType xdr.AccountType) (result *history.AccountStatistics, err error) {
 	key := newAccountStatsKey(address, assetCode, counterPartyType)
-	found, ok := c.cached.Get(key)
+	found, ok := c.Cache.Get(key)
 	if ok {
 		result = found.(*history.AccountStatistics)
 		return
@@ -50,12 +41,16 @@ func (c *AccountStatistics) Get(address string, assetCode string, counterPartyTy
 	}
 
 	result = &stats
-	c.cached.Add(key, result)
+	c.AddWithKey(key, result)
 	return
+}
+
+func (c *AccountStatistics) AddWithKey(key string, stats *history.AccountStatistics) {
+	c.Cache.Set(key, stats, cache.DefaultExpiration)
 }
 
 // Adds address-id pair into cache
 func (c *AccountStatistics) Add(stats *history.AccountStatistics) {
 	key := newAccountStatsKey(stats.Account, stats.AssetCode, xdr.AccountType(stats.CounterpartyType))
-	c.cached.Add(key, stats)
+	c.AddWithKey(key, stats)
 }

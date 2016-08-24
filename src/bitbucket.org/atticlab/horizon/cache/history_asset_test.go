@@ -8,7 +8,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"time"
 )
 
 func TestHistoryAsset(t *testing.T) {
@@ -16,7 +15,7 @@ func TestHistoryAsset(t *testing.T) {
 	defer tt.Finish()
 	db := history.Q{tt.HorizonRepo()}
 	c := NewHistoryAsset(&db)
-	tt.Assert.Equal(0, c.cached.Len())
+	tt.Assert.Equal(0, c.Cache.ItemCount())
 	config := test.NewTestConfig()
 
 	var xdrAsset xdr.Asset
@@ -26,14 +25,14 @@ func TestHistoryAsset(t *testing.T) {
 	Convey("Chache not found", t, func() {
 		var nonAsset xdr.Asset
 		nonAsset.SetCredit("AAA", issuer)
-		So(c.cached.Len(), ShouldEqual, 0)
+		So(c.Cache.ItemCount(), ShouldEqual, 0)
 		stored, err := c.Get(nonAsset)
 		assert.Nil(t, err)
 		assert.Nil(t, stored)
-		So(c.cached.Len(), ShouldEqual, 1)
+		So(c.Cache.ItemCount(), ShouldEqual, 1)
 		Convey("Cache is shared", func() {
 			c := NewHistoryAsset(&db)
-			So(c.cached.Len(), ShouldEqual, 1)
+			So(c.Cache.ItemCount(), ShouldEqual, 1)
 		})
 	})
 	Convey("Get assets:", t, func() {
@@ -56,12 +55,6 @@ func TestHistoryAsset(t *testing.T) {
 		storedAsset, err = c.Get(xdrAsset)
 		So(err, ShouldBeNil)
 		assert.Equal(t, expected, *storedAsset)
-		lifeTime := time.Duration(0)
-		c.entryLifeTime = &lifeTime
-		storedAsset, err = c.Get(xdrAsset)
-		So(err, ShouldBeNil)
-		assert.Equal(t, updateExpected, *storedAsset)
-
 	})
 
 }
