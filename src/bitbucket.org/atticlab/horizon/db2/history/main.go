@@ -41,6 +41,8 @@ type QInterface interface {
 	// Asset
 	// Returns asset for specified xdr.Asset
 	Asset(dest interface{}, asset xdr.Asset) error
+	// Returns asset for asset type, code and issuer
+	AssetByParams(dest interface{}, assetType int, code string, issuer string) error
 	// Deletes asset from db by id
 	DeleteAsset(id int64) (bool, error)
 	// updates asset

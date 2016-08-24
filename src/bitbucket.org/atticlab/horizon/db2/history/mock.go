@@ -166,6 +166,11 @@ func (m *QMock) GetAccountStatistics(address string, assetCode string, counterPa
 	return a.Get(0).(AccountStatistics), a.Error(1)
 }
 
+func (m *QMock) AssetByParams(dest interface{}, assetType int, code string, issuer string) error {
+	a := m.Called(dest, assetType, code, issuer)
+	return a.Error(0)
+}
+
 func CreateRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {
 	return CreateRandomAccountStatsWithMinValue(account, counterpartyType, asset, 0)
 }

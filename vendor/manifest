@@ -77,13 +77,6 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/golang/groupcache/lru",
-			"repository": "https://github.com/golang/groupcache",
-			"revision": "604ed5785183e59ae2789449d89e73f3a2a77987",
-			"branch": "master",
-			"path": "/lru"
-		},
-		{
 			"importpath": "github.com/guregu/null",
 			"repository": "https://github.com/guregu/null",
 			"revision": "79c5bd36b615db4c06132321189f579c8a5fca98",
@@ -185,6 +178,12 @@
 			"revision": "8bf8a5d05c8612d4039a7f67ddce3d49ee61b398",
 			"branch": "master",
 			"path": "/xdr3"
+		},
+		{
+			"importpath": "github.com/patrickmn/go-cache",
+			"repository": "https://github.com/patrickmn/go-cache",
+			"revision": "1881a9bccb818787f68c52bfba648c6cf34c34fa",
+			"branch": "master"
 		},
 		{
 			"importpath": "github.com/pmezard/go-difflib/difflib",

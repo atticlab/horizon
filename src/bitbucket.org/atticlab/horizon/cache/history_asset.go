@@ -4,61 +4,59 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"database/sql"
+	"github.com/patrickmn/go-cache"
+	"sync"
 	"time"
 )
 
-var historyAssetCache *Cache
+var historyAssetCache *cache.Cache
+var historyAssetCacheOnce sync.Once
 
 // HistoryAsset provides a cached lookup of asset values from
 // xdr.Asset.
 type HistoryAsset struct {
-	Cache
+	*cache.Cache
 	history history.QInterface
+}
+
+func getHistoryAssetCache() *cache.Cache {
+	historyAssetCacheOnce.Do(func() {
+		historyAssetCache = cache.New(time.Duration(10)*time.Minute, time.Duration(1)*time.Minute)
+	})
+	return historyAssetCache
 }
 
 // NewHistoryAsset initializes a new instance of `HistoryAsset`
 func NewHistoryAsset(db history.QInterface) *HistoryAsset {
-	if historyAssetCache == nil {
-		lifeTime := time.Duration(10)*time.Minute
-		historyAssetCache = NewCache(100, &lifeTime)
-	}
 	return &HistoryAsset{
-		Cache: *historyAssetCache,
-		history:    db,
+		Cache:   getHistoryAssetCache(),
+		history: db,
 	}
-}
-
-type historyAssetElem struct {
-	Asset     *history.Asset
-	timeAdded time.Time
 }
 
 // Get looks up the history.Asset for the given xdr.Asset.
 func (c *HistoryAsset) Get(asset xdr.Asset) (*history.Asset, error) {
-	found, ok := c.cached.Get(asset)
+	var typ xdr.AssetType
+	var issuer, code string
+	err := asset.Extract(&typ, &code, &issuer)
+	if err != nil {
+		return nil, err
+	}
 
+	assetKey := issuer + code
+	found, ok := c.Cache.Get(assetKey)
 	if ok {
-		cacheElem, ok := found.(historyAssetElem)
-		if ok {
-			if c.IsEntryAlive(cacheElem.timeAdded) {
-				return cacheElem.Asset, nil
-			}
-		}
-		c.cached.Remove(asset)
+		return found.(*history.Asset), nil
 	}
 
-	var result history.Asset
-	err := c.history.Asset(&result, asset)
-	elem := historyAssetElem{
-		Asset:     &result,
-		timeAdded: time.Now(),
-	}
+	result := new(history.Asset)
+	err = c.history.AssetByParams(result, int(typ), code, issuer)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return nil, err
 		}
-		elem.Asset = nil
+		result = nil
 	}
-	c.cached.Add(asset, elem)
-	return elem.Asset, nil
+	c.Cache.Set(assetKey, result, cache.DefaultExpiration)
+	return result, nil
 }
