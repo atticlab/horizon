@@ -1,22 +1,25 @@
 package history
 
 import (
-	sq "github.com/lann/squirrel"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
+	sq "github.com/lann/squirrel"
 )
 
 // Account is a row of data from the `history_accounts` table
 type Account struct {
 	TotalOrderID
-	Address string `db:"address"`
+	Address     string          `db:"address"`
+	AccountType xdr.AccountType `db:"account_type"`
 }
 
-func NewAccount(id int64, address string) *Account {
-	return &Account {
+func NewAccount(id int64, address string, accountType xdr.AccountType) *Account {
+	return &Account{
 		TotalOrderID: TotalOrderID{
 			ID: id,
 		},
-		Address: address,
+		Address:     address,
+		AccountType: accountType,
 	}
 }
 
@@ -25,6 +28,7 @@ func (account *Account) GetParams() []interface{} {
 	return []interface{}{
 		account.ID,
 		account.Address,
+		account.AccountType,
 	}
 }
 
@@ -103,4 +107,5 @@ var selectAccount = sq.Select("ha.*").From("history_accounts ha")
 var AccountInsert = sq.Insert("history_accounts").Columns(
 	"id",
 	"address",
+	"account_type",
 )

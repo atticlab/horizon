@@ -16,24 +16,26 @@ import (
 
 // Account ingests the provided account data into a new row in the
 // `history_accounts` table
-func (ingest *Ingestion) Account(id int64, address string, createdByAsset *string, createdByCounterparty *xdr.AccountType) error {
+func (ingest *Ingestion) Account(account *history.Account, skipCheck bool, createdByAsset *string, createdByCounterparty *xdr.AccountType) error {
 
-	_, err := ingest.HistoryAccountCache.Get(address)
+	if skipCheck {
+		_, err := ingest.HistoryAccountCache.Get(account.Address)
 
-	if err != sql.ErrNoRows {
-		return err
+		if err != sql.ErrNoRows {
+			return err
+		}
 	}
 
-	err = ingest.accounts.Insert(history.NewAccount(id, address))
+	err := ingest.accounts.Insert(account)
 	if err != nil {
 		return err
 	}
 
-	ingest.HistoryAccountCache.Add(address, id)
+	ingest.HistoryAccountCache.Add(account.Address, account)
 
 	// if created by data exists add statistics
 	if createdByAsset != nil && createdByCounterparty != nil {
-		ingest.statisticsCache.AddWithParams(address, *createdByAsset, *createdByCounterparty, nil)
+		ingest.statisticsCache.AddWithParams(account.Address, *createdByAsset, *createdByCounterparty, nil)
 	}
 
 	return nil
