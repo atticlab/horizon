@@ -16,8 +16,8 @@ func (ingest *Ingestion) UpdateStatistics(address string, assetCode string, coun
 ) error {
 	isNew := false
 	stats, err := ingest.statisticsCache.Get(address, assetCode, counterpartyType)
-	if err != nil {
-		if err != sql.ErrNoRows {
+	if err != nil || stats == nil {
+		if err != nil && err != sql.ErrNoRows {
 			return err
 		}
 		isNew = true

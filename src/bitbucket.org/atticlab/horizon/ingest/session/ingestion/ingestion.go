@@ -16,7 +16,7 @@ import (
 
 // Account ingests the provided account data into a new row in the
 // `history_accounts` table
-func (ingest *Ingestion) Account(id int64, address string) error {
+func (ingest *Ingestion) Account(id int64, address string, createdByAsset *string, createdByCounterparty *xdr.AccountType) error {
 
 	_, err := ingest.HistoryAccountCache.Get(address)
 
@@ -30,6 +30,11 @@ func (ingest *Ingestion) Account(id int64, address string) error {
 	}
 
 	ingest.HistoryAccountCache.Add(address, id)
+
+	// if created by data exists add statistics
+	if createdByAsset != nil && createdByCounterparty != nil {
+		ingest.statisticsCache.AddWithParams(address, *createdByAsset, *createdByCounterparty, nil)
+	}
 
 	return nil
 }

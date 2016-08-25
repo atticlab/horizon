@@ -84,13 +84,13 @@ func (is *Session) ingestLedger() error {
 	if is.Cursor.LedgerSequence() == 1 {
 		masterKey := viper.GetString("bank-master-key")
 		commissionKey := viper.GetString("bank-commission-key")
-		err = is.Ingestion.Account(1, masterKey)
+		err = is.Ingestion.Account(1, masterKey, nil, nil)
 		if err != nil {
 			return err
 		}
 
 		if masterKey != commissionKey {
-			err = is.Ingestion.Account(2, commissionKey)
+			err = is.Ingestion.Account(2, commissionKey, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -165,7 +165,7 @@ func (is *Session) ingestOperation() error {
 	case xdr.OperationTypeCreateAccount:
 		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()
-		err = is.Ingestion.Account(is.Cursor.OperationID(), op.Destination.Address())
+		err = is.Ingestion.Account(is.Cursor.OperationID(), op.Destination.Address(), nil, nil)
 		if err != nil {
 			return err
 		}

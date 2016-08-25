@@ -49,6 +49,11 @@ func (c *AccountStatistics) AddWithKey(key string, stats *history.AccountStatist
 	c.Cache.Set(key, stats, cache.DefaultExpiration)
 }
 
+func (c *AccountStatistics) AddWithParams(account, assetCode string, counterparty xdr.AccountType, stats *history.AccountStatistics) {
+	key := newAccountStatsKey(account, assetCode, counterparty)
+	c.AddWithKey(key, stats)
+}
+
 // Adds address-id pair into cache
 func (c *AccountStatistics) Add(stats *history.AccountStatistics) {
 	key := newAccountStatsKey(stats.Account, stats.AssetCode, xdr.AccountType(stats.CounterpartyType))
