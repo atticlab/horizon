@@ -249,12 +249,14 @@ func (r *Repo) conn() Conn {
 }
 
 func (r *Repo) log(typ string, start time.Time, query string, args []interface{}) {
-	log.
+	if log.DefaultLogger.Level >= log.DebugLevel {
+		log.
 		Ctx(r.logCtx()).
 		WithField("args", args).
 		WithField("sql", query).
 		WithField("dur", time.Since(start).String()).
 		Debugf("sql: %s", typ)
+	}
 }
 
 func (r *Repo) logBegin() {
