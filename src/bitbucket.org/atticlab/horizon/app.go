@@ -25,8 +25,6 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"gopkg.in/tylerb/graceful.v1"
-	"os"
-	"runtime/pprof"
 )
 
 var appContextKey = 0
@@ -100,14 +98,6 @@ func (a *App) init() {
 // the shutdown signals and starting the appropriate db-streaming pumps.
 func (a *App) Serve() {
 
-	f, err := os.Create("horinon_prof")
-	if err != nil {
-		log.Panic(err)
-	}
-
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
-
 	a.web.router.Compile()
 	http.Handle("/", a.web.router)
 
@@ -133,7 +123,7 @@ func (a *App) Serve() {
 
 	log.Infof("Starting horizon on %s", addr)
 
-	//var err error
+	var err error
 	if a.config.TLSCert != "" {
 		err = srv.ListenAndServeTLS(a.config.TLSCert, a.config.TLSKey)
 	} else {
