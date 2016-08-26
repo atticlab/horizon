@@ -15,7 +15,7 @@ func initSubmissionSystem(app *App) {
 
 	app.submitter = &txsub.System{
 		Pending:         txsub.NewDefaultSubmissionList(),
-		Submitter:       txsub.NewDefaultSubmitter(http.DefaultClient, app.config.StellarCoreURL, cq, hq, &app.config),
+		Submitter:       txsub.NewDefaultSubmitter(http.DefaultClient, app.config.StellarCoreURL, cq, hq, &app.config, app.historyAccountCache),
 		SubmissionQueue: sequence.NewManager(),
 		Results: &results.DB{
 			Core:    cq,
@@ -36,5 +36,5 @@ func initSubmissionSystem(app *App) {
 }
 
 func init() {
-	appInit.Add("txsub", initSubmissionSystem, "app-context", "log", "horizon-db", "core-db", "pump")
+	appInit.Add("txsub", initSubmissionSystem, "app-context", "log", "horizon-db", "core-db", "pump", "cache")
 }

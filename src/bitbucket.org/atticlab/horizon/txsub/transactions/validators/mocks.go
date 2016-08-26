@@ -2,7 +2,6 @@ package validators
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"github.com/stretchr/testify/mock"
@@ -12,8 +11,8 @@ type AccountTypeValidatorMock struct {
 	mock.Mock
 }
 
-func (v *AccountTypeValidatorMock) VerifyAccountTypesForPayment(from core.Account, to core.Account) *results.RestrictedForAccountTypeError {
-	a := v.Called(from.AccountType, to.AccountType)
+func (v *AccountTypeValidatorMock) VerifyAccountTypesForPayment(from, to xdr.AccountType) *results.RestrictedForAccountTypeError {
+	a := v.Called(from, to)
 	result := a.Get(0)
 	if result == nil {
 		return nil
@@ -47,7 +46,7 @@ type TraitsValidatorMock struct {
 	mock.Mock
 }
 
-func (v *TraitsValidatorMock) CheckTraits(source string, destination string) (*results.RestrictedForAccountError, error) {
+func (v *TraitsValidatorMock) CheckTraits(source, destination *history.Account) (*results.RestrictedForAccountError, error) {
 	a := v.Called(source, destination)
 	rawResult := a.Get(0)
 	if rawResult != nil {
@@ -56,7 +55,7 @@ func (v *TraitsValidatorMock) CheckTraits(source string, destination string) (*r
 	}
 	return nil, a.Error(1)
 }
-func (v *TraitsValidatorMock) CheckTraitsForAccount(account string, isSource bool) (*results.RestrictedForAccountError, error) {
+func (v *TraitsValidatorMock) CheckTraitsForAccount(account *history.Account, isSource bool) (*results.RestrictedForAccountError, error) {
 	a := v.Called(account, isSource)
 	rawResult := a.Get(0)
 	if rawResult != nil {
@@ -93,4 +92,3 @@ func (v *OutgoingLimitsValidatorMock) VerifyLimits() (*results.ExceededLimitErro
 	}
 	return nil, a.Error(1)
 }
-

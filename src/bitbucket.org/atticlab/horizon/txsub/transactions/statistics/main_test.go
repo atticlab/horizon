@@ -5,7 +5,6 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/accounttypes"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/redis"
@@ -33,12 +32,12 @@ func TestStatistics(t *testing.T) {
 	destKP, err := keypair.Random()
 	assert.Nil(t, err)
 	now := time.Now()
-	operationData := NewOperationData(&core.Account{
-		Accountid:   sourceKP.Address(),
+	operationData := NewOperationData(&history.Account{
+		Address:   sourceKP.Address(),
 		AccountType: xdr.AccountTypeAccountBank,
 	}, 1, "random_tx_hash")
-	paymentData := NewPaymentData(&core.Account{
-		Accountid:   destKP.Address(),
+	paymentData := NewPaymentData(&history.Account{
+		Address:   destKP.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
 	}, history.Asset{
 		Code: "UAH",
@@ -47,7 +46,7 @@ func TestStatistics(t *testing.T) {
 	direction := PaymentDirectionIncoming
 	isIncome := direction.IsIncoming()
 	updatedTime := time.Now().AddDate(0, 0, -1)
-	account := paymentData.GetAccount(direction).Accountid
+	account := paymentData.GetAccount(direction).Address
 	assetCode := paymentData.Asset.Code
 
 	Convey("UpdateGet", t, func() {
@@ -93,7 +92,7 @@ func TestStatistics(t *testing.T) {
 					So(result, ShouldBeNil)
 				})
 				conn.On("UnWatch").Return(nil)
-				returnedStats := createRandomStats(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, updatedTime, counterparties)
+				returnedStats := createRandomStats(paymentData.GetAccount(direction).Address, paymentData.Asset.Code, updatedTime, counterparties)
 				Convey("Got stats from redis", func() {
 					accountStatsProvider.On("Get", account, assetCode, counterparties).Return(&returnedStats, nil).Once()
 					result, err := manager.UpdateGet(&paymentData, direction, now)
@@ -139,7 +138,7 @@ func TestStatistics(t *testing.T) {
 				})
 			})
 			Convey("Account stats cleared", func() {
-				returnedStats := createRandomStats(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, updatedTime, counterparties)
+				returnedStats := createRandomStats(paymentData.GetAccount(direction).Address, paymentData.Asset.Code, updatedTime, counterparties)
 				expectedStats := copyAccountStats(&returnedStats)
 				counterparty := paymentData.GetCounterparty(direction).AccountType
 				if _, ok := expectedStats.AccountsStatistics[counterparty]; !ok {

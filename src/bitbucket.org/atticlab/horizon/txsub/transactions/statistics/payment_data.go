@@ -1,7 +1,6 @@
 package statistics
 
 import (
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 )
 
@@ -17,12 +16,12 @@ func (d *PaymentDirection) IsIncoming() bool {
 }
 
 type OperationData struct {
-	Source *core.Account
+	Source *history.Account
 	Index  int
 	TxHash string
 }
 
-func NewOperationData(source *core.Account, index int, txHash string) OperationData {
+func NewOperationData(source *history.Account, index int, txHash string) OperationData {
 	return OperationData{
 		Source: source,
 		Index:  index,
@@ -32,28 +31,28 @@ func NewOperationData(source *core.Account, index int, txHash string) OperationD
 
 type PaymentData struct {
 	OperationData
-	Destination *core.Account
+	Destination *history.Account
 	Amount      int64
 	Asset       history.Asset
 }
 
-func NewPaymentData(destination *core.Account, opAsset history.Asset, opAmount int64, opData OperationData) PaymentData {
+func NewPaymentData(destination *history.Account, opAsset history.Asset, opAmount int64, opData OperationData) PaymentData {
 	return PaymentData{
 		OperationData: opData,
 		Destination:   destination,
-		Amount:      opAmount,
-		Asset:       opAsset,
+		Amount:        opAmount,
+		Asset:         opAsset,
 	}
 }
 
-func (p *PaymentData) GetAccount(direction PaymentDirection) *core.Account {
+func (p *PaymentData) GetAccount(direction PaymentDirection) *history.Account {
 	if direction == PaymentDirectionOutgoing {
 		return p.Source
 	}
 	return p.Destination
 }
 
-func (p *PaymentData) GetCounterparty(direction PaymentDirection) *core.Account {
+func (p *PaymentData) GetCounterparty(direction PaymentDirection) *history.Account {
 	if direction == PaymentDirectionIncoming {
 		return p.Source
 	}

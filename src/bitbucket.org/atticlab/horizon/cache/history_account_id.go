@@ -4,6 +4,7 @@ package cache
 import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"github.com/patrickmn/go-cache"
+	"time"
 )
 
 // HistoryAccount provides a cached lookup of history_account_id values from
@@ -15,14 +16,19 @@ type HistoryAccount struct {
 
 // NewHistoryAccount initializes a new instance of `HistoryAccount`
 func NewHistoryAccount(historyQ history.QInterface) *HistoryAccount {
+	return NewHistoryAccountWithExp(historyQ, cache.NoExpiration, cache.NoExpiration)
+}
+
+func NewHistoryAccountWithExp(historyQ history.QInterface, defaultExpiration, cleanupInterval time.Duration) *HistoryAccount {
 	return &HistoryAccount{
-		Cache: cache.New(cache.NoExpiration, cache.NoExpiration),
+		Cache: cache.New(defaultExpiration, cleanupInterval),
 		q:     historyQ,
 	}
 }
 
 // Get looks up the History Account ID (i.e. the ID of the operation that
-// created the account) for the given strkey encoded address.
+// created the account) for the given strkey encoded address. Returns sql.ErrNoRows
+// if account does not exists
 func (c *HistoryAccount) Get(address string) (*history.Account, error) {
 	found, ok := c.Cache.Get(address)
 

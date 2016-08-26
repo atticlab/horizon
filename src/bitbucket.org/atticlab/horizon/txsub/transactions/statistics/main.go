@@ -118,7 +118,7 @@ func (m *Manager) cancelOp(paymentData *PaymentData, direction PaymentDirection,
 
 	// Get stats
 	account := paymentData.GetAccount(direction)
-	accountStats, err := m.getAccountStatistics(account.Accountid, paymentData.Asset.Code, conn)
+	accountStats, err := m.getAccountStatistics(account.Address, paymentData.Asset.Code, conn)
 	if err != nil {
 		m.log.WithError(err).Error("Failed to get account statistics")
 		return false, err
@@ -212,10 +212,10 @@ func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection
 			return nil, false, err
 		}
 
-		return m.manageProcessedOp(conn, paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, now)
+		return m.manageProcessedOp(conn, paymentData.GetAccount(direction).Address, paymentData.Asset.Code, now)
 	}
 
-	accountStats, err := m.getAccountStatistics(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, conn)
+	accountStats, err := m.getAccountStatistics(paymentData.GetAccount(direction).Address, paymentData.Asset.Code, conn)
 	if err != nil {
 		return nil, false, err
 	}
@@ -223,7 +223,7 @@ func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection
 	if accountStats == nil {
 		// try get from db
 		m.log.Debug("Getting stats from histroy")
-		accountStats, err = m.tryGetStatisticsFromHistory(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, now)
+		accountStats, err = m.tryGetStatisticsFromHistory(paymentData.GetAccount(direction).Address, paymentData.Asset.Code, now)
 		if err != nil {
 			m.log.WithError(err).Error("Failed to get stats from history")
 			return nil, false, err

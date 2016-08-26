@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
@@ -73,24 +72,24 @@ func (v *limitsValidator) limitExceededDescription(periodName string, isAnonymou
 func (v *limitsValidator) opMaxAmountExceededDescription(limit int64) string {
 	return fmt.Sprintf(
 		"Maximal operation amount for account (%s) exceeded: %s of %s %s",
-		v.getAccount().Accountid,
+		v.getAccount().Address,
 		amount.String(xdr.Int64(v.paymentData.Amount)),
 		amount.String(xdr.Int64(limit)),
 		v.paymentData.Asset.Code,
 	)
 }
 
-func (v *limitsValidator) getAccount() *core.Account {
+func (v *limitsValidator) getAccount() *history.Account {
 	return v.paymentData.GetAccount(v.paymentDirection)
 }
 
-func (v *limitsValidator) getCounterparty() *core.Account {
+func (v *limitsValidator) getCounterparty() *history.Account {
 	return v.paymentData.GetCounterparty(v.paymentDirection)
 }
 
 func (v *limitsValidator) GetAccountLimits() (*history.AccountLimits, error) {
 	var limits history.AccountLimits
-	err := v.historyQ.GetAccountLimits(&limits, v.getAccount().Accountid, v.paymentData.Asset.Code)
+	err := v.historyQ.GetAccountLimits(&limits, v.getAccount().Address, v.paymentData.Asset.Code)
 	if err != nil {
 		// no limits to check for sender
 		if err == sql.ErrNoRows {

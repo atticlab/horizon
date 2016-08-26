@@ -12,11 +12,12 @@ import (
 
 type PathPaymentOpFrame struct {
 	OperationFrame
-	pathPayment   xdr.PathPaymentOp
-	sendAsset     history.Asset
-	destAsset     history.Asset
-	destAccount   core.Account
-	destTrustline core.Trustline
+	pathPayment               xdr.PathPaymentOp
+	sendAsset                 history.Asset
+	destAsset                 history.Asset
+	destAccount               history.Account
+	destTrustline             core.Trustline
+	isDestExists              bool
 
 	accountTypeValidator      validators.AccountTypeValidatorInterface
 	assetsValidator           validators.AssetsValidatorInterface
@@ -84,18 +85,18 @@ func (p *PathPaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	}
 
 	// check if destination exists or asset is anonymous
-	destExists, err := p.tryLoadDestinationAccount(manager.CoreQ)
+	p.isDestExists, err = p.tryLoadDestinationAccount(manager.HistoryQ)
 	if err != nil {
 		return false, err
 	}
 
-	if !destExists && !p.destAsset.IsAnonymous {
+	if !p.isDestExists && !p.destAsset.IsAnonymous {
 		p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentNoDestination
 		return false, nil
 	}
 
 	// check if destination trust line exists or (dest account does not exist and asset is anonymous)
-	if destExists {
+	if p.isDestExists {
 		err = manager.CoreQ.TrustlineByAddressAndAsset(&p.destTrustline, p.pathPayment.Destination.Address(), p.destAsset.Code, p.destAsset.Issuer)
 		if err != nil {
 			if err != sql.ErrNoRows {
@@ -115,14 +116,14 @@ func (p *PathPaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	return true, nil
 }
 
-func (p *PathPaymentOpFrame) tryLoadDestinationAccount(coreQ core.QInterface) (bool, error) {
-	err := coreQ.AccountByAddress(&p.destAccount, p.pathPayment.Destination.Address())
+func (p *PathPaymentOpFrame) tryLoadDestinationAccount(historyQ history.QInterface) (bool, error) {
+	err := historyQ.AccountByAddress(&p.destAccount, p.pathPayment.Destination.Address())
 	if err == nil {
 		return true, nil
 	} else if err != sql.ErrNoRows {
 		return false, err
 	}
-	p.destAccount.Accountid = p.pathPayment.Destination.Address()
+	p.destAccount.Address = p.pathPayment.Destination.Address()
 	p.destAccount.AccountType = xdr.AccountTypeAccountAnonymousUser
 	return false, nil
 }
@@ -163,7 +164,7 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 
 	// 1. Check account types
 	p.log.Debug("Validating account types")
-	accountTypesRestricted := p.GetAccountTypeValidator().VerifyAccountTypesForPayment(*p.SourceAccount, p.destAccount)
+	accountTypesRestricted := p.GetAccountTypeValidator().VerifyAccountTypesForPayment(p.SourceAccount.AccountType, p.destAccount.AccountType)
 	if accountTypesRestricted != nil {
 		p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentMalformed
 		p.Result.Info = results.AdditionalErrorInfoError(accountTypesRestricted)
@@ -171,8 +172,8 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 	}
 
 	// 2. Check traits for accounts
-	p.log.WithField("sourceAccount", p.SourceAccount.Accountid).WithField("destAccount", p.destAccount.Accountid).Debug("Checking traits")
-	accountRestricted, err := p.GetTraitsValidator(manager.HistoryQ).CheckTraits(p.SourceAccount.Accountid, p.destAccount.Accountid)
+	p.log.WithField("sourceAccount", p.SourceAccount.Address).WithField("destAccount", p.destAccount.Address).Debug("Checking traits")
+	accountRestricted, err := p.GetTraitsValidator(manager.HistoryQ).CheckTraits(p.SourceAccount, &p.destAccount)
 	if err != nil {
 		return false, err
 	}
