@@ -50,7 +50,8 @@ SET default_with_oids = false;
 
 CREATE TABLE history_accounts (
     id bigint NOT NULL,
-    address character varying(64)
+    address character varying(64),
+    account_type integer NOT NULL
 );
 
 

@@ -82,15 +82,15 @@ func (is *Session) ingestLedger() error {
 
 	// If this is ledger 1, create the root account
 	if is.Cursor.LedgerSequence() == 1 {
-		masterKey := viper.GetString("bank-master-key")
-		commissionKey := viper.GetString("bank-commission-key")
-		err = is.Ingestion.Account(1, masterKey, nil, nil)
+		master := history.NewAccount(1, viper.GetString("bank-master-key"), xdr.AccountTypeAccountBank)
+		err = is.Ingestion.Account(master, false, nil, nil)
 		if err != nil {
 			return err
 		}
 
-		if masterKey != commissionKey {
-			err = is.Ingestion.Account(2, commissionKey, nil, nil)
+		commission := history.NewAccount(2, viper.GetString("bank-commission-key"), xdr.AccountTypeAccountBank)
+		if master.Address != commission.Address {
+			err = is.Ingestion.Account(commission, false, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -165,7 +165,8 @@ func (is *Session) ingestOperation() error {
 	case xdr.OperationTypeCreateAccount:
 		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()
-		err = is.Ingestion.Account(is.Cursor.OperationID(), op.Destination.Address(), nil, nil)
+		account := history.NewAccount(is.Cursor.OperationID(), op.Destination.Address(), xdr.AccountType(op.AccountType))
+		err = is.Ingestion.Account(account, true, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -282,19 +283,19 @@ func (is *Session) lookupParticipantIDs(aids []xdr.AccountId) (ret []int64, err 
 	found := map[int64]bool{}
 
 	for _, in := range aids {
-		var out int64
-		out, err = is.Ingestion.HistoryAccountCache.Get(in.Address())
+		var account *history.Account
+		account, err = is.Ingestion.HistoryAccountCache.Get(in.Address())
 		if err != nil {
 			return
 		}
 
 		// De-duplicate
-		if _, ok := found[out]; ok {
+		if _, ok := found[account.ID]; ok {
 			continue
 		}
 
-		found[out] = true
-		ret = append(ret, out)
+		found[account.ID] = true
+		ret = append(ret, account.ID)
 	}
 
 	return

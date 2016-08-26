@@ -28,7 +28,7 @@ type Ingestion struct {
 
 	// cache
 	statisticsCache          *cache.AccountStatistics
-	HistoryAccountCache      *cache.HistoryAccountID
+	HistoryAccountCache      *cache.HistoryAccount
 }
 
 func New(db *db2.Repo, accountStatsCache *cache.AccountStatistics, currentVersion int) *Ingestion {
