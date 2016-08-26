@@ -88,8 +88,19 @@ func (v *limitsValidator) getCounterparty() *history.Account {
 }
 
 func (v *limitsValidator) GetAccountLimits() (*history.AccountLimits, error) {
+	account := v.getAccount()
+	limitedAssets := make(map[string]interface{})
+	err := account.UnmarshalLimitedAssets(&limitedAssets)
+	if err != nil {
+		v.log.WithError(err).Error("Failed to unmarshal limited assets")
+		return nil, err
+	}
+	if _, contains := limitedAssets[v.paymentData.Asset.Code]; !contains {
+		return nil, nil
+	}
+
 	var limits history.AccountLimits
-	err := v.historyQ.GetAccountLimits(&limits, v.getAccount().Address, v.paymentData.Asset.Code)
+	err = v.historyQ.GetAccountLimits(&limits, account.Address, v.paymentData.Asset.Code)
 	if err != nil {
 		// no limits to check for sender
 		if err == sql.ErrNoRows {

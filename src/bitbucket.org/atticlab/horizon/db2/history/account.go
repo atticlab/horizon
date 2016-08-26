@@ -3,7 +3,10 @@ package history
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
+	"github.com/guregu/null"
 	sq "github.com/lann/squirrel"
+	"encoding/json"
+	"github.com/go-errors/errors"
 )
 
 // Account is a row of data from the `history_accounts` table
@@ -13,6 +16,7 @@ type Account struct {
 	AccountType            xdr.AccountType `db:"account_type"`
 	BlockIncomingPayments  bool            `db:"block_incoming_payments"`
 	BlockOutcomingPayments bool            `db:"block_outcoming_payments"`
+	LimitedAssets          null.String     `db:"limited_assets"`
 }
 
 func NewAccount(id int64, address string, accountType xdr.AccountType) *Account {
@@ -25,6 +29,20 @@ func NewAccount(id int64, address string, accountType xdr.AccountType) *Account 
 	}
 }
 
+// UnmarshalDetails unmarshals the details of this effect into `dest`
+func (r *Account) UnmarshalLimitedAssets(dest interface{}) error {
+	if !r.LimitedAssets.Valid {
+		return nil
+	}
+
+	err := json.Unmarshal([]byte(r.LimitedAssets.String), &dest)
+	if err != nil {
+		err = errors.Wrap(err, 1)
+	}
+
+	return err
+}
+
 // Returns array of params to be inserted/updated
 func (account *Account) GetParams() []interface{} {
 	return []interface{}{
@@ -33,6 +51,7 @@ func (account *Account) GetParams() []interface{} {
 		account.AccountType,
 		account.BlockIncomingPayments,
 		account.BlockOutcomingPayments,
+		account.LimitedAssets,
 	}
 }
 
@@ -84,6 +103,7 @@ func (q *Q) AccountUpdate(account *Account) error {
 	sql := AccountUpdate.SetMap(map[string]interface{}{
 		"block_incoming_payments":  account.BlockIncomingPayments,
 		"block_outcoming_payments": account.BlockOutcomingPayments,
+		"limited_assets":           account.LimitedAssets,
 	})
 	_, err := q.Exec(sql)
 	return err
@@ -132,6 +152,7 @@ var AccountInsert = sq.Insert("history_accounts").Columns(
 	"account_type",
 	"block_incoming_payments",
 	"block_outcoming_payments",
+	"limited_assets",
 )
 
 var AccountUpdate = sq.Update("history_accounts")
