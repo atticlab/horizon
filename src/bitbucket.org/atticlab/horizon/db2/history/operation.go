@@ -2,7 +2,7 @@ package history
 
 import (
 	"encoding/json"
-
+	"strings"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/toid"
@@ -155,6 +155,30 @@ func (q *OperationsQ) ForAccount(aid string) *OperationsQ {
 
 	return q
 }
+
+// ForAccounts filters the operations collection to a specific account
+func (q *OperationsQ) ForAccounts(ids []string) *OperationsQ {
+	var accounts []Account
+	q.Err = q.parent.AccountsByAddresses(&accounts, ids)
+	if q.Err != nil {
+		return q
+	}
+	// if len(accounts) < 1 {
+	// 	return  errors.New("Empty request")
+	// }
+	addrInterface := make([]interface{}, len(accounts))
+	for i, v := range accounts {
+    	addrInterface[i] = v.ID
+	}
+
+	q.sql = q.sql.Join(
+		"history_operation_participants hopp ON "+
+			"hopp.history_operation_id = hop.id",
+	).Where("hopp.history_account_id in (?"+ strings.Repeat(",?", len(accounts)-1) +")", addrInterface...)
+
+	return q
+}
+
 
 // ForLedger filters the query to a only operations in a specific ledger,
 // specified by its sequence.
