@@ -15,7 +15,7 @@ type PathPaymentOpFrame struct {
 	pathPayment               xdr.PathPaymentOp
 	sendAsset                 history.Asset
 	destAsset                 history.Asset
-	destAccount               history.Account
+	destAccount               *history.Account
 	destTrustline             core.Trustline
 	isDestExists              bool
 
@@ -85,7 +85,7 @@ func (p *PathPaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	}
 
 	// check if destination exists or asset is anonymous
-	p.isDestExists, err = p.tryLoadDestinationAccount(manager.HistoryQ)
+	p.isDestExists, err = p.tryLoadDestinationAccount(manager)
 	if err != nil {
 		return false, err
 	}
@@ -116,8 +116,9 @@ func (p *PathPaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	return true, nil
 }
 
-func (p *PathPaymentOpFrame) tryLoadDestinationAccount(historyQ history.QInterface) (bool, error) {
-	err := historyQ.AccountByAddress(&p.destAccount, p.pathPayment.Destination.Address())
+func (p *PathPaymentOpFrame) tryLoadDestinationAccount(manager *Manager) (bool, error) {
+	var err error
+	p.destAccount, err = manager.AccountHistoryCache.Get(p.pathPayment.Destination.Address())
 	if err == nil {
 		return true, nil
 	} else if err != sql.ErrNoRows {
@@ -173,7 +174,7 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 
 	// 2. Check traits for accounts
 	p.log.WithField("sourceAccount", p.SourceAccount.Address).WithField("destAccount", p.destAccount.Address).Debug("Checking traits")
-	accountRestricted, err := p.GetTraitsValidator(manager.HistoryQ).CheckTraits(p.SourceAccount, &p.destAccount)
+	accountRestricted, err := p.GetTraitsValidator(manager.HistoryQ).CheckTraits(p.SourceAccount, p.destAccount)
 	if err != nil {
 		return false, err
 	}
@@ -186,7 +187,7 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 
 	// 3. Check restrictions for sender
 	operationData := statistics.NewOperationData(p.SourceAccount, p.Index, p.ParentTxFrame.TxHash)
-	outPaymentData := statistics.NewPaymentData(&p.destAccount, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
+	outPaymentData := statistics.NewPaymentData(p.destAccount, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
 	outgoingValidator := p.GetOutgoingLimitsValidator(&outPaymentData, manager)
 	outLimitsResult, err := outgoingValidator.VerifyLimits()
 	if err != nil {
@@ -199,7 +200,7 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 		return false, nil
 	}
 
-	inPaymentData := statistics.NewPaymentData(&p.destAccount, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
+	inPaymentData := statistics.NewPaymentData(p.destAccount, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
 	incomingValidator := p.GetIncomingLimitsValidator(&inPaymentData, p.destTrustline, manager)
 	inLimitsResult, err := incomingValidator.VerifyLimits()
 	if err != nil {
@@ -219,14 +220,14 @@ func (p *PathPaymentOpFrame) DoRollbackCachedData(manager *Manager) error {
 	p.log.Debug("Rollingback path payment")
 	// 3. Check restrictions for sender
 	operationData := statistics.NewOperationData(p.SourceAccount, p.Index, p.ParentTxFrame.TxHash)
-	outPaymentData := statistics.NewPaymentData(&p.destAccount, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
+	outPaymentData := statistics.NewPaymentData(p.destAccount, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
 	err := manager.StatsManager.CancelOp(&outPaymentData, statistics.PaymentDirectionOutgoing, *p.now)
 	if err != nil {
 		p.log.WithError(err).Error("Failed to rollback outgoing payment part")
 		return err
 	}
 
-	inPaymentData := statistics.NewPaymentData(&p.destAccount, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
+	inPaymentData := statistics.NewPaymentData(p.destAccount, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
 	err = manager.StatsManager.CancelOp(&inPaymentData, statistics.PaymentDirectionIncoming, *p.now)
 	if err != nil {
 		p.log.WithError(err).Error("Failed to rollback incoming payment part")

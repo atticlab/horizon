@@ -93,7 +93,8 @@ func (opFrame *OperationFrame) CheckValid(manager *Manager) (bool, error) {
 	}
 
 	// check if source account exists
-	err := manager.HistoryQ.AccountByAddress(opFrame.SourceAccount, sourceAddress)
+	var err error
+	opFrame.SourceAccount, err = manager.AccountHistoryCache.Get(sourceAddress)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			opFrame.Result.Result = xdr.OperationResult{

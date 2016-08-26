@@ -51,7 +51,9 @@ SET default_with_oids = false;
 CREATE TABLE history_accounts (
     id bigint NOT NULL,
     address character varying(64),
-    account_type integer NOT NULL
+    account_type integer NOT NULL,
+    block_incoming_payments boolean NOT NULL DEFAULT FALSE,
+    block_outcoming_payments boolean NOT NULL DEFAULT FALSE
 );
 
 

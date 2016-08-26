@@ -9,8 +9,10 @@ import (
 // Account is a row of data from the `history_accounts` table
 type Account struct {
 	TotalOrderID
-	Address     string          `db:"address"`
-	AccountType xdr.AccountType `db:"account_type"`
+	Address                string          `db:"address"`
+	AccountType            xdr.AccountType `db:"account_type"`
+	BlockIncomingPayments  bool            `db:"block_incoming_payments"`
+	BlockOutcomingPayments bool            `db:"block_outcoming_payments"`
 }
 
 func NewAccount(id int64, address string, accountType xdr.AccountType) *Account {
@@ -29,6 +31,8 @@ func (account *Account) GetParams() []interface{} {
 		account.ID,
 		account.Address,
 		account.AccountType,
+		account.BlockIncomingPayments,
+		account.BlockOutcomingPayments,
 	}
 }
 
@@ -76,6 +80,15 @@ func (q *Q) AccountIDByAddress(addy string) (int64, error) {
 	return id, err
 }
 
+func (q *Q) AccountUpdate(account *Account) error {
+	sql := AccountUpdate.SetMap(map[string]interface{}{
+		"block_incoming_payments":  account.BlockIncomingPayments,
+		"block_outcoming_payments": account.BlockOutcomingPayments,
+	})
+	_, err := q.Exec(sql)
+	return err
+}
+
 // AccountByID loads a row from `history_accounts`, by id
 func (q *Q) AccountByID(dest interface{}, id int64) error {
 	sql := selectAccount.Limit(1).Where("ha.id = ?", id)
@@ -89,6 +102,15 @@ func (q *AccountsQ) Page(page db2.PageQuery) *AccountsQ {
 	}
 
 	q.sql, q.Err = page.ApplyTo(q.sql, "ha.id")
+	return q
+}
+
+func (q *AccountsQ) Blocked() *AccountsQ {
+	if q.Err != nil {
+		return q
+	}
+
+	q.sql = q.sql.Where("(block_outcoming_payments = true OR block_outcoming_payments = true)")
 	return q
 }
 
@@ -108,4 +130,8 @@ var AccountInsert = sq.Insert("history_accounts").Columns(
 	"id",
 	"address",
 	"account_type",
+	"block_incoming_payments",
+	"block_outcoming_payments",
 )
+
+var AccountUpdate = sq.Update("history_accounts")

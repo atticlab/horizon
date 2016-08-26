@@ -14,7 +14,7 @@ import (
 type AccountTraitsIndexAction struct {
 	Action
 	PagingParams db2.PageQuery
-	Records      []history.AccountTraits
+	Records      []history.Account
 	Page         hal.Page
 }
 
@@ -50,7 +50,7 @@ func (action *AccountTraitsIndexAction) loadParams() {
 }
 
 func (action *AccountTraitsIndexAction) loadRecords() {
-	action.Err = action.HistoryQ().AccountTraitsQ().Page(action.PagingParams).Select(&action.Records)
+	action.Err = action.HistoryQ().Accounts().Blocked().Page(action.PagingParams).Select(&action.Records)
 }
 
 // LoadPage populates action.Page
@@ -72,7 +72,7 @@ func (action *AccountTraitsIndexAction) loadPage() {
 type AccountTraitsAction struct {
 	Action
 	Address        string
-	HistoryRecord  history.AccountTraits
+	HistoryRecord  history.Account
 	Resource       resource.AccountTraits
 }
 
@@ -110,7 +110,7 @@ func (action *AccountTraitsAction) loadRecord() {
 		return
 	}
 
-	action.HistoryRecord, action.Err = action.HistoryQ().AccountTraitsQ().ForAccount(action.Address)
+	action.Err = action.HistoryQ().AccountByAddress(&action.HistoryRecord, action.Address)
 }
 
 func (action *AccountTraitsAction) loadResource() {

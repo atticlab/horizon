@@ -20,14 +20,14 @@ type AccountTraits struct {
 	BlockOut  bool   `json:"block_outcoming_payments"`
 }
 
-func (at *AccountTraits) Populate(ctx context.Context, hat history.AccountTraits) (err error) {
-	at.AccountID = hat.AccountAddress
+func (at *AccountTraits) Populate(ctx context.Context, hat history.Account) (err error) {
+	at.AccountID = hat.Address
 	at.PT = hat.PagingToken()
 	at.BlockIn = hat.BlockIncomingPayments
 	at.BlockOut = hat.BlockOutcomingPayments
 	lb := hal.LinkBuilder{httpx.BaseURL(ctx)}
-	at.Links.Account = lb.Link(fmt.Sprintf("/accounts/%s", hat.AccountAddress))
-	at.Links.Self = lb.Link(fmt.Sprintf("/accounts/%s/traits", hat.AccountAddress))
+	at.Links.Account = lb.Link(fmt.Sprintf("/accounts/%s", hat.Address))
+	at.Links.Self = lb.Link(fmt.Sprintf("/accounts/%s/traits", hat.Address))
 	return
 }
 
