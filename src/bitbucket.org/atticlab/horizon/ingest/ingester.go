@@ -93,6 +93,7 @@ func (i *System) ReingestRange(start, end int32) (int, error) {
 		i.coreSequence,
 		i.HorizonDB,
 		i.CoreDB,
+		i.HistoryAccountCache,
 		i.Metrics,
 		CurrentVersion,
 	)
@@ -153,6 +154,7 @@ func (i *System) runOnce() {
 			i.coreSequence,
 			i.HorizonDB,
 			i.CoreDB,
+			i.HistoryAccountCache,
 			i.Metrics,
 			CurrentVersion,
 		)

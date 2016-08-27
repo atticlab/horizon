@@ -5,6 +5,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"github.com/patrickmn/go-cache"
 	"time"
+	"database/sql"
 )
 
 // HistoryAccount provides a cached lookup of history_account_id values from
@@ -33,6 +34,9 @@ func (c *HistoryAccount) Get(address string) (*history.Account, error) {
 	found, ok := c.Cache.Get(address)
 
 	if ok {
+		if found == nil {
+			return nil, sql.ErrNoRows
+		}
 		result := found.(*history.Account)
 		return result, nil
 	}
@@ -40,6 +44,9 @@ func (c *HistoryAccount) Get(address string) (*history.Account, error) {
 	var rawResult history.Account
 	err := c.q.AccountByAddress(&rawResult, address)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			c.Add(address, nil)
+		}
 		return nil, err
 	}
 

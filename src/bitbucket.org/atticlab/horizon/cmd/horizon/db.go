@@ -8,12 +8,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/db2/schema"
 	"bitbucket.org/atticlab/horizon/ingest"
 	hlog "bitbucket.org/atticlab/horizon/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var dbCmd = &cobra.Command{
@@ -102,7 +104,10 @@ var dbReingestCmd = &cobra.Command{
 			log.Fatal("network-passphrase is blank: reingestion requires manually setting passphrase")
 		}
 
-		i := ingest.New(passphrase, cdb, hdb)
+		cache := cache.NewHistoryAccountWithExp(&history.Q{
+			Repo: hdb,
+		}, time.Duration(1)*time.Minute, time.Duration(10)*time.Second)
+		i := ingest.New(passphrase, cdb, hdb, cache)
 		logStatus := func(stage string) {
 			count := i.Metrics.IngestLedgerTimer.Count()
 			rate := i.Metrics.IngestLedgerTimer.RateMean()

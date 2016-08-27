@@ -3,7 +3,6 @@ package session
 import (
 	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2"
-	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/ingest/session/ingestion"
 )
 
@@ -30,15 +29,12 @@ type Session struct {
 }
 
 // NewSession initialize a new ingestion session, from `first` to `last`
-func NewSession(first, last int32, horizonDB *db2.Repo, coreDB *db2.Repo, metrics *IngesterMetrics, currentVersion int) *Session {
+func NewSession(first, last int32, horizonDB *db2.Repo, coreDB *db2.Repo, historyAccountCache *cache.HistoryAccount, metrics *IngesterMetrics, currentVersion int) *Session {
 	hdb := horizonDB.Clone()
 
-	historyQ := &history.Q{
-		Repo: hdb,
-	}
 	return &Session{
-		Ingestion:      ingestion.New(hdb, cache.NewAccountStatistics(historyQ), currentVersion),
-		Cursor:         NewCursor(coreDB, first, last, metrics.LoadLedgerTimer),
-		Metrics:        metrics,
+		Ingestion: ingestion.New(hdb, historyAccountCache, currentVersion),
+		Cursor:    NewCursor(coreDB, first, last, metrics.LoadLedgerTimer),
+		Metrics:   metrics,
 	}
 }
