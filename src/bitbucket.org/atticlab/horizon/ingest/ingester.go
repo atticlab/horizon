@@ -128,7 +128,7 @@ func (i *System) runOnce() {
 	defer func() {
 		if rec := recover(); rec != nil {
 			err := errors.FromPanic(rec)
-			log.Errorf("import session panicked: %s", err)
+			log.WithStack(err).Errorf("import session panicked: %s", err)
 			errors.ReportToSentry(err, nil)
 		}
 	}()
