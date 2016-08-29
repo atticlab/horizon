@@ -30,17 +30,27 @@ func NewAccount(id int64, address string, accountType xdr.AccountType) *Account 
 }
 
 // UnmarshalDetails unmarshals the details of this effect into `dest`
-func (r *Account) UnmarshalLimitedAssets(dest interface{}) error {
+func (r *Account) UnmarshalLimitedAssets() (map[string]bool, error) {
+	result := make(map[string]bool)
 	if !r.LimitedAssets.Valid {
-		return nil
+		return result, nil
 	}
 
-	err := json.Unmarshal([]byte(r.LimitedAssets.String), &dest)
+	err := json.Unmarshal([]byte(r.LimitedAssets.String), &result)
 	if err != nil {
 		err = errors.Wrap(err, 1)
 	}
 
-	return err
+	return result, err
+}
+
+func (r *Account) SetLimitedAssets(limitedAssets map[string]bool) (error) {
+	data, err := json.Marshal(limitedAssets)
+	if err != nil {
+		return err
+	}
+	r.LimitedAssets = null.StringFrom(string(data))
+	return nil
 }
 
 // Returns array of params to be inserted/updated
@@ -104,8 +114,11 @@ func (q *Q) AccountUpdate(account *Account) error {
 		"block_incoming_payments":  account.BlockIncomingPayments,
 		"block_outcoming_payments": account.BlockOutcomingPayments,
 		"limited_assets":           account.LimitedAssets,
-	})
+	}).Where("history_accounts.id = ?", account.ID)
 	_, err := q.Exec(sql)
+	if err != nil {
+		errors.Wrap(err, 0)
+	}
 	return err
 }
 

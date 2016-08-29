@@ -89,8 +89,7 @@ func (v *limitsValidator) getCounterparty() *history.Account {
 
 func (v *limitsValidator) GetAccountLimits() (*history.AccountLimits, error) {
 	account := v.getAccount()
-	limitedAssets := make(map[string]interface{})
-	err := account.UnmarshalLimitedAssets(&limitedAssets)
+	limitedAssets, err := account.UnmarshalLimitedAssets()
 	if err != nil {
 		v.log.WithError(err).Error("Failed to unmarshal limited assets")
 		return nil, err
