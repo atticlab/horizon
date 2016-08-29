@@ -292,6 +292,8 @@ CREATE UNIQUE INDEX index_history_accounts_on_address ON history_accounts USING 
 
 CREATE UNIQUE INDEX index_history_accounts_on_id ON history_accounts USING btree (id);
 
+CREATE INDEX index_history_accounts_with_traits ON history_accounts USING btree (id) WHERE block_incoming_payments = true OR block_outcoming_payments = true;
+
 
 --
 -- Name: index_history_effects_on_type; Type: INDEX; Schema: public; Owner: -; Tablespace:
