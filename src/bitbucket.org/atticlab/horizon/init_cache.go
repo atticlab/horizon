@@ -7,11 +7,13 @@ import (
 )
 
 func initCacheFromApp(app *App) {
-	app.historyAccountCache = initCache(app.HistoryQ())
+	app.sharedCache = initCache(app.HistoryQ())
 }
 
-func initCache(history *history.Q) *cache.HistoryAccount {
-	return cache.NewHistoryAccountWithExp(history, time.Duration(2)*time.Minute, time.Duration(10)*time.Second)
+func initCache(history *history.Q) *cache.SharedCache {
+	return &cache.SharedCache{
+		HistoryAccount: cache.NewHistoryAccountWithExp(history, time.Duration(2)*time.Minute, time.Duration(10)*time.Second),
+	}
 }
 
 func init() {

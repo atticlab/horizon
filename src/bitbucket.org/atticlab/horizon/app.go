@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/build"
+	"bitbucket.org/atticlab/horizon/cache"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/core"
@@ -58,6 +59,8 @@ type App struct {
 	horizonConnGauge       metrics.Gauge
 	stellarCoreConnGauge   metrics.Gauge
 	goroutineGauge         metrics.Gauge
+
+	sharedCache *cache.SharedCache
 
 	// cached state
 	latestLedgerState struct {
@@ -147,6 +150,10 @@ func (a *App) Close() {
 
 	a.historyQ.Repo.DB.Close()
 	a.coreQ.Repo.DB.Close()
+}
+
+func (a *App) SharedCache() *cache.SharedCache {
+	return a.sharedCache
 }
 
 // HistoryQ returns a helper object for performing sql queries against the
