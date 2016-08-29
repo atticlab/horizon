@@ -110,7 +110,7 @@ func migrations1_initial_schemaSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/1_initial_schema.sql", size: 11138, mode: os.FileMode(438), modTime: time.Unix(1472227714, 0)}
+	info := bindataFileInfo{name: "migrations/1_initial_schema.sql", size: 11138, mode: os.FileMode(438), modTime: time.Unix(1472464340, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -150,7 +150,7 @@ func migrations3_aggregate_expenses_for_accountsSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/3_aggregate_expenses_for_accounts.sql", size: 900, mode: os.FileMode(438), modTime: time.Unix(1471345861, 0)}
+	info := bindataFileInfo{name: "migrations/3_aggregate_expenses_for_accounts.sql", size: 900, mode: os.FileMode(438), modTime: time.Unix(1472464340, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -210,7 +210,7 @@ func migrations9_1_assetsSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/9_1_assets.sql", size: 376, mode: os.FileMode(438), modTime: time.Unix(1469016730, 0)}
+	info := bindataFileInfo{name: "migrations/9_1_assets.sql", size: 376, mode: os.FileMode(438), modTime: time.Unix(1472464340, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -230,7 +230,7 @@ func migrations9_commissionSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/9_commission.sql", size: 828, mode: os.FileMode(438), modTime: time.Unix(1470410685, 0)}
+	info := bindataFileInfo{name: "migrations/9_commission.sql", size: 828, mode: os.FileMode(438), modTime: time.Unix(1472464340, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

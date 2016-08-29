@@ -4,9 +4,7 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
-	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/test"
-	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -60,44 +58,29 @@ func TestActionsSetTraits(t *testing.T) {
 			So(action.Err, ShouldNotBeNil)
 			So(action.Err, ShouldBeInvalidField, "block_outcoming_payments")
 		})
-		Convey("Try delete non existing", func() {
-			var storedAcc history.Account
-			err := historyQ.AccountByAddress(&storedAcc, account)
-			So(err, ShouldBeNil)
-			_, err = historyQ.AccountTraitsQ().ForAccount(account)
-			So(err, ShouldEqual, sql.ErrNoRows)
-			action := NewSetTraitsAction(NewAdminAction(map[string]interface{}{
-				"account_id":              account,
-				"block_incoming_payments": "false",
-			}, historyQ))
-			action.Validate()
-			assert.Equal(t, action.Err, &problem.NotFound)
-		})
 		Convey("happy path", func() {
 			// create new trait
 			var storedAcc history.Account
 			err := historyQ.AccountByAddress(&storedAcc, account)
 			So(err, ShouldBeNil)
-			expected := history.AccountTraits{
-				TotalOrderID:           storedAcc.TotalOrderID,
-				BlockIncomingPayments:  true,
-				BlockOutcomingPayments: false,
-			}
+			So(storedAcc.BlockIncomingPayments, ShouldBeFalse)
+			So(storedAcc.BlockOutcomingPayments, ShouldBeFalse)
+			storedAcc.BlockIncomingPayments = true
 			action := NewSetTraitsAction(NewAdminAction(map[string]interface{}{
 				"account_id":              account,
 				"block_incoming_payments": "true",
 			}, historyQ))
-			checkTraitsAction(action, account, expected, historyQ)
+			checkTraitsAction(action, storedAcc, historyQ)
 			// update
-			expected.BlockOutcomingPayments = true
+			storedAcc.BlockOutcomingPayments = true
 			action = NewSetTraitsAction(NewAdminAction(map[string]interface{}{
 				"account_id":               account,
 				"block_outcoming_payments": "true",
 			}, historyQ))
-			checkTraitsAction(action, account, expected, historyQ)
+			checkTraitsAction(action, storedAcc, historyQ)
 			// remove
-			expected.BlockOutcomingPayments = false
-			expected.BlockIncomingPayments = false
+			storedAcc.BlockOutcomingPayments = false
+			storedAcc.BlockIncomingPayments = false
 			action = NewSetTraitsAction(NewAdminAction(map[string]interface{}{
 				"account_id":               account,
 				"block_incoming_payments":  "false",
@@ -107,18 +90,18 @@ func TestActionsSetTraits(t *testing.T) {
 			So(action.Err, ShouldBeNil)
 			action.Apply()
 			So(action.Err, ShouldBeNil)
-			_, err = historyQ.AccountTraitsQ().ForAccount(account)
-			So(err, ShouldEqual, sql.ErrNoRows)
+			checkTraitsAction(action, storedAcc, historyQ)
 		})
 	})
 }
 
-func checkTraitsAction(action *SetTraitsAction, account string, expected history.AccountTraits, historyQ *history.Q) {
+func checkTraitsAction(action *SetTraitsAction,expected history.Account, historyQ *history.Q) {
 	action.Validate()
 	So(action.Err, ShouldBeNil)
 	action.Apply()
 	So(action.Err, ShouldBeNil)
-	actual, err := historyQ.AccountTraitsQ().ForAccount(account)
+	var actual history.Account
+	err := historyQ.AccountByAddress(&actual, expected.Address)
 	So(err, ShouldBeNil)
 	So(actual.TotalOrderID.ID, ShouldEqual, expected.TotalOrderID.ID)
 	So(actual.BlockIncomingPayments, ShouldEqual, expected.BlockIncomingPayments)

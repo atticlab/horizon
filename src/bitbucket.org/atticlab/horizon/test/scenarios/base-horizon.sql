@@ -15,7 +15,6 @@ SET row_security = off;
 
 SET search_path = public, pg_catalog;
 
-ALTER TABLE IF EXISTS ONLY public.account_traits DROP CONSTRAINT IF EXISTS account_traits_id_fkey;
 DROP INDEX IF EXISTS public.trade_effects_by_order_book;
 DROP INDEX IF EXISTS public.index_history_transactions_on_id;
 DROP INDEX IF EXISTS public.index_history_operations_on_type;
@@ -51,15 +50,12 @@ ALTER TABLE IF EXISTS ONLY public.history_transaction_participants DROP CONSTRAI
 ALTER TABLE IF EXISTS ONLY public.history_operation_participants DROP CONSTRAINT IF EXISTS history_operation_participants_pkey;
 ALTER TABLE IF EXISTS ONLY public.gorp_migrations DROP CONSTRAINT IF EXISTS gorp_migrations_pkey;
 ALTER TABLE IF EXISTS ONLY public.commission DROP CONSTRAINT IF EXISTS commission_pkey;
-ALTER TABLE IF EXISTS ONLY public.audit_log DROP CONSTRAINT IF EXISTS audit_log_pkey;
 ALTER TABLE IF EXISTS ONLY public.asset DROP CONSTRAINT IF EXISTS asset_pkey;
-ALTER TABLE IF EXISTS ONLY public.account_traits DROP CONSTRAINT IF EXISTS account_traits_pkey;
 ALTER TABLE IF EXISTS ONLY public.account_statistics DROP CONSTRAINT IF EXISTS account_statistics_pkey;
 ALTER TABLE IF EXISTS ONLY public.account_limits DROP CONSTRAINT IF EXISTS account_limits_pkey;
 ALTER TABLE IF EXISTS public.history_transaction_participants ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.history_operation_participants ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.commission ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.audit_log ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.asset ALTER COLUMN id DROP DEFAULT;
 DROP TABLE IF EXISTS public.history_transactions;
 DROP SEQUENCE IF EXISTS public.history_transaction_participants_id_seq;
@@ -73,11 +69,8 @@ DROP TABLE IF EXISTS public.history_accounts;
 DROP TABLE IF EXISTS public.gorp_migrations;
 DROP SEQUENCE IF EXISTS public.commission_id_seq;
 DROP TABLE IF EXISTS public.commission;
-DROP SEQUENCE IF EXISTS public.audit_log_id_seq;
-DROP TABLE IF EXISTS public.audit_log;
 DROP SEQUENCE IF EXISTS public.asset_id_seq;
 DROP TABLE IF EXISTS public.asset;
-DROP TABLE IF EXISTS public.account_traits;
 DROP TABLE IF EXISTS public.account_statistics;
 DROP TABLE IF EXISTS public.account_limits;
 DROP EXTENSION IF EXISTS hstore;
@@ -161,17 +154,6 @@ CREATE TABLE account_statistics (
 
 
 --
--- Name: account_traits; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE account_traits (
-    id bigint NOT NULL,
-    block_incoming_payments boolean DEFAULT false NOT NULL,
-    block_outcoming_payments boolean DEFAULT false NOT NULL
-);
-
-
---
 -- Name: asset; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -201,39 +183,6 @@ CREATE SEQUENCE asset_id_seq
 --
 
 ALTER SEQUENCE asset_id_seq OWNED BY asset.id;
-
-
---
--- Name: audit_log; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE audit_log (
-    id integer NOT NULL,
-    actor character varying(64),
-    subject text,
-    action text,
-    meta text,
-    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-
---
--- Name: audit_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE audit_log_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: audit_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE audit_log_id_seq OWNED BY audit_log.id;
 
 
 --
@@ -284,7 +233,11 @@ CREATE TABLE gorp_migrations (
 
 CREATE TABLE history_accounts (
     id bigint NOT NULL,
-    address character varying(64)
+    address character varying(64),
+    account_type integer NOT NULL,
+    block_incoming_payments boolean DEFAULT false NOT NULL,
+    block_outcoming_payments boolean DEFAULT false NOT NULL,
+    limited_assets jsonb
 );
 
 
@@ -435,13 +388,6 @@ ALTER TABLE ONLY asset ALTER COLUMN id SET DEFAULT nextval('asset_id_seq'::regcl
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY audit_log ALTER COLUMN id SET DEFAULT nextval('audit_log_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
 ALTER TABLE ONLY commission ALTER COLUMN id SET DEFAULT nextval('commission_id_seq'::regclass);
 
 
@@ -472,36 +418,16 @@ ALTER TABLE ONLY history_transaction_participants ALTER COLUMN id SET DEFAULT ne
 
 
 --
--- Data for Name: account_traits; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
---
 -- Data for Name: asset; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO asset VALUES (1, 1, 'UAH', 'GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R', false);
-INSERT INTO asset VALUES (2, 1, 'AUAH', 'GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R', true);
 
 
 --
 -- Name: asset_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('asset_id_seq', 3, true);
-
-
---
--- Data for Name: audit_log; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Name: audit_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('audit_log_id_seq', 1, false);
+SELECT pg_catalog.setval('asset_id_seq', 1, false);
 
 
 --
@@ -521,22 +447,21 @@ SELECT pg_catalog.setval('commission_id_seq', 1, false);
 -- Data for Name: gorp_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-08-16 17:38:46.42851+03');
-INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-08-16 17:38:46.538681+03');
-INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-08-16 17:38:46.632425+03');
-INSERT INTO gorp_migrations VALUES ('6_account_traits.sql', '2016-08-16 17:38:46.742437+03');
-INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-08-16 17:38:46.804957+03');
-INSERT INTO gorp_migrations VALUES ('8_account_limits_two_way.sql', '2016-08-16 17:38:46.851818+03');
-INSERT INTO gorp_migrations VALUES ('9_1_assets.sql', '2016-08-16 17:38:46.948658+03');
-INSERT INTO gorp_migrations VALUES ('9_commission.sql', '2016-08-16 17:38:47.255677+03');
+INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-08-29 13:32:13.972501+03');
+INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-08-29 13:32:14.085544+03');
+INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-08-29 13:32:14.166839+03');
+INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-08-29 13:32:14.216331+03');
+INSERT INTO gorp_migrations VALUES ('8_account_limits_two_way.sql', '2016-08-29 13:32:14.295168+03');
+INSERT INTO gorp_migrations VALUES ('9_1_assets.sql', '2016-08-29 13:32:14.385926+03');
+INSERT INTO gorp_migrations VALUES ('9_commission.sql', '2016-08-29 13:32:14.584626+03');
 
 
 --
 -- Data for Name: history_accounts; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO history_accounts VALUES (1, 'GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R');
-INSERT INTO history_accounts VALUES (2, 'GB45Q4BIHV52PK34LB56KKU4YDELVB3NGIZECZ4257H5DDSCUXC6ADGI');
+INSERT INTO history_accounts VALUES (1, 'GAWIB7ETYGSWULO4VB7D6S42YLPGIC7TY7Y2SSJKVOTMQXV5TILYWBUA', 6, false, false, NULL);
+INSERT INTO history_accounts VALUES (2, 'GCO5BZT5V3N3SK2CD5UKDSEQJBYFSIMYDV2B75SLKWEXLRYF5GNORYCG', 6, false, false, NULL);
 
 
 --
@@ -549,10 +474,11 @@ INSERT INTO history_accounts VALUES (2, 'GB45Q4BIHV52PK34LB56KKU4YDELVB3NGIZECZ4
 -- Data for Name: history_ledgers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO history_ledgers VALUES (1, '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', NULL, 0, 0, '1970-01-01 00:00:00', '2016-08-16 14:38:59.0238', '2016-08-16 14:38:59.0238', 4294967296, 8, 0, 0, 0, 0, 100);
-INSERT INTO history_ledgers VALUES (2, '2676c38de2a0ef7b52fd506719667d41522435e3e875363f34e5ac24b9a907a9', '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', 0, 0, '2016-08-16 14:38:55', '2016-08-16 14:38:59.056964', '2016-08-16 14:38:59.056964', 8589934592, 8, 0, 0, 0, 0, 50);
-INSERT INTO history_ledgers VALUES (3, 'b5a739ff727e470d2f844d928ccca6a84e053a869ac9e4ee542762fbce1a3e41', '2676c38de2a0ef7b52fd506719667d41522435e3e875363f34e5ac24b9a907a9', 0, 0, '2016-08-16 14:39:00', '2016-08-16 14:39:00.993807', '2016-08-16 14:39:00.993807', 12884901888, 8, 0, 0, 0, 0, 50);
-INSERT INTO history_ledgers VALUES (4, 'e7c5d0b2dc15348a91e57c6f7dd36ebe6e0b4022fb54a5b1efb8ef3f306eb330', 'b5a739ff727e470d2f844d928ccca6a84e053a869ac9e4ee542762fbce1a3e41', 0, 0, '2016-08-16 14:39:05', '2016-08-16 14:39:06.001414', '2016-08-16 14:39:06.001414', 17179869184, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (1, '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', NULL, 0, 0, '1970-01-01 00:00:00', '2016-08-29 10:32:59.936518', '2016-08-29 10:32:59.936518', 4294967296, 8, 0, 0, 0, 0, 100);
+INSERT INTO history_ledgers VALUES (2, '8f82ea129e775ce58bedae88dbcc03f609f8a75a04b22996b282c93428a1d42f', '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', 0, 0, '2016-07-11 13:58:28', '2016-08-29 10:33:00.069567', '2016-08-29 10:33:00.069567', 8589934592, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (3, '342b37c6bc3fef074065558cfaab377682604099212e884ff1b30575965e3d28', '8f82ea129e775ce58bedae88dbcc03f609f8a75a04b22996b282c93428a1d42f', 0, 0, '2016-07-11 13:58:33', '2016-08-29 10:33:00.157008', '2016-08-29 10:33:00.157008', 12884901888, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (4, '9d6778f2d9337c8093057f7df83d13d52d08cfe0ba33e116296f04d6e93f19d6', '342b37c6bc3fef074065558cfaab377682604099212e884ff1b30575965e3d28', 0, 0, '2016-07-11 13:58:38', '2016-08-29 10:33:00.244047', '2016-08-29 10:33:00.244047', 17179869184, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (5, 'b618c49cbc6f32eb3127bdb1f2fe32a5404f9372cfbe69754602cbe264e95c42', '9d6778f2d9337c8093057f7df83d13d52d08cfe0ba33e116296f04d6e93f19d6', 0, 0, '2016-07-11 13:58:43', '2016-08-29 10:33:00.335469', '2016-08-29 10:33:00.335469', 21474836480, 8, 0, 0, 0, 0, 50);
 
 
 --
@@ -610,27 +536,11 @@ ALTER TABLE ONLY account_statistics
 
 
 --
--- Name: account_traits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY account_traits
-    ADD CONSTRAINT account_traits_pkey PRIMARY KEY (id);
-
-
---
 -- Name: asset_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY asset
     ADD CONSTRAINT asset_pkey PRIMARY KEY (id);
-
-
---
--- Name: audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY audit_log
-    ADD CONSTRAINT audit_log_pkey PRIMARY KEY (id);
 
 
 --
@@ -880,14 +790,6 @@ CREATE UNIQUE INDEX index_history_transactions_on_id ON history_transactions USI
 --
 
 CREATE INDEX trade_effects_by_order_book ON history_effects USING btree (((details ->> 'sold_asset_type'::text)), ((details ->> 'sold_asset_code'::text)), ((details ->> 'sold_asset_issuer'::text)), ((details ->> 'bought_asset_type'::text)), ((details ->> 'bought_asset_code'::text)), ((details ->> 'bought_asset_issuer'::text))) WHERE (type = 33);
-
-
---
--- Name: account_traits_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY account_traits
-    ADD CONSTRAINT account_traits_id_fkey FOREIGN KEY (id) REFERENCES history_accounts(id);
 
 
 --
