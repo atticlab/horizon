@@ -9,19 +9,20 @@ import (
 
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
-	"github.com/PuerkitoBio/throttled"
-	"github.com/PuerkitoBio/throttled/store"
 	"github.com/rs/cors"
 	"github.com/sebest/xff"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
+	"bitbucket.org/atticlab/horizon/log"
+	"github.com/PuerkitoBio/throttled/store/redigostore"
+	"github.com/PuerkitoBio/throttled"
 )
 
 // Web contains the http server related fields for horizon: the router,
 // rate limiter, etc.
 type Web struct {
 	router      *web.Mux
-	rateLimiter *throttled.Throttler
+	rateLimiter *throttled.HTTPRateLimiter
 
 	requestTimer metrics.Timer
 	failureMeter metrics.Meter
@@ -136,20 +137,29 @@ func initWebActions(app *App) {
 }
 
 func initWebRateLimiter(app *App) {
-	rateLimitStore := store.NewMemStore(1000)
-
-	if app.redis != nil {
-		rateLimitStore = store.NewRedisStore(app.redis, "throttle:", 0)
+	if app.redis == nil {
+		log.Panic("Rate limiter requires redis")
 	}
 
-	rateLimiter := throttled.RateLimit(
-		app.config.RateLimit,
-		&throttled.VaryBy{Custom: remoteAddrIP},
-		rateLimitStore,
-	)
+	rateLimitStore, err := redigostore.New(app.redis, "throttle:", 0)
+	if err != nil {
+		log.WithField("error", err).Panic("Failed to create redis rate limiter store")
+	}
 
-	rateLimiter.DeniedHandler = &RateLimitExceededAction{App: app, Action: Action{}}
-	app.web.rateLimiter = rateLimiter
+	rateLimiter, err := throttled.NewGCRARateLimiter(rateLimitStore, app.config.RateLimit)
+	if err != nil {
+		log.WithField("error", err).Panic("Failed to create rate limiter")
+	}
+
+	app.web.rateLimiter = &throttled.HTTPRateLimiter{
+		DeniedHandler: &RateLimitExceededAction{App: app, Action: Action{}},
+		VaryBy: &throttled.VaryBy{Custom: remoteAddrIP},
+		RateLimiter: rateLimiter,
+		Error: func(w http.ResponseWriter, r *http.Request, err error) {
+			log.WithField("error", err).Error("Failed to rate limit")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		},
+	}
 }
 
 func remoteAddrIP(r *http.Request) string {

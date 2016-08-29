@@ -280,12 +280,15 @@ func initConfig() {
 	}
 
 	config = conf.Config{
-		DatabaseURL:               viper.GetString("db-url"),
-		StellarCoreDatabaseURL:    viper.GetString("stellar-core-db-url"),
-		StellarCoreURL:            viper.GetString("stellar-core-url"),
-		Autopump:                  viper.GetBool("autopump"),
-		Port:                      viper.GetInt("port"),
-		RateLimit:                 throttled.PerHour(viper.GetInt("per-hour-rate-limit")),
+		DatabaseURL:            viper.GetString("db-url"),
+		StellarCoreDatabaseURL: viper.GetString("stellar-core-db-url"),
+		StellarCoreURL:         viper.GetString("stellar-core-url"),
+		Autopump:               viper.GetBool("autopump"),
+		Port:                   viper.GetInt("port"),
+		RateLimit: throttled.RateQuota{
+			MaxRate: throttled.PerHour(viper.GetInt("per-hour-rate-limit")),
+			MaxBurst: 1,
+		},
 		RedisURL:                  viper.GetString("redis-url"),
 		LogLevel:                  ll,
 		SentryDSN:                 viper.GetString("sentry-dsn"),
