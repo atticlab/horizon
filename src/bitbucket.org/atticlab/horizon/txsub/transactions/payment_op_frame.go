@@ -29,7 +29,6 @@ func (p *PaymentOpFrame) GetAccountTypeValidator() validators.AccountTypeValidat
 }
 
 func NewPaymentOpFrame(opFrame *OperationFrame) *PaymentOpFrame {
-	opFrame.log.WithField("account", opFrame.SourceAccount).Error("NewPaymentOpFrame")
 	return &PaymentOpFrame{
 		OperationFrame: opFrame,
 		payment:        opFrame.Op.Body.MustPaymentOp(),

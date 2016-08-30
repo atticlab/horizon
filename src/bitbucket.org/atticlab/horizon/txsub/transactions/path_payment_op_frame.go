@@ -27,7 +27,6 @@ type PathPaymentOpFrame struct {
 }
 
 func NewPathPaymentOpFrame(opFrame *OperationFrame) *PathPaymentOpFrame {
-	opFrame.log.WithField("account", opFrame.SourceAccount).Error("NewPathPaymentOpFrame")
 	return &PathPaymentOpFrame{
 		OperationFrame: opFrame,
 		pathPayment:    opFrame.Op.Body.MustPathPaymentOp(),
