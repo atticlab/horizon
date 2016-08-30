@@ -14,7 +14,7 @@ func initIngester(app *App) {
 		log.Fatal("Cannot start ingestion without network passphrase.  Please confirm connectivity with stellar-core.")
 	}
 
-	app.ingester = ingest.New(app.networkPassphrase, app.CoreRepo(nil), app.HorizonRepo(nil), app.SharedCache().HistoryAccount)
+	app.ingester = ingest.New(app.networkPassphrase, app.CoreRepo(nil), app.HorizonRepo(nil), app.SharedCache().AccountHistoryCache)
 	app.ingester.Start()
 }
 

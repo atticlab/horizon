@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
@@ -11,8 +12,8 @@ import (
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
 	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/go-errors/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -69,7 +70,9 @@ func TestPaymentOpFrame(t *testing.T) {
 	inLimitsValidator := &validators.IncomingLimitsValidatorMock{}
 	paymentFrame.defaultInLimitsValidator = inLimitsValidator
 	coreQMock := &core.QMock{}
-	manager := NewManager(coreQMock, historyQMock, nil, &config)
+	manager := NewManager(coreQMock, historyQMock, nil, &config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQMock),
+	})
 	Convey("Invalid asset", t, func() {
 		assetVMock.On("GetValidAsset", mock.Anything).Return(nil, nil).Once()
 		isValid, err := opFrame.CheckValid(manager)
@@ -86,6 +89,9 @@ func TestPaymentOpFrame(t *testing.T) {
 		So(isValid, ShouldBeFalse)
 		So(opFrame.GetResult().Result.MustTr().MustPaymentResult().Code, ShouldEqual, xdr.PaymentResultCodePaymentNoDestination)
 	})
+	manager.SharedCache = &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQMock),
+	}
 	historyQMock.On("AccountByAddress", to.Address).Return(to, nil)
 	Convey("Dest trust line does not exists", t, func() {
 		coreQMock.On("TrustlineByAddressAndAsset", to.Address, destAsset.Code, destAsset.Issuer).Return(nil, sql.ErrNoRows).Once()

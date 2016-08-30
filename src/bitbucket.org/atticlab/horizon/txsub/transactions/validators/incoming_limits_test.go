@@ -12,11 +12,12 @@ import (
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
+	"database/sql"
 	"fmt"
+	"github.com/guregu/null"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"time"
-	"database/sql"
 )
 
 func TestIncomingLimits(t *testing.T) {
@@ -27,18 +28,19 @@ func TestIncomingLimits(t *testing.T) {
 	destKey, err := keypair.Random()
 	assert.Nil(t, err)
 	source := &history.Account{
-		Address:   sourceKey.Address(),
+		Address:     sourceKey.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
 	}
-	destination := &history.Account{
-		Address:   destKey.Address(),
-		AccountType: xdr.AccountTypeAccountAnonymousUser,
-	}
-	opAmount := int64(amount.One * 100)
 	opAsset := history.Asset{
 		Code:        "UAH",
 		IsAnonymous: false,
 	}
+	destination := &history.Account{
+		Address:       destKey.Address(),
+		AccountType:   xdr.AccountTypeAccountAnonymousUser,
+		LimitedAssets: null.StringFrom(fmt.Sprintf("{\"%s\":true}", opAsset.Code)),
+	}
+	opAmount := int64(amount.One * 100)
 
 	opData := statistics.NewOperationData(source, 0, "random_tx_hash")
 	paymentData := statistics.NewPaymentData(destination, opAsset, opAmount, opData)
@@ -115,7 +117,7 @@ func TestIncomingLimits(t *testing.T) {
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
 			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf("Daily incoming payments limit for account exceeded: %s out of %s %s.",
-				amount.String(xdr.Int64(opAmount + opAmount)),
+				amount.String(xdr.Int64(opAmount+opAmount)),
 				amount.String(xdr.Int64(limits.DailyMaxIn)),
 				opAsset.Code,
 			)}, result)
@@ -138,7 +140,7 @@ func TestIncomingLimits(t *testing.T) {
 			result, err := v.VerifyLimits()
 			So(err, ShouldBeNil)
 			assert.Equal(t, &results.ExceededLimitError{Description: fmt.Sprintf("Monthly incoming payments limit for account exceeded: %s out of %s %s.",
-				amount.String(xdr.Int64(opAmount + opAmount)),
+				amount.String(xdr.Int64(opAmount+opAmount)),
 				amount.String(xdr.Int64(limits.MonthlyMaxIn)),
 				opAsset.Code,
 			)}, result)

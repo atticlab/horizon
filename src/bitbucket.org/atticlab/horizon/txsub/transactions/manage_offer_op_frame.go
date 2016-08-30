@@ -6,11 +6,11 @@ import (
 )
 
 type ManageOfferOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	manageOffer xdr.ManageOfferOp
 }
 
-func NewManageOfferOpFrame(opFrame OperationFrame) *ManageOfferOpFrame {
+func NewManageOfferOpFrame(opFrame *OperationFrame) *ManageOfferOpFrame {
 	return &ManageOfferOpFrame{
 		OperationFrame: opFrame,
 		manageOffer:    opFrame.Op.Body.MustManageOfferOp(),

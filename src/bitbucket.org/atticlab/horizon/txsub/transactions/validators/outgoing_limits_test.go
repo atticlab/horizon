@@ -16,6 +16,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"time"
+	"github.com/guregu/null"
 )
 
 func TestOutgoingLimits(t *testing.T) {
@@ -25,19 +26,20 @@ func TestOutgoingLimits(t *testing.T) {
 	assert.Nil(t, err)
 	destKey, err := keypair.Random()
 	assert.Nil(t, err)
+	opAsset := history.Asset{
+		Code:        "UAH",
+		IsAnonymous: false,
+	}
 	source := &history.Account{
 		Address:     sourceKey.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
+		LimitedAssets: null.StringFrom(fmt.Sprintf("{\"%s\":true}", opAsset.Code)),
 	}
 	dest := &history.Account{
 		Address:     destKey.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
 	}
 	opAmount := int64(amount.One * 100)
-	opAsset := history.Asset{
-		Code:        "UAH",
-		IsAnonymous: false,
-	}
 	sourceLimits := history.AccountLimits{
 		Account:         source.Address,
 		AssetCode:       opAsset.Code,

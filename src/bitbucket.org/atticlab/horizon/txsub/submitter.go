@@ -37,9 +37,9 @@ func NewDefaultSubmitter(
 	coreDb *core.Q,
 	historyDb *history.Q,
 	config *conf.Config,
-	historyAccountCache *cache.HistoryAccount,
+	sharedCache *cache.SharedCache,
 ) Submitter {
-	return createSubmitter(h, url, coreDb, historyDb, config, historyAccountCache)
+	return createSubmitter(h, url, coreDb, historyDb, config, sharedCache)
 }
 
 // coreSubmissionResponse is the json response from stellar-core's tx endpoint
@@ -60,20 +60,20 @@ type submitter struct {
 	config   *conf.Config
 	Log      *log.Entry
 
-	defaultTxValidator  TransactionValidatorInterface
-	historyAccountCache *cache.HistoryAccount
+	defaultTxValidator TransactionValidatorInterface
+	commissionManager  *commissions.CommissionsManager
 }
 
-func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config, historyAccountCache *cache.HistoryAccount) *submitter {
+func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config, sharedCache *cache.SharedCache) *submitter {
 	return &submitter{
-		http:                h,
-		coreURL:             url,
-		coreQ:               coreDb,
-		historyQ:            historyDb,
-		config:              config,
-		historyAccountCache: historyAccountCache,
-		defaultTxValidator:  NewTransactionValidator(transactions.NewManager(coreDb, historyDb, statistics.NewManager(historyDb, accounttype.GetAll(), config), config, historyAccountCache)),
-		Log:                 log.WithField("service", "submitter"),
+		http:               h,
+		coreURL:            url,
+		coreQ:              coreDb,
+		historyQ:           historyDb,
+		config:             config,
+		commissionManager:  commissions.New(sharedCache, historyDb),
+		defaultTxValidator: NewTransactionValidator(transactions.NewManager(coreDb, historyDb, statistics.NewManager(historyDb, accounttype.GetAll(), config), config, sharedCache)),
+		Log:                log.WithField("service", "submitter"),
 	}
 }
 
@@ -84,8 +84,7 @@ func (sub *submitter) Submit(ctx context.Context, env *transactions.EnvelopeInfo
 	defer func() { result.Duration = time.Since(start) }()
 
 	sub.Log.Debug("Setting commission")
-	cm := commissions.New(sub.historyAccountCache, sub.historyQ)
-	err := cm.SetCommissions(env.Tx)
+	err := sub.commissionManager.SetCommissions(env.Tx)
 	if err != nil {
 		log.WithField("Error", err).Error("Failed to set commissions")
 		result.Err = &problem.ServerError

@@ -12,7 +12,7 @@ func initCacheFromApp(app *App) {
 
 func initCache(history *history.Q) *cache.SharedCache {
 	return &cache.SharedCache{
-		HistoryAccount: cache.NewHistoryAccountWithExp(history, time.Duration(2)*time.Minute, time.Duration(10)*time.Second),
+		AccountHistoryCache: cache.NewHistoryAccountWithExp(history, time.Duration(2)*time.Minute, time.Duration(10)*time.Second),
 	}
 }
 

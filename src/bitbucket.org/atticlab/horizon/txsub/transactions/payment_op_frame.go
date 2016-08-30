@@ -9,7 +9,7 @@ import (
 )
 
 type PaymentOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	payment                   xdr.PaymentOp
 
 	accountTypeValidator      validators.AccountTypeValidatorInterface
@@ -28,7 +28,8 @@ func (p *PaymentOpFrame) GetAccountTypeValidator() validators.AccountTypeValidat
 	return p.accountTypeValidator
 }
 
-func NewPaymentOpFrame(opFrame OperationFrame) *PaymentOpFrame {
+func NewPaymentOpFrame(opFrame *OperationFrame) *PaymentOpFrame {
+	opFrame.log.WithField("account", opFrame.SourceAccount).Error("NewPaymentOpFrame")
 	return &PaymentOpFrame{
 		OperationFrame: opFrame,
 		payment:        opFrame.Op.Body.MustPaymentOp(),
@@ -113,7 +114,7 @@ func (p *PaymentOpFrame) createPathPayment(manager *Manager) *PathPaymentOpFrame
 	ppayment := innerOp.(*PathPaymentOpFrame)
 	ppayment.accountTypeValidator = p.GetAccountTypeValidator()
 	ppayment.assetsValidator = p.GetAssetsValidator(manager.HistoryQ)
-	ppayment.traitsValidator = p.GetTraitsValidator(manager.HistoryQ)
+	ppayment.traitsValidator = p.GetTraitsValidator()
 	ppayment.defaultOutLimitsValidator = p.defaultOutLimitsValidator
 	ppayment.defaultInLimitsValidator = p.defaultInLimitsValidator
 	return ppayment
@@ -127,9 +128,9 @@ func (p *PaymentOpFrame) GetAssetsValidator(historyQ history.QInterface) validat
 	return p.assetsValidator
 }
 
-func (p *PaymentOpFrame) GetTraitsValidator(historyQ history.QInterface) validators.TraitsValidatorInterface {
+func (p *PaymentOpFrame) GetTraitsValidator() validators.TraitsValidatorInterface {
 	if p.traitsValidator == nil {
-		p.traitsValidator = validators.NewTraitsValidator(historyQ)
+		p.traitsValidator = validators.NewTraitsValidator()
 	}
 	return p.traitsValidator
 }

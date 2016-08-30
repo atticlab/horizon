@@ -57,6 +57,8 @@ type QInterface interface {
 	DeleteCommission(hash string) (bool, error)
 	// update commission
 	UpdateCommission(commission *Commission) (bool, error)
+	// get highest weight commission
+	GetHighestWeightCommission(keys map[string]CommissionKey) (resultingCommissions []Commission, err error)
 }
 
 // Q is default implementation of QInterface

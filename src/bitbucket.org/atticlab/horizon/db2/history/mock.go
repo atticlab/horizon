@@ -46,12 +46,6 @@ func (m *QMock) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountS
 	return a.Error(1)
 }
 
-// Traits
-
-type AccountTraitsQMock struct {
-	mock.Mock
-}
-
 func (m *QMock) Asset(dest interface{}, asset xdr.Asset) error {
 	log.Debug("Asset is called")
 	a := m.Called(asset)
@@ -118,6 +112,10 @@ func (m *QMock) UpdateCommission(commission *Commission) (bool, error) {
 	return false, nil
 }
 
+func (m *QMock) AccountUpdate(account *Account) error {
+	return m.Called(account).Error(0)
+}
+
 func (m *QMock) AccountIDByAddress(addy string) (int64, error) {
 	a := m.Called(addy)
 	return a.Get(0).(int64), a.Error(1)
@@ -131,6 +129,11 @@ func (m *QMock) GetAccountStatistics(address string, assetCode string, counterPa
 func (m *QMock) AssetByParams(dest interface{}, assetType int, code string, issuer string) error {
 	a := m.Called(dest, assetType, code, issuer)
 	return a.Error(0)
+}
+
+func (m *QMock) GetHighestWeightCommission(keys map[string]CommissionKey) (resultingCommissions []Commission, err error) {
+	a := m.Called(keys)
+	return a.Get(0).([]Commission), a.Error(1)
 }
 
 func CreateRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {

@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
@@ -28,7 +29,9 @@ func TestPathPaymentOpFrame(t *testing.T) {
 	}
 	config := test.NewTestConfig()
 
-	manager := NewManager(coreQ, historyQ, nil, &config)
+	manager := NewManager(coreQ, historyQ, nil, &config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQ),
+	})
 
 	root := test.BankMasterSeed()
 

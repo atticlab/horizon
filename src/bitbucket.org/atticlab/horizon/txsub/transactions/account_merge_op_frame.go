@@ -5,11 +5,11 @@ import (
 )
 
 type AccountMergeOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	operation xdr.AccountId
 }
 
-func NewAccountMergeOpFrame(opFrame OperationFrame) *AccountMergeOpFrame {
+func NewAccountMergeOpFrame(opFrame *OperationFrame) *AccountMergeOpFrame {
 	return &AccountMergeOpFrame{
 		OperationFrame: opFrame,
 		operation: opFrame.Op.Body.MustDestination(),

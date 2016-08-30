@@ -14,13 +14,13 @@ import (
 )
 
 type CommissionsManager struct {
-	historyAccountCache *cache.HistoryAccount
-	HistoryQ            *history.Q
+	SharedCache *cache.SharedCache
+	HistoryQ    history.QInterface
 }
 
-func New(historyAccountCache *cache.HistoryAccount, histQ *history.Q) CommissionsManager {
-	return CommissionsManager{
-		historyAccountCache: historyAccountCache,
+func New(sharedCache *cache.SharedCache, histQ history.QInterface) *CommissionsManager {
+	return &CommissionsManager{
+		SharedCache: sharedCache,
 		HistoryQ:            histQ,
 	}
 }
@@ -63,7 +63,7 @@ func (cm *CommissionsManager) CalculateCommissionForOperation(txSource xdr.Accou
 
 // gets account's type from core db, if account does not exist and mustExists - returns error, if mustExists false - xdr.AccountTypeAccountAnonymousUser
 func (cm *CommissionsManager) getAccountType(accountId string, mustExists bool) (int32, error) {
-	account, err := cm.historyAccountCache.Get(accountId)
+	account, err := cm.SharedCache.AccountHistoryCache.Get(accountId)
 	if err != nil {
 		if err == sql.ErrNoRows && !mustExists {
 			return int32(xdr.AccountTypeAccountAnonymousUser), nil

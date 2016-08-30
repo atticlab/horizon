@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
+	"bitbucket.org/atticlab/horizon/cache"
 )
 
 func TestAdministrativeOpFrame(t *testing.T) {
@@ -31,7 +32,9 @@ func TestAdministrativeOpFrame(t *testing.T) {
 	}
 	config := test.NewTestConfig()
 
-	manager := NewManager(coreQ, historyQ, nil, &config)
+	manager := NewManager(coreQ, historyQ, nil, &config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQ),
+	})
 
 	root := test.BankMasterSeed()
 

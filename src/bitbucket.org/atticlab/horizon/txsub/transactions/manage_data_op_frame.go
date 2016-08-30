@@ -5,11 +5,11 @@ import (
 )
 
 type ManageDataOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	operation xdr.ManageDataOp
 }
 
-func NewManageDataOpFrame(opFrame OperationFrame) *ManageDataOpFrame {
+func NewManageDataOpFrame(opFrame *OperationFrame) *ManageDataOpFrame {
 	return &ManageDataOpFrame{
 		OperationFrame: opFrame,
 		operation:      opFrame.Op.Body.MustManageDataOp(),

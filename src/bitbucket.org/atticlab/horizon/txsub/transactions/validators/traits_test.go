@@ -6,7 +6,6 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
-	"database/sql"
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -14,10 +13,7 @@ import (
 )
 
 func TestTraits(t *testing.T) {
-	histMock := history.QMock{}
-	traitsMock := history.AccountTraitsQMock{}
-	histMock.On("AccountTraitsQ").Return(&traitsMock)
-	traits := NewTraitsValidator(&histMock)
+	traits := NewTraitsValidator()
 	Convey("Traits test:", t, func() {
 		sourceKP, err := keypair.Random()
 		So(err, ShouldBeNil)
@@ -36,30 +32,19 @@ func TestTraits(t *testing.T) {
 			Address: destKP.Address(),
 		}
 		Convey("Both accounts does not have traits", func() {
-			traitsMock.On("ByID", source.ID).Return(history.AccountTraits{}, sql.ErrNoRows).Once()
-			traitsMock.On("ByID", dest.ID).Return(history.AccountTraits{}, sql.ErrNoRows).Once()
 			result, err := traits.CheckTraits(source, dest)
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
 		})
 		Convey("Both accounts have traits, but not blocked", func() {
-			traitsMock.On("ByID", source.ID).Return(history.AccountTraits{
-				BlockOutcomingPayments: false,
-				BlockIncomingPayments:  true,
-			}, nil).Once()
-			traitsMock.On("ByID", dest.ID).Return(history.AccountTraits{
-				BlockOutcomingPayments: true,
-				BlockIncomingPayments:  false,
-			}, nil).Once()
+			source.BlockIncomingPayments = true
+			dest.BlockOutcomingPayments = true
 			result, err := traits.CheckTraits(source, dest)
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
 		})
 		Convey("Source is blocked", func() {
-			traitsMock.On("ByID", source.ID).Return(history.AccountTraits{
-				BlockOutcomingPayments: true,
-				BlockIncomingPayments:  false,
-			}, nil).Once()
+			source.BlockOutcomingPayments = true
 			result, err := traits.CheckTraits(source, dest)
 			So(err, ShouldBeNil)
 			assert.Equal(t, result, &results.RestrictedForAccountError{
@@ -67,14 +52,8 @@ func TestTraits(t *testing.T) {
 			})
 		})
 		Convey("Dest is blocked", func() {
-			traitsMock.On("ByID", source.ID).Return(history.AccountTraits{
-				BlockOutcomingPayments: false,
-				BlockIncomingPayments:  true,
-			}, nil).Once()
-			traitsMock.On("ByID", dest.ID).Return(history.AccountTraits{
-				BlockOutcomingPayments: false,
-				BlockIncomingPayments:  true,
-			}, nil).Once()
+			source.BlockOutcomingPayments = false
+			dest.BlockIncomingPayments = true
 			result, err := traits.CheckTraits(source, dest)
 			So(err, ShouldBeNil)
 			assert.Equal(t, result, &results.RestrictedForAccountError{

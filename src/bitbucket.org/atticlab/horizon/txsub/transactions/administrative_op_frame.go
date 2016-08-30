@@ -10,12 +10,12 @@ import (
 )
 
 type AdministrativeOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	operation           xdr.AdministrativeOp
 	adminActionProvider admin.AdminActionProviderInterface
 }
 
-func NewAdministrativeOpFrame(opFrame OperationFrame) *AdministrativeOpFrame {
+func NewAdministrativeOpFrame(opFrame *OperationFrame) *AdministrativeOpFrame {
 	return &AdministrativeOpFrame{
 		OperationFrame: opFrame,
 		operation:      opFrame.Op.Body.MustAdminOp(),

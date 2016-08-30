@@ -215,6 +215,7 @@ func NewTestConfig() config.Config {
 		RedisURL:               RedisURL(),
 		RateLimit:              throttled.RateQuota{
 			MaxRate: throttled.PerHour(1000),
+			MaxBurst: 1000,
 		},
 		LogLevel:               hlog.DebugLevel,
 		AdminSignatureValid:    time.Duration(60) * time.Second,

@@ -12,12 +12,10 @@ type TraitsValidatorInterface interface {
 }
 
 type TraitsValidator struct {
-	historyQ history.QInterface
 }
 
-func NewTraitsValidator(historyQ history.QInterface) *TraitsValidator {
+func NewTraitsValidator() *TraitsValidator {
 	return &TraitsValidator{
-		historyQ: historyQ,
 	}
 }
 

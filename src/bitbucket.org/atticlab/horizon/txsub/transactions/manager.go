@@ -9,19 +9,19 @@ import (
 )
 
 type Manager struct {
-	AccountHistoryCache *cache.HistoryAccount
-	CoreQ               core.QInterface
-	HistoryQ            history.QInterface
-	StatsManager        statistics.ManagerInterface
-	Config              *config.Config
+	*cache.SharedCache
+	CoreQ        core.QInterface
+	HistoryQ     history.QInterface
+	StatsManager statistics.ManagerInterface
+	Config       *config.Config
 }
 
-func NewManager(core core.QInterface, history history.QInterface, statsManager statistics.ManagerInterface, config *config.Config, accountHistoryCache *cache.HistoryAccount) *Manager {
+func NewManager(core core.QInterface, history history.QInterface, statsManager statistics.ManagerInterface, config *config.Config, sharedCache *cache.SharedCache) *Manager {
 	return &Manager{
-		CoreQ:               core,
-		HistoryQ:            history,
-		StatsManager:        statsManager,
-		Config:              config,
-		AccountHistoryCache: accountHistoryCache,
+		CoreQ:        core,
+		HistoryQ:     history,
+		StatsManager: statsManager,
+		Config:       config,
+		SharedCache:  sharedCache,
 	}
 }

@@ -11,7 +11,6 @@ SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
-SET row_security = off;
 
 SET search_path = public, pg_catalog;
 
@@ -27,6 +26,7 @@ DROP INDEX IF EXISTS public.index_history_ledgers_on_importer_version;
 DROP INDEX IF EXISTS public.index_history_ledgers_on_id;
 DROP INDEX IF EXISTS public.index_history_ledgers_on_closed_at;
 DROP INDEX IF EXISTS public.index_history_effects_on_type;
+DROP INDEX IF EXISTS public.index_history_accounts_with_traits;
 DROP INDEX IF EXISTS public.index_history_accounts_on_id;
 DROP INDEX IF EXISTS public.index_history_accounts_on_address;
 DROP INDEX IF EXISTS public.htp_by_htid;
@@ -421,13 +421,15 @@ ALTER TABLE ONLY history_transaction_participants ALTER COLUMN id SET DEFAULT ne
 -- Data for Name: asset; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+INSERT INTO asset VALUES (1, 1, 'UAH', 'GAWIB7ETYGSWULO4VB7D6S42YLPGIC7TY7Y2SSJKVOTMQXV5TILYWBUA', false);
+INSERT INTO asset VALUES (2, 1, 'AUAH', 'GAWIB7ETYGSWULO4VB7D6S42YLPGIC7TY7Y2SSJKVOTMQXV5TILYWBUA', true);
 
 
 --
 -- Name: asset_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('asset_id_seq', 1, false);
+SELECT pg_catalog.setval('asset_id_seq', 5, true);
 
 
 --
@@ -447,13 +449,13 @@ SELECT pg_catalog.setval('commission_id_seq', 1, false);
 -- Data for Name: gorp_migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-08-29 13:32:13.972501+03');
-INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-08-29 13:32:14.085544+03');
-INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-08-29 13:32:14.166839+03');
-INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-08-29 13:32:14.216331+03');
-INSERT INTO gorp_migrations VALUES ('8_account_limits_two_way.sql', '2016-08-29 13:32:14.295168+03');
-INSERT INTO gorp_migrations VALUES ('9_1_assets.sql', '2016-08-29 13:32:14.385926+03');
-INSERT INTO gorp_migrations VALUES ('9_commission.sql', '2016-08-29 13:32:14.584626+03');
+INSERT INTO gorp_migrations VALUES ('1_initial_schema.sql', '2016-08-29 19:57:15.165426+03');
+INSERT INTO gorp_migrations VALUES ('2_index_participants_by_toid.sql', '2016-08-29 19:57:15.308528+03');
+INSERT INTO gorp_migrations VALUES ('3_aggregate_expenses_for_accounts.sql', '2016-08-29 19:57:15.386641+03');
+INSERT INTO gorp_migrations VALUES ('7_account_limits.sql', '2016-08-29 19:57:15.417908+03');
+INSERT INTO gorp_migrations VALUES ('8_account_limits_two_way.sql', '2016-08-29 19:57:15.527272+03');
+INSERT INTO gorp_migrations VALUES ('9_1_assets.sql', '2016-08-29 19:57:15.621227+03');
+INSERT INTO gorp_migrations VALUES ('9_commission.sql', '2016-08-29 19:57:15.817471+03');
 
 
 --
@@ -474,11 +476,11 @@ INSERT INTO history_accounts VALUES (2, 'GCO5BZT5V3N3SK2CD5UKDSEQJBYFSIMYDV2B75S
 -- Data for Name: history_ledgers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO history_ledgers VALUES (1, '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', NULL, 0, 0, '1970-01-01 00:00:00', '2016-08-29 10:32:59.936518', '2016-08-29 10:32:59.936518', 4294967296, 8, 0, 0, 0, 0, 100);
-INSERT INTO history_ledgers VALUES (2, '8f82ea129e775ce58bedae88dbcc03f609f8a75a04b22996b282c93428a1d42f', '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', 0, 0, '2016-07-11 13:58:28', '2016-08-29 10:33:00.069567', '2016-08-29 10:33:00.069567', 8589934592, 8, 0, 0, 0, 0, 50);
-INSERT INTO history_ledgers VALUES (3, '342b37c6bc3fef074065558cfaab377682604099212e884ff1b30575965e3d28', '8f82ea129e775ce58bedae88dbcc03f609f8a75a04b22996b282c93428a1d42f', 0, 0, '2016-07-11 13:58:33', '2016-08-29 10:33:00.157008', '2016-08-29 10:33:00.157008', 12884901888, 8, 0, 0, 0, 0, 50);
-INSERT INTO history_ledgers VALUES (4, '9d6778f2d9337c8093057f7df83d13d52d08cfe0ba33e116296f04d6e93f19d6', '342b37c6bc3fef074065558cfaab377682604099212e884ff1b30575965e3d28', 0, 0, '2016-07-11 13:58:38', '2016-08-29 10:33:00.244047', '2016-08-29 10:33:00.244047', 17179869184, 8, 0, 0, 0, 0, 50);
-INSERT INTO history_ledgers VALUES (5, 'b618c49cbc6f32eb3127bdb1f2fe32a5404f9372cfbe69754602cbe264e95c42', '9d6778f2d9337c8093057f7df83d13d52d08cfe0ba33e116296f04d6e93f19d6', 0, 0, '2016-07-11 13:58:43', '2016-08-29 10:33:00.335469', '2016-08-29 10:33:00.335469', 21474836480, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (1, '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', NULL, 0, 0, '1970-01-01 00:00:00', '2016-08-29 16:57:20.087168', '2016-08-29 16:57:20.087168', 4294967296, 8, 0, 0, 0, 0, 100);
+INSERT INTO history_ledgers VALUES (2, '8f82ea129e775ce58bedae88dbcc03f609f8a75a04b22996b282c93428a1d42f', '0009617b7db56ad0f0fb977c6930e9f6a3bacd489d184457e8fd7ac05f6a2915', 0, 0, '2016-07-11 13:58:28', '2016-08-29 16:57:20.180939', '2016-08-29 16:57:20.180939', 8589934592, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (3, '342b37c6bc3fef074065558cfaab377682604099212e884ff1b30575965e3d28', '8f82ea129e775ce58bedae88dbcc03f609f8a75a04b22996b282c93428a1d42f', 0, 0, '2016-07-11 13:58:33', '2016-08-29 16:57:20.290309', '2016-08-29 16:57:20.290309', 12884901888, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (4, '9d6778f2d9337c8093057f7df83d13d52d08cfe0ba33e116296f04d6e93f19d6', '342b37c6bc3fef074065558cfaab377682604099212e884ff1b30575965e3d28', 0, 0, '2016-07-11 13:58:38', '2016-08-29 16:57:20.368438', '2016-08-29 16:57:20.368438', 17179869184, 8, 0, 0, 0, 0, 50);
+INSERT INTO history_ledgers VALUES (5, 'b618c49cbc6f32eb3127bdb1f2fe32a5404f9372cfbe69754602cbe264e95c42', '9d6778f2d9337c8093057f7df83d13d52d08cfe0ba33e116296f04d6e93f19d6', 0, 0, '2016-07-11 13:58:43', '2016-08-29 16:57:20.477814', '2016-08-29 16:57:20.477814', 21474836480, 8, 0, 0, 0, 0, 50);
 
 
 --
@@ -706,6 +708,13 @@ CREATE UNIQUE INDEX index_history_accounts_on_address ON history_accounts USING 
 --
 
 CREATE UNIQUE INDEX index_history_accounts_on_id ON history_accounts USING btree (id);
+
+
+--
+-- Name: index_history_accounts_with_traits; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_history_accounts_with_traits ON history_accounts USING btree (id) WHERE ((block_incoming_payments = true) OR (block_outcoming_payments = true));
 
 
 --

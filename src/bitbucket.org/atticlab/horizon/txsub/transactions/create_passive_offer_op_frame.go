@@ -6,11 +6,11 @@ import (
 )
 
 type CreatePassiveOfferOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	createPassiveOffer xdr.CreatePassiveOfferOp
 }
 
-func NewCreatePassiveOfferOpFrame(opFrame OperationFrame) *CreatePassiveOfferOpFrame {
+func NewCreatePassiveOfferOpFrame(opFrame *OperationFrame) *CreatePassiveOfferOpFrame {
 	return &CreatePassiveOfferOpFrame{
 		OperationFrame:     opFrame,
 		createPassiveOffer: opFrame.Op.Body.MustCreatePassiveOfferOp(),
@@ -48,7 +48,7 @@ func (p *CreatePassiveOfferOpFrame) createManageOfferFrame() *ManageOfferOpFrame
 			},
 		},
 	}
-	return NewManageOfferOpFrame(OperationFrame{
+	return NewManageOfferOpFrame(&OperationFrame{
 		Op:       &resultOp,
 		ParentTxFrame: p.ParentTxFrame,
 		Result: &results.OperationResult{

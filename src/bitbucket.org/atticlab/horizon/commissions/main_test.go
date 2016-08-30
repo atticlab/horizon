@@ -4,28 +4,15 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"math"
 	"testing"
 )
-
-type mockAccountProvider struct {
-	mock.Mock
-}
-
-func (m *mockAccountProvider) AccountByAddress(dest interface{}, addy string) error {
-	a := m.Called(addy)
-	account := a.Get(0).(core.Account)
-	descAccount := dest.(*core.Account)
-	*descAccount = account
-	return a.Error(1)
-}
 
 func TestCommission(t *testing.T) {
 	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
@@ -59,22 +46,24 @@ func TestCommission(t *testing.T) {
 	Convey("get account type", t, func() {
 		account, err := keypair.Random()
 		assert.Nil(t, err)
-		accountProvider := new(mockAccountProvider)
-		cm := New(accountProvider, nil)
+		historyQMock := &history.QMock{}
+		cm := New(&cache.SharedCache{
+			AccountHistoryCache: cache.NewHistoryAccount(historyQMock),
+		}, historyQMock)
 		Convey("source does not exist", func() {
-			accountProvider.On("AccountByAddress", account.Address()).Return(core.Account{}, sql.ErrNoRows)
+			historyQMock.On("AccountByAddress", account.Address()).Return(history.Account{}, sql.ErrNoRows)
 			_, err := cm.getAccountType(account.Address(), true)
 			assert.Equal(t, sql.ErrNoRows, err)
 		})
 		Convey("dest does not exist", func() {
-			accountProvider.On("AccountByAddress", account.Address()).Return(core.Account{}, sql.ErrNoRows)
+			historyQMock.On("AccountByAddress", account.Address()).Return(history.Account{}, sql.ErrNoRows)
 			accType, err := cm.getAccountType(account.Address(), false)
 			assert.Nil(t, err)
 			assert.Equal(t, int32(xdr.AccountTypeAccountAnonymousUser), accType)
 		})
 		Convey("source exists", func() {
 			expectedType := xdr.AccountTypeAccountExchangeAgent
-			accountProvider.On("AccountByAddress", account.Address()).Return(core.Account{
+			historyQMock.On("AccountByAddress", account.Address()).Return(history.Account{
 				AccountType: expectedType,
 			}, nil)
 			accType, err := cm.getAccountType(account.Address(), true)
@@ -83,7 +72,7 @@ func TestCommission(t *testing.T) {
 		})
 		Convey("dest exists", func() {
 			expectedType := xdr.AccountTypeAccountDistributionAgent
-			accountProvider.On("AccountByAddress", account.Address()).Return(core.Account{
+			historyQMock.On("AccountByAddress", account.Address()).Return(history.Account{
 				AccountType: expectedType,
 			}, nil)
 			accType, err := cm.getAccountType(account.Address(), false)

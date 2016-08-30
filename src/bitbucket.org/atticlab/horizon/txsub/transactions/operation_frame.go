@@ -50,29 +50,29 @@ func (opFrame *OperationFrame) GetInnerOp() (OperationInterface, error) {
 	var innerOp OperationInterface
 	switch opFrame.Op.Body.Type {
 	case xdr.OperationTypeCreateAccount:
-		innerOp = NewCreateAccountOpFrame(*opFrame)
+		innerOp = NewCreateAccountOpFrame(opFrame)
 	case xdr.OperationTypePayment:
-		innerOp = NewPaymentOpFrame(*opFrame)
+		innerOp = NewPaymentOpFrame(opFrame)
 	case xdr.OperationTypePathPayment:
-		innerOp = NewPathPaymentOpFrame(*opFrame)
+		innerOp = NewPathPaymentOpFrame(opFrame)
 	case xdr.OperationTypeManageOffer:
-		innerOp = NewManageOfferOpFrame(*opFrame)
+		innerOp = NewManageOfferOpFrame(opFrame)
 	case xdr.OperationTypeCreatePassiveOffer:
-		innerOp = NewCreatePassiveOfferOpFrame(*opFrame)
+		innerOp = NewCreatePassiveOfferOpFrame(opFrame)
 	case xdr.OperationTypeSetOptions:
-		innerOp = NewSetOptionsOpFrame(*opFrame)
+		innerOp = NewSetOptionsOpFrame(opFrame)
 	case xdr.OperationTypeChangeTrust:
-		innerOp = NewChangeTrustOpFrame(*opFrame)
+		innerOp = NewChangeTrustOpFrame(opFrame)
 	case xdr.OperationTypeAllowTrust:
-		innerOp = NewAllowTrustOpFrame(*opFrame)
+		innerOp = NewAllowTrustOpFrame(opFrame)
 	case xdr.OperationTypeAccountMerge:
-		innerOp = NewAccountMergeOpFrame(*opFrame)
+		innerOp = NewAccountMergeOpFrame(opFrame)
 	case xdr.OperationTypeInflation:
-		innerOp = NewInflationOpFrame(*opFrame)
+		innerOp = NewInflationOpFrame(opFrame)
 	case xdr.OperationTypeManageData:
-		innerOp = NewManageDataOpFrame(*opFrame)
+		innerOp = NewManageDataOpFrame(opFrame)
 	case xdr.OperationTypeAdministrative:
-		innerOp = NewAdministrativeOpFrame(*opFrame)
+		innerOp = NewAdministrativeOpFrame(opFrame)
 	default:
 		return nil, errors.New("unknown operation")
 	}

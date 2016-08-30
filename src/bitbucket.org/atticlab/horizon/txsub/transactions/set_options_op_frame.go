@@ -5,11 +5,11 @@ import (
 )
 
 type SetOptionsOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	operation xdr.SetOptionsOp
 }
 
-func NewSetOptionsOpFrame(opFrame OperationFrame) *SetOptionsOpFrame {
+func NewSetOptionsOpFrame(opFrame *OperationFrame) *SetOptionsOpFrame {
 	return &SetOptionsOpFrame{
 		OperationFrame: opFrame,
 		operation:      opFrame.Op.Body.MustSetOptionsOp(),

@@ -11,7 +11,7 @@ import (
 )
 
 type PathPaymentOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	pathPayment               xdr.PathPaymentOp
 	sendAsset                 history.Asset
 	destAsset                 history.Asset
@@ -26,16 +26,17 @@ type PathPaymentOpFrame struct {
 	defaultInLimitsValidator  validators.IncomingLimitsValidatorInterface
 }
 
-func NewPathPaymentOpFrame(opFrame OperationFrame) *PathPaymentOpFrame {
+func NewPathPaymentOpFrame(opFrame *OperationFrame) *PathPaymentOpFrame {
+	opFrame.log.WithField("account", opFrame.SourceAccount).Error("NewPathPaymentOpFrame")
 	return &PathPaymentOpFrame{
 		OperationFrame: opFrame,
 		pathPayment:    opFrame.Op.Body.MustPathPaymentOp(),
 	}
 }
 
-func (p *PathPaymentOpFrame) GetTraitsValidator(historyQ history.QInterface) validators.TraitsValidatorInterface {
+func (p *PathPaymentOpFrame) GetTraitsValidator() validators.TraitsValidatorInterface {
 	if p.traitsValidator == nil {
-		p.traitsValidator = validators.NewTraitsValidator(historyQ)
+		p.traitsValidator = validators.NewTraitsValidator()
 	}
 	return p.traitsValidator
 }
@@ -124,6 +125,7 @@ func (p *PathPaymentOpFrame) tryLoadDestinationAccount(manager *Manager) (bool, 
 	} else if err != sql.ErrNoRows {
 		return false, err
 	}
+	p.destAccount = new(history.Account)
 	p.destAccount.Address = p.pathPayment.Destination.Address()
 	p.destAccount.AccountType = xdr.AccountTypeAccountAnonymousUser
 	return false, nil
@@ -174,7 +176,7 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 
 	// 2. Check traits for accounts
 	p.log.WithField("sourceAccount", p.SourceAccount.Address).WithField("destAccount", p.destAccount.Address).Debug("Checking traits")
-	accountRestricted, err := p.GetTraitsValidator(manager.HistoryQ).CheckTraits(p.SourceAccount, p.destAccount)
+	accountRestricted, err := p.GetTraitsValidator().CheckTraits(p.SourceAccount, p.destAccount)
 	if err != nil {
 		return false, err
 	}

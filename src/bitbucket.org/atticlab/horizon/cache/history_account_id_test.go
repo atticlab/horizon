@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 	"testing"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 )
 
 func TestHistoryAccountID(t *testing.T) {
@@ -15,7 +16,7 @@ func TestHistoryAccountID(t *testing.T) {
 	})
 	tt.Assert.Equal(0, c.Cache.ItemCount())
 
-	address := "GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R"
+	address := test.NewTestConfig().BankMasterKey
 	account, err := c.Get(address)
 	if tt.Assert.NoError(err) {
 		tt.Assert.Equal(&history.Account{
@@ -23,6 +24,7 @@ func TestHistoryAccountID(t *testing.T) {
 				ID: 1,
 			},
 			Address: address,
+			AccountType: xdr.AccountTypeAccountBank,
 		}, account)
 		tt.Assert.Equal(1, c.Cache.ItemCount())
 	}
