@@ -6,6 +6,7 @@ import (
 	"bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/redis"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	stat "bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"database/sql"
@@ -17,7 +18,7 @@ type limitsValidator struct {
 	paymentData      *statistics.PaymentData
 	statsManager     statistics.ManagerInterface
 	anonUserRest     config.AnonymousUserRestrictions
-	accountStats     map[xdr.AccountType]history.AccountStatistics
+	accountStats     *redis.AccountStatistics
 	historyQ         history.QInterface
 	paymentDirection stat.PaymentDirection
 	log              *log.Entry
@@ -42,7 +43,7 @@ func (v *limitsValidator) isIncoming() bool {
 	return v.paymentDirection == stat.PaymentDirectionIncoming
 }
 
-func (v *limitsValidator) updateGetAccountStats() (map[xdr.AccountType]history.AccountStatistics, error) {
+func (v *limitsValidator) updateGetAccountStats() (*redis.AccountStatistics, error) {
 	if v.accountStats != nil {
 		return v.accountStats, nil
 	}

@@ -72,7 +72,7 @@ func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *hist
 		historyQ:           historyDb,
 		config:             config,
 		commissionManager:  commissions.New(sharedCache, historyDb),
-		defaultTxValidator: NewTransactionValidator(transactions.NewManager(coreDb, historyDb, statistics.NewManager(historyDb, accounttype.GetAll(), config), config, sharedCache)),
+		defaultTxValidator: NewTransactionValidator(transactions.NewManager(coreDb, historyDb, statistics.NewManager(historyDb, coreDb, accounttype.GetAll(), config), config, sharedCache)),
 		Log:                log.WithField("service", "submitter"),
 	}
 }

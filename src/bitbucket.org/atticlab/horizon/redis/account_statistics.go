@@ -10,12 +10,13 @@ import (
 type AccountStatistics struct {
 	Account            string
 	AssetCode          string
+	Balance            int64
 	AccountsStatistics map[xdr.AccountType]history.AccountStatistics
 }
 
 // Creates new instance of Account Statistics.
-func ReadAccountStatistics(account, assetCode string, data map[string]int64, counterparties []xdr.AccountType) (*AccountStatistics) {
-	stats := NewAccountStatistics(account, assetCode, make(map[xdr.AccountType]history.AccountStatistics))
+func ReadAccountStatistics(account, assetCode string, data map[string]int64, counterparties []xdr.AccountType) *AccountStatistics {
+	stats := NewAccountStatistics(account, assetCode, data["balance"], make(map[xdr.AccountType]history.AccountStatistics))
 
 	for _, counterparty := range counterparties {
 		accountStat := stats.readFromMap(data, counterparty)
@@ -27,10 +28,11 @@ func ReadAccountStatistics(account, assetCode string, data map[string]int64, cou
 	return stats
 }
 
-func NewAccountStatistics(account, assetCode string, accountStats map[xdr.AccountType]history.AccountStatistics) (*AccountStatistics) {
+func NewAccountStatistics(account, assetCode string, balance int64, accountStats map[xdr.AccountType]history.AccountStatistics) *AccountStatistics {
 	return &AccountStatistics{
 		Account:            account,
 		AssetCode:          assetCode,
+		Balance:            balance,
 		AccountsStatistics: accountStats,
 	}
 }
@@ -48,8 +50,10 @@ func (stats *AccountStatistics) ToArray() []interface{} {
 	for _, value := range stats.AccountsStatistics {
 		statArray := stats.toArray(&value)
 		if len(result) == 0 {
-			result = make([]interface{}, 1, len(stats.AccountsStatistics)*len(statArray)+1)
+			result = make([]interface{}, 3, len(stats.AccountsStatistics)*len(statArray)+3)
 			result[0] = stats.GetKey()
+			result[1] = "balance"
+			result[2] = stats.Balance
 		}
 		result = append(result, statArray...)
 	}

@@ -3,17 +3,16 @@ package statistics
 import (
 	"github.com/stretchr/testify/mock"
 	"time"
-	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/redis"
 )
 
 type ManagerMock struct {
 	mock.Mock
 }
 
-func (m *ManagerMock) UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (result map[xdr.AccountType]history.AccountStatistics, err error) {
+func (m *ManagerMock) UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (*redis.AccountStatistics, error) {
 	a := m.Called(paymentData, paymentDirection, now)
-	return a.Get(0).(map[xdr.AccountType]history.AccountStatistics), a.Error(1)
+	return a.Get(0).(*redis.AccountStatistics), a.Error(1)
 }
 
 func (m *ManagerMock) CancelOp(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) error {

@@ -10,6 +10,7 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"bitbucket.org/atticlab/horizon/redis"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"database/sql"
@@ -104,12 +105,15 @@ func TestIncomingLimits(t *testing.T) {
 			limits.DailyMaxIn = 2*opAmount - 1
 			histMock := history.QMock{}
 			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Address, opAsset.Code).Return(limits, nil)
-			stats := map[xdr.AccountType]history.AccountStatistics{
-				paymentData.GetAccount(direction).AccountType: history.AccountStatistics{
-					Account:          paymentData.GetAccount(direction).Address,
-					AssetCode:        opAsset.Code,
-					CounterpartyType: int16(paymentData.GetCounterparty(direction).AccountType),
-					DailyIncome:      opAmount + opAmount,
+			stats := &redis.AccountStatistics{
+				Balance: 0,
+				AccountsStatistics: map[xdr.AccountType]history.AccountStatistics{
+					paymentData.GetAccount(direction).AccountType: history.AccountStatistics{
+						Account:          paymentData.GetAccount(direction).Address,
+						AssetCode:        opAsset.Code,
+						CounterpartyType: int16(paymentData.GetCounterparty(direction).AccountType),
+						DailyIncome:      opAmount + opAmount,
+					},
 				},
 			}
 			statsManager.On("UpdateGet", &paymentData, direction, now).Return(stats, nil).Once()
@@ -127,12 +131,15 @@ func TestIncomingLimits(t *testing.T) {
 			limits.MonthlyMaxIn = 2*opAmount - 1
 			histMock := history.QMock{}
 			histMock.On("GetAccountLimits", paymentData.GetAccount(direction).Address, opAsset.Code).Return(limits, nil)
-			stats := map[xdr.AccountType]history.AccountStatistics{
-				xdr.AccountTypeAccountAnonymousUser: history.AccountStatistics{
-					Account:          paymentData.GetAccount(direction).Address,
-					AssetCode:        opAsset.Code,
-					CounterpartyType: int16(xdr.AccountTypeAccountSettlementAgent),
-					MonthlyIncome:    opAmount + opAmount,
+			stats := &redis.AccountStatistics{
+				Balance: 0,
+				AccountsStatistics: map[xdr.AccountType]history.AccountStatistics{
+					xdr.AccountTypeAccountAnonymousUser: history.AccountStatistics{
+						Account:          paymentData.GetAccount(direction).Address,
+						AssetCode:        opAsset.Code,
+						CounterpartyType: int16(xdr.AccountTypeAccountSettlementAgent),
+						MonthlyIncome:    opAmount + opAmount,
+					},
 				},
 			}
 			statsManager.On("UpdateGet", &paymentData, direction, now).Return(stats, nil)
@@ -145,14 +152,17 @@ func TestIncomingLimits(t *testing.T) {
 				opAsset.Code,
 			)}, result)
 		})
-		stats := map[xdr.AccountType]history.AccountStatistics{
-			xdr.AccountTypeAccountAnonymousUser: history.AccountStatistics{
-				Account:          paymentData.GetAccount(direction).Address,
-				AssetCode:        opAsset.Code,
-				CounterpartyType: int16(xdr.AccountTypeAccountSettlementAgent),
-				DailyIncome:      opAmount,
-				MonthlyIncome:    opAmount,
-				AnnualIncome:     opAmount,
+		stats := &redis.AccountStatistics{
+			Balance: 0,
+			AccountsStatistics: map[xdr.AccountType]history.AccountStatistics{
+				xdr.AccountTypeAccountAnonymousUser: history.AccountStatistics{
+					Account:          paymentData.GetAccount(direction).Address,
+					AssetCode:        opAsset.Code,
+					CounterpartyType: int16(xdr.AccountTypeAccountSettlementAgent),
+					DailyIncome:      opAmount,
+					MonthlyIncome:    opAmount,
+					AnnualIncome:     opAmount,
+				},
 			},
 		}
 		Convey("Asset is anonymous exceeds max balance", func() {
