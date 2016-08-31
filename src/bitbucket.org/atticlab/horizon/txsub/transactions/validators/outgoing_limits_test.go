@@ -55,7 +55,7 @@ func TestOutgoingLimits(t *testing.T) {
 	now := time.Now()
 
 	opData := statistics.NewOperationData(source, 0, "random_tx_hash")
-	paymentData := statistics.NewPaymentData(dest, opAsset, opAmount, opData)
+	paymentData := statistics.NewPaymentData(dest, nil, opAsset, opAmount, opData)
 	direction := statistics.PaymentDirectionOutgoing
 
 	statsManager := statistics.ManagerMock{}

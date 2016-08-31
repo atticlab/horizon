@@ -13,10 +13,10 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"math/rand"
 	"testing"
 	"time"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestStatistics(t *testing.T) {
@@ -40,7 +40,7 @@ func TestStatistics(t *testing.T) {
 	paymentData := NewPaymentData(&history.Account{
 		Address:     destKP.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
-	}, history.Asset{
+	}, nil, history.Asset{
 		Code: "UAH",
 		Issuer: config.BankMasterKey,
 	}, 100*amount.One, operationData)
@@ -53,8 +53,7 @@ func TestStatistics(t *testing.T) {
 
 	Convey("UpdateGet", t, func() {
 		historyQ := &history.QMock{}
-		coreQ := &core.QMock{}
-		manager := NewManager(historyQ, coreQ, counterparties, &config)
+		manager := NewManager(historyQ, counterparties, &config)
 		manager.SetProcessedOpTimeout(opTimeout)
 		manager.SetStatisticsTimeout(statsTimeout)
 		connProvider := &redis.ConnectionProviderMock{}
@@ -105,9 +104,9 @@ func TestStatistics(t *testing.T) {
 				Convey("Got stats from history", func() {
 					accountStatsProvider.On("Get", account, assetCode, counterparties).Return(nil, nil).Once()
 					historyQ.On("GetStatisticsByAccountAndAsset", account, assetCode, now).Return(returnedStats.AccountsStatistics, nil)
-					coreQ.On("TrustlineByAddressAndAsset", account, paymentData.Asset.Code, paymentData.Asset.Issuer).Return(core.Trustline{
+					paymentData.DestinationTrustLine = &core.Trustline{
 						Balance: xdr.Int64(returnedStats.Balance),
-					}, nil)
+					}
 					accountStatsProvider.On("Insert", &returnedStats, statsTimeout).Return(nil)
 					result, err := manager.UpdateGet(&paymentData, direction, now)
 					So(err, ShouldBeNil)
@@ -138,9 +137,9 @@ func TestStatistics(t *testing.T) {
 				Convey("Failed to get stats from db", func() {
 					errorData := "Failed to get stats from history"
 					historyQ.On("GetStatisticsByAccountAndAsset", account, assetCode, now).Return(nil, errors.New(errorData))
-					coreQ.On("TrustlineByAddressAndAsset", account, paymentData.Asset.Code, paymentData.Asset.Issuer).Return(core.Trustline{
+					paymentData.DestinationTrustLine = &core.Trustline{
 						Balance: xdr.Int64(0),
-					}, nil)
+					}
 					result, err := manager.UpdateGet(&paymentData, direction, now)
 					So(err.Error(), ShouldEqual, errorData)
 					So(result, ShouldBeNil)
@@ -203,8 +202,7 @@ func TestStatistics(t *testing.T) {
 		returnedStats := createRandomStatsWithMinValue(account, assetCode, updatedTime, counterparties, paymentData.Amount)
 
 		historyQ := &history.QMock{}
-		coreQ := &core.QMock{}
-		manager := NewManager(historyQ, coreQ, counterparties, &config)
+		manager := NewManager(historyQ, counterparties, &config)
 		connProvider := &redis.ConnectionProviderMock{}
 		conn := &redis.ConnectionMock{}
 		conn.On("Close").Return(nil)
@@ -278,6 +276,7 @@ func TestStatistics(t *testing.T) {
 			}
 			expectedStats.AccountsStatistics[key] = value
 		}
+		expectedStats.Balance -= paymentData.Amount
 		Convey("Failed to insert stats", func() {
 			errorData := "Failed to insert stats"
 			accountStatsProvider.On("Insert", expectedStats, statsTimeout).Return(errors.New(errorData)).Once()
@@ -329,8 +328,7 @@ func TestStatistics(t *testing.T) {
 			}
 			expected.AccountsStatistics[key] = value
 		}
-		coreQ := &core.QMock{}
-		m := NewManager(nil, coreQ, counterparties, &config)
+		m := NewManager(nil, counterparties, &config)
 		m.updateStats(&actual, counterparty, isIncome, opAmount, now)
 		assert.Equal(t, expected, &actual)
 	})

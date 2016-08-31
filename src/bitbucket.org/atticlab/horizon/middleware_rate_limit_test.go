@@ -15,7 +15,7 @@ func _TestRateLimitMiddleware(t *testing.T) {
 
 	Convey("Rate Limiting", t, func() {
 		c := test.NewTestConfig()
-		c.RateLimit = throttled.RateQuota{
+		c.RateLimit = &throttled.RateQuota{
 			MaxRate: throttled.PerHour(10),
 		}
 		app, err := NewApp(c)
@@ -92,7 +92,7 @@ func _TestRateLimitMiddleware(t *testing.T) {
 
 	Convey("Rate Limiting works with redis", t, func() {
 		c := test.NewTestConfig()
-		c.RateLimit = throttled.RateQuota{
+		c.RateLimit = &throttled.RateQuota{
 			MaxRate: throttled.PerHour(10),
 		}
 		c.RedisURL = "redis://127.0.0.1:6379/"
