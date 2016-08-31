@@ -213,7 +213,7 @@ func NewTestConfig() config.Config {
 		DatabaseURL:            db.HorizonURL(),
 		StellarCoreDatabaseURL: db.StellarCoreURL(),
 		RedisURL:               RedisURL(),
-		RateLimit:              throttled.RateQuota{
+		RateLimit:              &throttled.RateQuota{
 			MaxRate: throttled.PerHour(1000),
 			MaxBurst: 1000,
 		},

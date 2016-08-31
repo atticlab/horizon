@@ -280,15 +280,12 @@ func initConfig() {
 	}
 
 	config = conf.Config{
-		DatabaseURL:            viper.GetString("db-url"),
-		StellarCoreDatabaseURL: viper.GetString("stellar-core-db-url"),
-		StellarCoreURL:         viper.GetString("stellar-core-url"),
-		Autopump:               viper.GetBool("autopump"),
-		Port:                   viper.GetInt("port"),
-		RateLimit: throttled.RateQuota{
-			MaxRate: throttled.PerHour(viper.GetInt("per-hour-rate-limit")),
-			MaxBurst: 1,
-		},
+		DatabaseURL:               viper.GetString("db-url"),
+		StellarCoreDatabaseURL:    viper.GetString("stellar-core-db-url"),
+		StellarCoreURL:            viper.GetString("stellar-core-url"),
+		Autopump:                  viper.GetBool("autopump"),
+		Port:                      viper.GetInt("port"),
+		RateLimit:                 getRateLimit(),
 		RedisURL:                  viper.GetString("redis-url"),
 		LogLevel:                  ll,
 		SentryDSN:                 viper.GetString("sentry-dsn"),
@@ -304,6 +301,17 @@ func initConfig() {
 		AdminSignatureValid:       time.Duration(adminSigValid) * time.Second,
 		StatisticsTimeout:         time.Duration(statisticsTimeout) * time.Second,
 		ProcessedOpTimeout:        time.Duration(processedOpTimeout) * time.Second,
+	}
+}
+
+func getRateLimit() *throttled.RateQuota {
+	limitPerHour := viper.GetInt("per-hour-rate-limit")
+	if limitPerHour <= 0 {
+		return nil
+	}
+	return &throttled.RateQuota{
+		MaxRate:  throttled.PerHour(limitPerHour),
+		MaxBurst: 1,
 	}
 }
 
