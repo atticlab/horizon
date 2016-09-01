@@ -213,11 +213,14 @@ func NewTestConfig() config.Config {
 		DatabaseURL:            db.HorizonURL(),
 		StellarCoreDatabaseURL: db.StellarCoreURL(),
 		RedisURL:               RedisURL(),
-		RateLimit:              throttled.PerHour(1000),
+		RateLimit:              &throttled.RateQuota{
+			MaxRate: throttled.PerHour(1000),
+			MaxBurst: 1000,
+		},
 		LogLevel:               hlog.DebugLevel,
 		AdminSignatureValid:    time.Duration(60) * time.Second,
 		StatisticsTimeout:      time.Duration(60) * time.Second,
 		ProcessedOpTimeout:     time.Duration(30) * time.Second,
-		BankMasterKey:          "GAJLXJ6AJBYG5IDQZQ45CTDYHJRZ6DI4H4IRJA6CD3W6IIJIKLPAS33R", //SB4HOLTEVQDTJSLQCCIXXYCURZUHNT3HEFJ5GNPNBCWIVFBVA3FBG4Q3
+		BankMasterKey:          "GAWIB7ETYGSWULO4VB7D6S42YLPGIC7TY7Y2SSJKVOTMQXV5TILYWBUA", //SAWVTL2JG2HTPPABJZKN3GJEDTHT7YD3TW5XWAWPKAE2NNZPWNNBOIXE
 	}
 }

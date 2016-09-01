@@ -16,7 +16,7 @@
 		{
 			"importpath": "github.com/PuerkitoBio/throttled",
 			"repository": "https://github.com/PuerkitoBio/throttled",
-			"revision": "1c8297c643b774435df8df65f7502b37d014fb6b",
+			"revision": "9de1df62500edbd070ed9e5d4afe0ce1b8612892",
 			"branch": "master"
 		},
 		{

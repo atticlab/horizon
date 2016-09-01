@@ -131,7 +131,7 @@ func (v *OutgoingLimitsValidator) verifyAnonymousAssetLimits() (*results.Exceede
 		}
 
 		updatedAnnualOutcome := helpers.SumAccountStats(
-			stats,
+			stats.AccountsStatistics,
 			func(stats *history.AccountStatistics) int64 { return stats.AnnualOutcome },
 			xdr.AccountTypeAccountAnonymousUser,
 			xdr.AccountTypeAccountRegisteredUser,
@@ -158,7 +158,7 @@ func (v *OutgoingLimitsValidator) getUpdatedDailyOutcome() (int64, error) {
 	}
 
 	*v.dailyOutcome = helpers.SumAccountStats(
-		stats,
+		stats.AccountsStatistics,
 		func(stats *history.AccountStatistics) int64 { return stats.DailyOutcome },
 		xdr.AccountTypeAccountAnonymousUser,
 		xdr.AccountTypeAccountRegisteredUser,
@@ -178,7 +178,7 @@ func (v *OutgoingLimitsValidator) getUpdatedMonthlyOutcome() (int64, error) {
 	}
 
 	*v.monthlyOutcome = helpers.SumAccountStats(
-		stats,
+		stats.AccountsStatistics,
 		func(stats *history.AccountStatistics) int64 { return stats.MonthlyOutcome },
 		xdr.AccountTypeAccountAnonymousUser,
 		xdr.AccountTypeAccountRegisteredUser,

@@ -51,7 +51,10 @@ SET default_with_oids = false;
 CREATE TABLE history_accounts (
     id bigint NOT NULL,
     address character varying(64),
-    account_type integer NOT NULL
+    account_type integer NOT NULL,
+    block_incoming_payments boolean NOT NULL DEFAULT FALSE,
+    block_outcoming_payments boolean NOT NULL DEFAULT FALSE,
+    limited_assets jsonb
 );
 
 
@@ -288,6 +291,8 @@ CREATE UNIQUE INDEX index_history_accounts_on_address ON history_accounts USING 
 --
 
 CREATE UNIQUE INDEX index_history_accounts_on_id ON history_accounts USING btree (id);
+
+CREATE INDEX index_history_accounts_with_traits ON history_accounts USING btree (id) WHERE block_incoming_payments = true OR block_outcoming_payments = true;
 
 
 --

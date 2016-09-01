@@ -4,28 +4,24 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
-	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
+	"database/sql"
 	"errors"
 	"math"
 	"math/big"
-	"database/sql"
 )
 
-type AccountProviderInterface interface {
-	AccountByAddress(dest interface{}, addy string) error
-}
-
 type CommissionsManager struct {
-	AccountProvider AccountProviderInterface
-	HistoryQ *history.Q
+	SharedCache *cache.SharedCache
+	HistoryQ    history.QInterface
 }
 
-func New(accProvider AccountProviderInterface, histQ *history.Q) CommissionsManager {
-	return CommissionsManager{
-		AccountProvider: accProvider,
-		HistoryQ: histQ,
+func New(sharedCache *cache.SharedCache, histQ history.QInterface) *CommissionsManager {
+	return &CommissionsManager{
+		SharedCache: sharedCache,
+		HistoryQ:            histQ,
 	}
 }
 
@@ -67,8 +63,7 @@ func (cm *CommissionsManager) CalculateCommissionForOperation(txSource xdr.Accou
 
 // gets account's type from core db, if account does not exist and mustExists - returns error, if mustExists false - xdr.AccountTypeAccountAnonymousUser
 func (cm *CommissionsManager) getAccountType(accountId string, mustExists bool) (int32, error) {
-	var account core.Account
-	err := cm.AccountProvider.AccountByAddress(&account, accountId)
+	account, err := cm.SharedCache.AccountHistoryCache.Get(accountId)
 	if err != nil {
 		if err == sql.ErrNoRows && !mustExists {
 			return int32(xdr.AccountTypeAccountAnonymousUser), nil
@@ -78,7 +73,6 @@ func (cm *CommissionsManager) getAccountType(accountId string, mustExists bool) 
 	}
 	return int32(account.AccountType), nil
 }
-
 
 // returns commission with highest weight and lowest fee from db based on keys created from params
 func (cm *CommissionsManager) getCommission(sourceId, destinationId xdr.AccountId, amount xdr.Int64, asset xdr.Asset) (*history.Commission, error) {

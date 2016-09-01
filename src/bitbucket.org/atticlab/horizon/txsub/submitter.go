@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/accounttypes"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/commissions"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
@@ -15,6 +17,7 @@ import (
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions"
+	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
@@ -34,8 +37,9 @@ func NewDefaultSubmitter(
 	coreDb *core.Q,
 	historyDb *history.Q,
 	config *conf.Config,
+	sharedCache *cache.SharedCache,
 ) Submitter {
-	return createSubmitter(h, url, coreDb, historyDb, config)
+	return createSubmitter(h, url, coreDb, historyDb, config, sharedCache)
 }
 
 // coreSubmissionResponse is the json response from stellar-core's tx endpoint
@@ -56,25 +60,21 @@ type submitter struct {
 	config   *conf.Config
 	Log      *log.Entry
 
-	defaultTxValidator  TransactionValidatorInterface
+	defaultTxValidator TransactionValidatorInterface
+	commissionManager  *commissions.CommissionsManager
 }
 
-func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config) *submitter {
+func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config, sharedCache *cache.SharedCache) *submitter {
 	return &submitter{
-		http:     h,
-		coreURL:  url,
-		coreQ:    coreDb,
-		historyQ: historyDb,
-		config:   config,
-		Log:      log.WithField("service", "submitter"),
+		http:               h,
+		coreURL:            url,
+		coreQ:              coreDb,
+		historyQ:           historyDb,
+		config:             config,
+		commissionManager:  commissions.New(sharedCache, historyDb),
+		defaultTxValidator: NewTransactionValidator(transactions.NewManager(coreDb, historyDb, statistics.NewManager(historyDb, accounttype.GetAll(), config), config, sharedCache)),
+		Log:                log.WithField("service", "submitter"),
 	}
-}
-
-func (sub *submitter) getTxValidator() TransactionValidatorInterface {
-	if sub.defaultTxValidator == nil {
-		sub.defaultTxValidator = NewTransactionValidator(sub.historyQ, sub.coreQ, sub.config)
-	}
-	return sub.defaultTxValidator
 }
 
 // Submit sends the provided envelope to stellar-core and parses the response into
@@ -84,8 +84,7 @@ func (sub *submitter) Submit(ctx context.Context, env *transactions.EnvelopeInfo
 	defer func() { result.Duration = time.Since(start) }()
 
 	sub.Log.Debug("Setting commission")
-	cm := commissions.New(sub.coreQ, sub.historyQ)
-	err := cm.SetCommissions(env.Tx)
+	err := sub.commissionManager.SetCommissions(env.Tx)
 	if err != nil {
 		log.WithField("Error", err).Error("Failed to set commissions")
 		result.Err = &problem.ServerError
@@ -94,7 +93,7 @@ func (sub *submitter) Submit(ctx context.Context, env *transactions.EnvelopeInfo
 
 	// check constraints for tx
 	sub.Log.Debug("Checking tx")
-	err = sub.getTxValidator().CheckTransaction(env)
+	err = sub.defaultTxValidator.CheckTransaction(env)
 	if err != nil {
 		result.Err = err
 		return

@@ -7,11 +7,11 @@ import (
 )
 
 type ChangeTrustOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	operation xdr.ChangeTrustOp
 }
 
-func NewChangeTrustOpFrame(opFrame OperationFrame) *ChangeTrustOpFrame {
+func NewChangeTrustOpFrame(opFrame *OperationFrame) *ChangeTrustOpFrame {
 	return &ChangeTrustOpFrame{
 		OperationFrame: opFrame,
 		operation:      opFrame.Op.Body.MustChangeTrustOp(),

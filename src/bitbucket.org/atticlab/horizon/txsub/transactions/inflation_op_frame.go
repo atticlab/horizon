@@ -5,10 +5,10 @@ import (
 )
 
 type InflationOpFrame struct {
-	OperationFrame
+	*OperationFrame
 }
 
-func NewInflationOpFrame(opFrame OperationFrame) *InflationOpFrame {
+func NewInflationOpFrame(opFrame *OperationFrame) *InflationOpFrame {
 	return &InflationOpFrame{
 		OperationFrame: opFrame,
 	}

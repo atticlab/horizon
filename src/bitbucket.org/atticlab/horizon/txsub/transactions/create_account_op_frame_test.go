@@ -10,6 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+	"bitbucket.org/atticlab/horizon/cache"
 )
 
 func TestCreateAccountOpFrame(t *testing.T) {
@@ -28,7 +29,9 @@ func TestCreateAccountOpFrame(t *testing.T) {
 
 	root := test.BankMasterSeed()
 
-	manager := NewManager(coreQ, historyQ, nil, &config)
+	manager := NewManager(coreQ, historyQ, nil, &config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQ),
+	})
 	Convey("Success", t, func() {
 		createAccount := build.CreateAccount(build.Destination{root.Address()})
 		tx := build.Transaction(createAccount, build.Sequence{1}, build.SourceAccount{root.Address()})

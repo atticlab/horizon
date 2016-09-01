@@ -6,6 +6,7 @@ package ingest
 import (
 	"time"
 
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/ingest/session"
 )
@@ -33,6 +34,8 @@ type System struct {
 
 	Metrics *session.IngesterMetrics
 
+	HistoryAccountCache *cache.HistoryAccount
+
 	// Network is the passphrase for the network being imported
 	Network string
 
@@ -43,36 +46,37 @@ type System struct {
 
 // New initializes the ingester, causing it to begin polling the stellar-core
 // database for now ledgers and ingesting data into the horizon database.
-func New(network string, core, horizon *db2.Repo) *System {
+func New(network string, core, horizon *db2.Repo, historyAccountCache *cache.HistoryAccount) *System {
 	return &System{
-		Network:   network,
-		HorizonDB: horizon,
-		CoreDB:    core,
-		Metrics:   session.NewMetrics(),
-		tick:      time.NewTicker(1 * time.Second),
+		Network:             network,
+		HorizonDB:           horizon,
+		CoreDB:              core,
+		HistoryAccountCache: historyAccountCache,
+		Metrics:             session.NewMetrics(),
+		tick:                time.NewTicker(1 * time.Second),
 	}
 }
 
 // ReingestAll re-ingests all data
-func ReingestAll(network string, core, horizon *db2.Repo) (int, error) {
-	i := New(network, core, horizon)
+func ReingestAll(network string, core, horizon *db2.Repo, historyAccountCache *cache.HistoryAccount) (int, error) {
+	i := New(network, core, horizon, historyAccountCache)
 	return i.ReingestAll()
 }
 
-func ReingestOutdated(network string, core, horizon *db2.Repo) (int, error) {
-	i := New(network, core, horizon)
+func ReingestOutdated(network string, core, horizon *db2.Repo, historyAccountCache *cache.HistoryAccount) (int, error) {
+	i := New(network, core, horizon, historyAccountCache)
 	return i.ReingestOutdated()
 }
 
 // ReingestSingle re-ingests a single ledger
-func ReingestSingle(network string, core, horizon *db2.Repo, sequence int32) error {
-	i := New(network, core, horizon)
+func ReingestSingle(network string, core, horizon *db2.Repo, sequence int32, historyAccountCache *cache.HistoryAccount) error {
+	i := New(network, core, horizon, historyAccountCache)
 	return i.ReingestSingle(sequence)
 }
 
 // RunOnce runs a single ingestion session
-func RunOnce(network string, core, horizon *db2.Repo) (*session.Session, error) {
-	i := New(network, core, horizon)
+func RunOnce(network string, core, horizon *db2.Repo, historyAccountCache *cache.HistoryAccount) (*session.Session, error) {
+	i := New(network, core, horizon, historyAccountCache)
 	err := i.updateLedgerState()
 	if err != nil {
 		return nil, err
@@ -83,6 +87,7 @@ func RunOnce(network string, core, horizon *db2.Repo) (*session.Session, error) 
 		i.coreSequence,
 		i.HorizonDB,
 		i.CoreDB,
+		i.HistoryAccountCache,
 		i.Metrics,
 		CurrentVersion,
 	)

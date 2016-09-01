@@ -46,7 +46,7 @@ func (action *CalculateCommissionAction) calculate() {
 		"amount": action.amount,
 		"asset":  action.asset,
 	})
-	cm := commissions.New(action.CoreQ(), action.HistoryQ())
+	cm := commissions.New(action.App.SharedCache(), action.HistoryQ())
 	fee, err := cm.CalculateCommission(action.source, action.destination, action.amount, action.asset)
 	if err != nil {
 		if err == sql.ErrNoRows {

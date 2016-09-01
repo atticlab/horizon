@@ -5,11 +5,11 @@ import (
 )
 
 type CreateAccountOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	operation xdr.CreateAccountOp
 }
 
-func NewCreateAccountOpFrame(opFrame OperationFrame) *CreateAccountOpFrame {
+func NewCreateAccountOpFrame(opFrame *OperationFrame) *CreateAccountOpFrame {
 	return &CreateAccountOpFrame{
 		OperationFrame: opFrame,
 		operation:      opFrame.Op.Body.MustCreateAccountOp(),

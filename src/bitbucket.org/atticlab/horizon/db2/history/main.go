@@ -28,16 +28,6 @@ type QInterface interface {
 	// Returns account's statistics for assetCode and counterparty type
 	GetAccountStatistics(address string, assetCode string, counterPartyType xdr.AccountType) (AccountStatistics, error)
 
-	// Account traits
-	// Returns query helper for account traits
-	AccountTraitsQ() AccountTraitsQInterface
-	// Inserts new instance of account traits
-	InsertAccountTraits(traits AccountTraits) error
-	// Updates account traits
-	UpdateAccountTraits(traits AccountTraits) error
-	// Deletes account traits by id
-	DeleteAccountTraits(id int64) error
-
 	// Asset
 	// Returns asset for specified xdr.Asset
 	Asset(dest interface{}, asset xdr.Asset) error
@@ -55,6 +45,8 @@ type QInterface interface {
 	AccountByAddress(dest interface{}, addy string) error
 	// loads a id from `history_accounts`, by address
 	AccountIDByAddress(addy string) (int64, error)
+	// Update account
+	AccountUpdate(account *Account) error
 
 	// Commission
 	// selects commission by hash
@@ -65,6 +57,8 @@ type QInterface interface {
 	DeleteCommission(hash string) (bool, error)
 	// update commission
 	UpdateCommission(commission *Commission) (bool, error)
+	// get highest weight commission
+	GetHighestWeightCommission(keys map[string]CommissionKey) (resultingCommissions []Commission, err error)
 }
 
 // Q is default implementation of QInterface

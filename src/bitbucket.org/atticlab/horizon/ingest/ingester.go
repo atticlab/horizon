@@ -93,6 +93,7 @@ func (i *System) ReingestRange(start, end int32) (int, error) {
 		i.coreSequence,
 		i.HorizonDB,
 		i.CoreDB,
+		i.HistoryAccountCache,
 		i.Metrics,
 		CurrentVersion,
 	)
@@ -127,7 +128,7 @@ func (i *System) runOnce() {
 	defer func() {
 		if rec := recover(); rec != nil {
 			err := errors.FromPanic(rec)
-			log.Errorf("import session panicked: %s", err)
+			log.WithStack(err).Errorf("import session panicked: %s", err)
 			errors.ReportToSentry(err, nil)
 		}
 	}()
@@ -153,6 +154,7 @@ func (i *System) runOnce() {
 			i.coreSequence,
 			i.HorizonDB,
 			i.CoreDB,
+			i.HistoryAccountCache,
 			i.Metrics,
 			CurrentVersion,
 		)

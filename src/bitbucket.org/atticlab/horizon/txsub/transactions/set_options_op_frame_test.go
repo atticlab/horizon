@@ -3,6 +3,7 @@ package transactions
 import (
 	"bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
@@ -28,7 +29,9 @@ func TestSetOptionsOpFrame(t *testing.T) {
 
 	root := test.BankMasterSeed()
 
-	manager := NewManager(coreQ, historyQ, nil, &config)
+	manager := NewManager(coreQ, historyQ, nil, &config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQ),
+	})
 
 	Convey("Success", t, func() {
 		setOptions := build.SetOptions()

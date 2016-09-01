@@ -57,6 +57,13 @@ func TestActionsSetLimits(t *testing.T) {
 			expected.MaxOperationOut = 17
 			data = limitsToMap(expected)
 			applyLimit(t, data, expected, historyQ)
+			var storedAccount history.Account
+			err := historyQ.AccountByAddress(&storedAccount, account)
+			So(err, ShouldBeNil)
+			limitedAssets, err := storedAccount.UnmarshalLimitedAssets()
+			So(err, ShouldBeNil)
+			_, ok := limitedAssets[expected.AssetCode]
+			So(ok, ShouldBeTrue)
 		})
 	})
 }

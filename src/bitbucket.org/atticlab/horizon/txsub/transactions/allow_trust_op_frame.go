@@ -8,11 +8,11 @@ import (
 )
 
 type AllowTrustOpFrame struct {
-	OperationFrame
+	*OperationFrame
 	operation xdr.AllowTrustOp
 }
 
-func NewAllowTrustOpFrame(opFrame OperationFrame) *AllowTrustOpFrame {
+func NewAllowTrustOpFrame(opFrame *OperationFrame) *AllowTrustOpFrame {
 	return &AllowTrustOpFrame{
 		OperationFrame: opFrame,
 		operation:      opFrame.Op.Body.MustAllowTrustOp(),

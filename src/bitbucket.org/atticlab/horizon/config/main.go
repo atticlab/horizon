@@ -14,7 +14,7 @@ type Config struct {
 	StellarCoreURL         string
 	Port                   int
 	Autopump               bool
-	RateLimit              throttled.Quota
+	RateLimit              *throttled.RateQuota
 	RedisURL               string
 	LogLevel               logrus.Level
 	SentryDSN              string

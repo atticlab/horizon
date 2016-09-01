@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -52,6 +53,7 @@ func TestAccountStatistics(t *testing.T) {
 		accountStats := &AccountStatistics{
 			Account:            account.Address(),
 			AssetCode:          assetCode,
+			Balance:            rand.Int63(),
 			AccountsStatistics: make(map[xdr.AccountType]history.AccountStatistics),
 		}
 		for _, counterparty := range types {

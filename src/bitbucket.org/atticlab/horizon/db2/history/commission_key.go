@@ -14,6 +14,7 @@ type CommissionKey struct {
 	To       string `json:"to,omitempty"`
 	FromType *int32 `json:"from_type,omitempty"`
 	ToType   *int32 `json:"to_type,omitempty"`
+	hash     string
 }
 
 func (k *CommissionKey) Equals(o CommissionKey) bool {
@@ -31,44 +32,41 @@ func equals(l, r *int32) bool {
 }
 
 func CreateCommissionKeys(from, to string, fromType, toType int32, asset base.Asset) map[string]CommissionKey {
-	result := make(map[string]CommissionKey)
+	keys := make([]CommissionKey, 1, 32)
 	defaultFee := CommissionKey{}
-	result[defaultFee.UnsafeHash()] = defaultFee
-	setAsset(result, asset)
-	setType(result, fromType, true)
-	setType(result, toType, false)
-	setAccount(result, from, true)
-	setAccount(result, to, false)
+	keys[0] = defaultFee
+	keys = set(keys, &from, nil, nil, nil, nil)
+	keys = set(keys, nil, &to, nil, nil, nil)
+	keys = set(keys, nil, nil, &fromType, nil, nil)
+	keys = set(keys, nil, nil, nil, &toType, nil)
+	keys = set(keys, nil, nil, nil, nil, &asset)
+	result := make(map[string]CommissionKey)
+	for _, key := range keys {
+		result[key.UnsafeHash()] = key
+	}
 	return result
 }
 
-func setAsset(keys map[string]CommissionKey, asset base.Asset) {
-	for _, value := range keys {
-		value.Asset = asset
-		keys[value.UnsafeHash()] = value
-	}
-}
-
-func setType(keys map[string]CommissionKey, accountType int32, isFrom bool) {
-	for _, value := range keys {
-		if isFrom {
-			value.FromType = &accountType
-		} else {
-			value.ToType = &accountType
+func set(keys []CommissionKey, from, to *string, fromType, toType *int32, asset *base.Asset) []CommissionKey {
+	size := len(keys)
+	var value CommissionKey
+	for j := 0; j < size; j++ {
+		value = keys[j]
+		switch {
+		case from != nil:
+			value.From = *from
+		case to != nil:
+			value.To = *to
+		case fromType != nil:
+			value.FromType = fromType
+		case toType != nil:
+			value.ToType = toType
+		case asset != nil:
+			value.Asset = *asset
 		}
-		keys[value.UnsafeHash()] = value
+		keys = append(keys, value)
 	}
-}
-
-func setAccount(keys map[string]CommissionKey, account string, isFrom bool) {
-	for _, value := range keys {
-		if isFrom {
-			value.From = account
-		} else {
-			value.To = account
-		}
-		keys[value.UnsafeHash()] = value
-	}
+	return keys
 }
 
 func (c *Commission) GetKey() CommissionKey {

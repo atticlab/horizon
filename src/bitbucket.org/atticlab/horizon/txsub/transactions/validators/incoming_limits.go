@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/amount"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/config"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
@@ -20,22 +19,21 @@ type IncomingLimitsValidatorInterface interface {
 
 type IncomingLimitsValidator struct {
 	limitsValidator
-	statsManager     statistics.ManagerInterface
-	accountTrustLine core.Trustline
+	statsManager statistics.ManagerInterface
 
 	dailyIncome   *int64
 	monthlyIncome *int64
+	balance       *int64
 }
 
-func NewIncomingLimitsValidator(paymentData *statistics.PaymentData, accountTrustLine core.Trustline, historyQ history.QInterface,
+func NewIncomingLimitsValidator(paymentData *statistics.PaymentData, historyQ history.QInterface,
 	statsManager statistics.ManagerInterface, anonUserRestr config.AnonymousUserRestrictions, now time.Time) *IncomingLimitsValidator {
 
 	limitsValidator := newLimitsValidator(statistics.PaymentDirectionIncoming, paymentData, statsManager, historyQ,
 		anonUserRestr, now)
 	result := &IncomingLimitsValidator{
-		limitsValidator:  *limitsValidator,
-		accountTrustLine: accountTrustLine,
-		statsManager:     statsManager,
+		limitsValidator: *limitsValidator,
+		statsManager:    statsManager,
 	}
 	result.log = log.WithField("service", "incoming_limits_validator")
 	return result
@@ -104,10 +102,15 @@ func (v *IncomingLimitsValidator) verifyAnonymousAssetLimits() (*results.Exceede
 		return nil, nil
 	}
 
-	if int64(v.accountTrustLine.Balance)+v.paymentData.Amount > v.anonUserRest.MaxBalance {
+	updatedBalance, err := v.getUpdatedBalance()
+	if err != nil {
+		return nil, err
+	}
+
+	if updatedBalance > v.anonUserRest.MaxBalance {
 		description := fmt.Sprintf(
 			"User's max balance exceeded: %s + %s out of %s UAH.",
-			amount.String(v.accountTrustLine.Balance),
+			amount.String(xdr.Int64(updatedBalance-v.paymentData.Amount)),
 			amount.String(xdr.Int64(v.paymentData.Amount)),
 			amount.String(xdr.Int64(v.anonUserRest.MaxBalance)),
 		)
@@ -127,7 +130,7 @@ func (v *IncomingLimitsValidator) getUpdatedDailyIncome() (int64, error) {
 	}
 
 	*v.dailyIncome = helpers.SumAccountStats(
-		stats,
+		stats.AccountsStatistics,
 		func(stats *history.AccountStatistics) int64 { return stats.DailyIncome },
 		xdr.AccountTypeAccountAnonymousUser,
 		xdr.AccountTypeAccountRegisteredUser,
@@ -147,11 +150,23 @@ func (v *IncomingLimitsValidator) getUpdatedMonthlyIncome() (int64, error) {
 	}
 
 	*v.monthlyIncome = helpers.SumAccountStats(
-		stats,
+		stats.AccountsStatistics,
 		func(stats *history.AccountStatistics) int64 { return stats.MonthlyIncome },
 		xdr.AccountTypeAccountAnonymousUser,
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountSettlementAgent,
 	)
 	return *v.monthlyIncome, nil
+}
+
+func (v *IncomingLimitsValidator) getUpdatedBalance() (int64, error) {
+	if v.balance != nil {
+		return *v.balance, nil
+	}
+	stats, err := v.updateGetAccountStats()
+	if err != nil {
+		return 0, err
+	}
+	v.balance = new(int64)
+	return stats.Balance, nil
 }

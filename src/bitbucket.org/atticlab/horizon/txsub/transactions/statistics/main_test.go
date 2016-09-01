@@ -13,10 +13,10 @@ import (
 	"errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"math/rand"
 	"testing"
 	"time"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestStatistics(t *testing.T) {
@@ -33,21 +33,22 @@ func TestStatistics(t *testing.T) {
 	destKP, err := keypair.Random()
 	assert.Nil(t, err)
 	now := time.Now()
-	operationData := NewOperationData(&core.Account{
-		Accountid:   sourceKP.Address(),
+	operationData := NewOperationData(&history.Account{
+		Address:     sourceKP.Address(),
 		AccountType: xdr.AccountTypeAccountBank,
 	}, 1, "random_tx_hash")
-	paymentData := NewPaymentData(&core.Account{
-		Accountid:   destKP.Address(),
+	paymentData := NewPaymentData(&history.Account{
+		Address:     destKP.Address(),
 		AccountType: xdr.AccountTypeAccountAnonymousUser,
-	}, history.Asset{
+	}, nil, history.Asset{
 		Code: "UAH",
+		Issuer: config.BankMasterKey,
 	}, 100*amount.One, operationData)
 	opIndex := 1
 	direction := PaymentDirectionIncoming
 	isIncome := direction.IsIncoming()
 	updatedTime := time.Now().AddDate(0, 0, -1)
-	account := paymentData.GetAccount(direction).Accountid
+	account := paymentData.GetAccount(direction).Address
 	assetCode := paymentData.Asset.Code
 
 	Convey("UpdateGet", t, func() {
@@ -93,20 +94,23 @@ func TestStatistics(t *testing.T) {
 					So(result, ShouldBeNil)
 				})
 				conn.On("UnWatch").Return(nil)
-				returnedStats := createRandomStats(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, updatedTime, counterparties)
+				returnedStats := createRandomStats(paymentData.GetAccount(direction).Address, paymentData.Asset.Code, updatedTime, counterparties)
 				Convey("Got stats from redis", func() {
 					accountStatsProvider.On("Get", account, assetCode, counterparties).Return(&returnedStats, nil).Once()
 					result, err := manager.UpdateGet(&paymentData, direction, now)
 					So(err, ShouldBeNil)
-					assert.Equal(t, returnedStats.AccountsStatistics, result)
+					assert.Equal(t, &returnedStats, result)
 				})
 				Convey("Got stats from history", func() {
 					accountStatsProvider.On("Get", account, assetCode, counterparties).Return(nil, nil).Once()
 					historyQ.On("GetStatisticsByAccountAndAsset", account, assetCode, now).Return(returnedStats.AccountsStatistics, nil)
+					paymentData.DestinationTrustLine = &core.Trustline{
+						Balance: xdr.Int64(returnedStats.Balance),
+					}
 					accountStatsProvider.On("Insert", &returnedStats, statsTimeout).Return(nil)
 					result, err := manager.UpdateGet(&paymentData, direction, now)
 					So(err, ShouldBeNil)
-					assert.Equal(t, returnedStats.AccountsStatistics, result)
+					assert.Equal(t, &returnedStats, result)
 				})
 			})
 		})
@@ -133,25 +137,17 @@ func TestStatistics(t *testing.T) {
 				Convey("Failed to get stats from db", func() {
 					errorData := "Failed to get stats from history"
 					historyQ.On("GetStatisticsByAccountAndAsset", account, assetCode, now).Return(nil, errors.New(errorData))
+					paymentData.DestinationTrustLine = &core.Trustline{
+						Balance: xdr.Int64(0),
+					}
 					result, err := manager.UpdateGet(&paymentData, direction, now)
 					So(err.Error(), ShouldEqual, errorData)
 					So(result, ShouldBeNil)
 				})
 			})
 			Convey("Account stats cleared", func() {
-				returnedStats := createRandomStats(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, updatedTime, counterparties)
-				expectedStats := copyAccountStats(&returnedStats)
-				counterparty := paymentData.GetCounterparty(direction).AccountType
-				if _, ok := expectedStats.AccountsStatistics[counterparty]; !ok {
-					expectedStats.AccountsStatistics[counterparty] = history.NewAccountStatistics(expectedStats.Account, expectedStats.AssetCode, counterparty)
-				}
-				for key, value := range expectedStats.AccountsStatistics {
-					value.ClearObsoleteStats(now)
-					if key == counterparty {
-						value.Update(paymentData.Amount, now, now, isIncome)
-					}
-					expectedStats.AccountsStatistics[key] = value
-				}
+				returnedStats := createRandomStats(paymentData.GetAccount(direction).Address, paymentData.Asset.Code, updatedTime, counterparties)
+				expectedStats := getExpectedStats(&returnedStats, paymentData, direction, now, isIncome)
 				accountStatsProvider.On("Get", account, assetCode, counterparties).Return(&returnedStats, nil).Once()
 				Convey("Multi failed", func() {
 					errorData := "Failed to start multi"
@@ -178,7 +174,7 @@ func TestStatistics(t *testing.T) {
 				processedOp := redis.NewProcessedOp(paymentData.TxHash, opIndex, paymentData.Amount, isIncome, now)
 				Convey("Failed to insert op processed", func() {
 					errorData := "failed to insert op processed"
-					processedOpProvider.On("Insert", processedOp, opTimeout).Return(errors.New(errorData))
+					processedOpProvider.On("Insert", processedOp, opTimeout).Return(errors.New(errorData)).Once()
 					result, err := manager.UpdateGet(&paymentData, direction, now)
 					So(err.Error(), ShouldEqual, errorData)
 					So(result, ShouldBeNil)
@@ -280,6 +276,7 @@ func TestStatistics(t *testing.T) {
 			}
 			expectedStats.AccountsStatistics[key] = value
 		}
+		expectedStats.Balance -= paymentData.Amount
 		Convey("Failed to insert stats", func() {
 			errorData := "Failed to insert stats"
 			accountStatsProvider.On("Insert", expectedStats, statsTimeout).Return(errors.New(errorData)).Once()
@@ -317,6 +314,11 @@ func TestStatistics(t *testing.T) {
 		if _, ok := expected.AccountsStatistics[counterparty]; !ok {
 			expected.AccountsStatistics[counterparty] = history.NewAccountStatistics(expected.Account, expected.AssetCode, counterparty)
 		}
+		if isIncome {
+			expected.Balance += opAmount
+		} else {
+			expected.Balance -= opAmount
+		}
 		for key, value := range expected.AccountsStatistics {
 			value.DailyIncome = 0
 			value.DailyOutcome = 0
@@ -347,7 +349,7 @@ func createRandomStats(account, assetCode string, timeUpdated time.Time, counter
 }
 
 func createRandomStatsWithMinValue(account, assetCode string, timeUpdated time.Time, counterparties []xdr.AccountType, minValue int64) redis.AccountStatistics {
-	stats := redis.NewAccountStatistics(account, assetCode, make(map[xdr.AccountType]history.AccountStatistics))
+	stats := redis.NewAccountStatistics(account, assetCode, history.Max(rand.Int63(), minValue), make(map[xdr.AccountType]history.AccountStatistics))
 	for _, counterparty := range counterparties {
 		if rand.Float32() < 0.5 {
 			continue
@@ -357,4 +359,26 @@ func createRandomStatsWithMinValue(account, assetCode string, timeUpdated time.T
 		stats.AccountsStatistics[counterparty] = stat
 	}
 	return *stats
+}
+
+func getExpectedStats(returnedStats *redis.AccountStatistics, paymentData PaymentData,
+		direction PaymentDirection, now time.Time, isIncome bool) *redis.AccountStatistics {
+	expectedStats := copyAccountStats(returnedStats)
+	if isIncome {
+		expectedStats.Balance += paymentData.Amount
+	} else {
+		expectedStats.Balance -= paymentData.Amount
+	}
+	counterparty := paymentData.GetCounterparty(direction).AccountType
+	if _, ok := expectedStats.AccountsStatistics[counterparty]; !ok {
+		expectedStats.AccountsStatistics[counterparty] = history.NewAccountStatistics(expectedStats.Account, expectedStats.AssetCode, counterparty)
+	}
+	for key, value := range expectedStats.AccountsStatistics {
+		value.ClearObsoleteStats(now)
+		if key == counterparty {
+			value.Update(paymentData.Amount, now, now, isIncome)
+		}
+		expectedStats.AccountsStatistics[key] = value
+	}
+	return expectedStats
 }

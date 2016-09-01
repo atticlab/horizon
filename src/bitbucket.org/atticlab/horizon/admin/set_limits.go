@@ -8,6 +8,7 @@ import (
 
 type SetLimitsAction struct {
 	AdminAction
+	Account *history.Account
 	Limits history.AccountLimits
 }
 
@@ -24,8 +25,8 @@ func (action *SetLimitsAction) Validate() {
 	}
 
 	// 1. Check if account exists
-	var acc history.Account
-	err := action.HistoryQ().AccountByAddress(&acc, action.Limits.Account)
+	action.Account = new(history.Account)
+	err := action.HistoryQ().AccountByAddress(action.Account, action.Limits.Account)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -59,13 +60,29 @@ func (action *SetLimitsAction) Apply() {
 
 	// 4. Persist changes
 	if isNewEntry {
+		var limitedAssets map[string]bool
+		limitedAssets, err = action.Account.UnmarshalLimitedAssets()
+		if err != nil {
+			action.Log.WithStack(err).WithError(err).Error("Failed to unmarshal limited assets")
+			action.Err = &problem.ServerError
+			return
+		}
+		limitedAssets[accLimits.AssetCode] = true
+		action.Account.SetLimitedAssets(limitedAssets)
+		err = action.HistoryQ().AccountUpdate(action.Account)
+		if err != nil {
+			action.Log.WithStack(err).WithError(err).Error("Failed to update account's limited assets")
+			action.Err = &problem.ServerError
+			return
+		}
+
 		err = action.HistoryQ().CreateAccountLimits(accLimits)
 	} else {
 		err = action.HistoryQ().UpdateAccountLimits(accLimits)
 	}
 
 	if err != nil {
-		action.Log.WithStack(err).WithError(err).Error("Failed to insert/update account limits")
+		action.Log.WithStack(err).WithField("is_new", isNewEntry).WithError(err).Error("Failed to insert/update account limits")
 		action.Err = &problem.ServerError
 	}
 }

@@ -2,7 +2,7 @@ package transactions
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/core"
+	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"database/sql"
@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	ASSET_NOT_ALLOWED = errors.New("asset is not allowed")
+	ASSET_NOT_ALLOWED     = errors.New("asset is not allowed")
 	OPERATION_NOT_ALLOWED = errors.New("operation is not allowed")
 )
 
 type OperationInterface interface {
 	DoCheckValid(manager *Manager) (bool, error)
-	DoRollbackCachedData(manager *Manager) (error)
+	DoRollbackCachedData(manager *Manager) error
 }
 
 type OperationFrame struct {
@@ -25,7 +25,7 @@ type OperationFrame struct {
 	ParentTxFrame *TransactionFrame
 	Result        *results.OperationResult
 	innerOp       OperationInterface
-	SourceAccount *core.Account
+	SourceAccount *history.Account
 	Index         int
 	log           *log.Entry
 	now           *time.Time
@@ -38,7 +38,7 @@ func NewOperationFrame(op *xdr.Operation, tx *TransactionFrame, index int, now t
 		Result:        &results.OperationResult{},
 		Index:         index,
 		log:           log.WithField("service", op.Body.Type.String()),
-		SourceAccount: new(core.Account),
+		SourceAccount: new(history.Account),
 		now:           &now,
 	}
 }
@@ -50,29 +50,29 @@ func (opFrame *OperationFrame) GetInnerOp() (OperationInterface, error) {
 	var innerOp OperationInterface
 	switch opFrame.Op.Body.Type {
 	case xdr.OperationTypeCreateAccount:
-		innerOp = NewCreateAccountOpFrame(*opFrame)
+		innerOp = NewCreateAccountOpFrame(opFrame)
 	case xdr.OperationTypePayment:
-		innerOp = NewPaymentOpFrame(*opFrame)
+		innerOp = NewPaymentOpFrame(opFrame)
 	case xdr.OperationTypePathPayment:
-		innerOp = NewPathPaymentOpFrame(*opFrame)
+		innerOp = NewPathPaymentOpFrame(opFrame)
 	case xdr.OperationTypeManageOffer:
-		innerOp = NewManageOfferOpFrame(*opFrame)
+		innerOp = NewManageOfferOpFrame(opFrame)
 	case xdr.OperationTypeCreatePassiveOffer:
-		innerOp = NewCreatePassiveOfferOpFrame(*opFrame)
+		innerOp = NewCreatePassiveOfferOpFrame(opFrame)
 	case xdr.OperationTypeSetOptions:
-		innerOp = NewSetOptionsOpFrame(*opFrame)
+		innerOp = NewSetOptionsOpFrame(opFrame)
 	case xdr.OperationTypeChangeTrust:
-		innerOp = NewChangeTrustOpFrame(*opFrame)
+		innerOp = NewChangeTrustOpFrame(opFrame)
 	case xdr.OperationTypeAllowTrust:
-		innerOp = NewAllowTrustOpFrame(*opFrame)
+		innerOp = NewAllowTrustOpFrame(opFrame)
 	case xdr.OperationTypeAccountMerge:
-		innerOp = NewAccountMergeOpFrame(*opFrame)
+		innerOp = NewAccountMergeOpFrame(opFrame)
 	case xdr.OperationTypeInflation:
-		innerOp = NewInflationOpFrame(*opFrame)
+		innerOp = NewInflationOpFrame(opFrame)
 	case xdr.OperationTypeManageData:
-		innerOp = NewManageDataOpFrame(*opFrame)
+		innerOp = NewManageDataOpFrame(opFrame)
 	case xdr.OperationTypeAdministrative:
-		innerOp = NewAdministrativeOpFrame(*opFrame)
+		innerOp = NewAdministrativeOpFrame(opFrame)
 	default:
 		return nil, errors.New("unknown operation")
 	}
@@ -85,13 +85,16 @@ func (op *OperationFrame) GetResult() results.OperationResult {
 }
 
 func (opFrame *OperationFrame) CheckValid(manager *Manager) (bool, error) {
-	sourceAddress := opFrame.ParentTxFrame.Tx.Tx.SourceAccount.Address()
+	var sourceAddress string
 	if opFrame.Op.SourceAccount != nil {
 		sourceAddress = opFrame.Op.SourceAccount.Address()
+	} else {
+		sourceAddress = opFrame.ParentTxFrame.Tx.Tx.SourceAccount.Address()
 	}
 
 	// check if source account exists
-	err := manager.CoreQ.AccountByAddress(opFrame.SourceAccount, sourceAddress)
+	var err error
+	opFrame.SourceAccount, err = manager.AccountHistoryCache.Get(sourceAddress)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			opFrame.Result.Result = xdr.OperationResult{
@@ -102,7 +105,7 @@ func (opFrame *OperationFrame) CheckValid(manager *Manager) (bool, error) {
 		return false, err
 	}
 
-	opFrame.log.WithField("sourceAccount", opFrame.SourceAccount.Accountid).Debug("Loaded source account")
+	opFrame.log.WithField("sourceAccount", opFrame.SourceAccount.Address).Debug("Loaded source account")
 	// prepare result for op Result
 	opFrame.Result.Result = xdr.OperationResult{
 		Code: xdr.OperationResultCodeOpInner,

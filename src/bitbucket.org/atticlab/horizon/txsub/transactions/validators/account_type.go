@@ -1,29 +1,27 @@
 package validators
 
 import (
-	"fmt"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/txsub/results"
+	"fmt"
 )
 
 type AccountTypeValidatorInterface interface {
-	VerifyAccountTypesForPayment(from core.Account, to core.Account) *results.RestrictedForAccountTypeError
+	VerifyAccountTypesForPayment(from, to xdr.AccountType) *results.RestrictedForAccountTypeError
 }
 
 type AccountTypeValidator struct {
-
 }
 
-func NewAccountTypeValidator() *AccountTypeValidator{
+func NewAccountTypeValidator() *AccountTypeValidator {
 	return &AccountTypeValidator{}
 }
 
 // VerifyAccountTypesForPayment performs account types check for payment operation
-func (v *AccountTypeValidator) VerifyAccountTypesForPayment(from core.Account, to core.Account) *results.RestrictedForAccountTypeError {
-	if !contains(typeRestrictions[from.AccountType], to.AccountType) {
+func (v *AccountTypeValidator) VerifyAccountTypesForPayment(from, to xdr.AccountType) *results.RestrictedForAccountTypeError {
+	if !contains(typeRestrictions[from], to) {
 		return &results.RestrictedForAccountTypeError{
-			Reason: fmt.Sprintf("Payments from %s to %s are restricted.", from.AccountType.String(), to.AccountType.String()),
+			Reason: fmt.Sprintf("Payments from %s to %s are restricted.", from.String(), to.String()),
 		}
 	}
 

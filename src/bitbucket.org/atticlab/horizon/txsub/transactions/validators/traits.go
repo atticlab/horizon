@@ -3,54 +3,43 @@ package validators
 import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
-	"database/sql"
 	"fmt"
 )
 
 type TraitsValidatorInterface interface {
-	CheckTraits(source string, destination string) (*results.RestrictedForAccountError, error)
-	CheckTraitsForAccount(account string, isSource bool) (*results.RestrictedForAccountError, error)
+	CheckTraits(source, destination *history.Account) (*results.RestrictedForAccountError, error)
+	CheckTraitsForAccount(account *history.Account, isSource bool) (*results.RestrictedForAccountError, error)
 }
 
 type TraitsValidator struct {
-	historyQ history.QInterface
 }
 
-func NewTraitsValidator(historyQ history.QInterface) *TraitsValidator {
+func NewTraitsValidator() *TraitsValidator {
 	return &TraitsValidator{
-		historyQ: historyQ,
 	}
 }
 
 // VerifyRestrictions checks traits of the involved accounts
-func (v *TraitsValidator) CheckTraits(source string, destination string) (*results.RestrictedForAccountError, error) {
+func (v *TraitsValidator) CheckTraits(source, destination *history.Account) (*results.RestrictedForAccountError, error) {
 	restriction, err := v.CheckTraitsForAccount(source, true)
-	if restriction == nil && err == nil {
+	// if id is zero - account is new, so there are no traits for it
+	if restriction == nil && err == nil && destination.ID != 0 {
 		restriction, err = v.CheckTraitsForAccount(destination, false)
 	}
 	return restriction, err
 }
 
-func (v *TraitsValidator) CheckTraitsForAccount(account string, isSource bool) (*results.RestrictedForAccountError, error) {
-	// Get account traits
-	accountTraits, err := v.historyQ.AccountTraitsQ().ForAccount(account)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-
+func (v *TraitsValidator) CheckTraitsForAccount(account *history.Account, isSource bool) (*results.RestrictedForAccountError, error) {
 	// Check restrictions
-	if isSource && accountTraits.BlockOutcomingPayments {
+	if isSource && account.BlockOutcomingPayments {
 		return &results.RestrictedForAccountError{
-			Reason: fmt.Sprintf("Outcoming payments for account (%s) are restricted by administrator.", account),
+			Reason: fmt.Sprintf("Outcoming payments for account (%s) are restricted by administrator.", account.Address),
 		}, nil
 	}
 
-	if !isSource && accountTraits.BlockIncomingPayments {
+	if !isSource && account.BlockIncomingPayments {
 		return &results.RestrictedForAccountError{
-			Reason: fmt.Sprintf("Incoming payments for account (%s) are restricted by administrator.", account),
+			Reason: fmt.Sprintf("Incoming payments for account (%s) are restricted by administrator.", account.Address),
 		}, nil
 	}
 

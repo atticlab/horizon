@@ -31,14 +31,14 @@ type Ingestion struct {
 	HistoryAccountCache      *cache.HistoryAccount
 }
 
-func New(db *db2.Repo, accountStatsCache *cache.AccountStatistics, currentVersion int) *Ingestion {
+func New(db *db2.Repo, historyAccountCache *cache.HistoryAccount, currentVersion int) *Ingestion {
 	q := &history.Q{
 		Repo: db,
 	}
 	return &Ingestion{
 		DB:                  db,
 		CurrentVersion:      currentVersion,
-		HistoryAccountCache: cache.NewHistoryAccount(q),
+		HistoryAccountCache: historyAccountCache,
 		statisticsCache:     cache.NewAccountStatistics(q),
 	}
 }

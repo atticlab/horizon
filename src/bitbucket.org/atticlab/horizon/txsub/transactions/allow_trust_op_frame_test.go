@@ -12,6 +12,7 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"time"
+	"bitbucket.org/atticlab/horizon/cache"
 )
 
 func TestAllowTrustOpFrame(t *testing.T) {
@@ -32,7 +33,9 @@ func TestAllowTrustOpFrame(t *testing.T) {
 	newAccount, err := keypair.Random()
 	assert.Nil(t, err)
 
-	manager := NewManager(coreQ, historyQ, nil, &config)
+	manager := NewManager(coreQ, historyQ, nil, &config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQ),
+	})
 
 	Convey("Invalid asset", t, func() {
 		allowTrust := build.AllowTrust(build.AllowTrustAsset{"USD"}, build.Trustor{newAccount.Address()})

@@ -2,6 +2,7 @@ package txsub
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/build"
+	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
@@ -114,7 +115,9 @@ func TestDefaultSubmitter(t *testing.T) {
 }
 
 func createSubmitterWithTxV(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *config.Config, txValidator TransactionValidatorInterface) *submitter {
-	sub := createSubmitter(h, url, coreDb, historyDb, config)
+	sub := createSubmitter(h, url, coreDb, historyDb, config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyDb),
+	})
 	sub.defaultTxValidator = txValidator
 	return sub
 }

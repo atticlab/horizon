@@ -10,6 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+	"bitbucket.org/atticlab/horizon/cache"
 )
 
 func TestChangeTrustOpFrame(t *testing.T) {
@@ -28,7 +29,9 @@ func TestChangeTrustOpFrame(t *testing.T) {
 
 	root := test.BankMasterSeed()
 
-	manager := NewManager(coreQ, historyQ, nil, &config)
+	manager := NewManager(coreQ, historyQ, nil, &config, &cache.SharedCache{
+		AccountHistoryCache: cache.NewHistoryAccount(historyQ),
+	})
 
 	Convey("Invalid asset", t, func() {
 		changeTrust := build.ChangeTrust(build.Asset{

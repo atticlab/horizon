@@ -4,14 +4,20 @@ import (
 	"strings"	
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
+	"github.com/guregu/null"
 	sq "github.com/lann/squirrel"
+	"encoding/json"
+	"github.com/go-errors/errors"
 )
 
 // Account is a row of data from the `history_accounts` table
 type Account struct {
 	TotalOrderID
-	Address     string          `db:"address"`
-	AccountType xdr.AccountType `db:"account_type"`
+	Address                string          `db:"address"`
+	AccountType            xdr.AccountType `db:"account_type"`
+	BlockIncomingPayments  bool            `db:"block_incoming_payments"`
+	BlockOutcomingPayments bool            `db:"block_outcoming_payments"`
+	LimitedAssets          null.String     `db:"limited_assets"`
 }
 
 func NewAccount(id int64, address string, accountType xdr.AccountType) *Account {
@@ -24,12 +30,39 @@ func NewAccount(id int64, address string, accountType xdr.AccountType) *Account 
 	}
 }
 
+// UnmarshalDetails unmarshals the details of this effect into `dest`
+func (r *Account) UnmarshalLimitedAssets() (map[string]bool, error) {
+	result := make(map[string]bool)
+	if !r.LimitedAssets.Valid {
+		return result, nil
+	}
+
+	err := json.Unmarshal([]byte(r.LimitedAssets.String), &result)
+	if err != nil {
+		err = errors.Wrap(err, 1)
+	}
+
+	return result, err
+}
+
+func (r *Account) SetLimitedAssets(limitedAssets map[string]bool) (error) {
+	data, err := json.Marshal(limitedAssets)
+	if err != nil {
+		return err
+	}
+	r.LimitedAssets = null.StringFrom(string(data))
+	return nil
+}
+
 // Returns array of params to be inserted/updated
 func (account *Account) GetParams() []interface{} {
 	return []interface{}{
 		account.ID,
 		account.Address,
 		account.AccountType,
+		account.BlockIncomingPayments,
+		account.BlockOutcomingPayments,
+		account.LimitedAssets,
 	}
 }
 
@@ -92,6 +125,19 @@ func (q *Q) AccountsByAddresses(dest interface{}, addresses []string) error {
 }
 
 
+func (q *Q) AccountUpdate(account *Account) error {
+	sql := AccountUpdate.SetMap(map[string]interface{}{
+		"block_incoming_payments":  account.BlockIncomingPayments,
+		"block_outcoming_payments": account.BlockOutcomingPayments,
+		"limited_assets":           account.LimitedAssets,
+	}).Where("history_accounts.id = ?", account.ID)
+	_, err := q.Exec(sql)
+	if err != nil {
+		errors.Wrap(err, 0)
+	}
+	return err
+}
+
 // AccountByID loads a row from `history_accounts`, by id
 func (q *Q) AccountByID(dest interface{}, id int64) error {
 	sql := selectAccount.Limit(1).Where("ha.id = ?", id)
@@ -105,6 +151,15 @@ func (q *AccountsQ) Page(page db2.PageQuery) *AccountsQ {
 	}
 
 	q.sql, q.Err = page.ApplyTo(q.sql, "ha.id")
+	return q
+}
+
+func (q *AccountsQ) Blocked() *AccountsQ {
+	if q.Err != nil {
+		return q
+	}
+
+	q.sql = q.sql.Where("(block_outcoming_payments = true OR block_outcoming_payments = true)")
 	return q
 }
 
@@ -124,4 +179,9 @@ var AccountInsert = sq.Insert("history_accounts").Columns(
 	"id",
 	"address",
 	"account_type",
+	"block_incoming_payments",
+	"block_outcoming_payments",
+	"limited_assets",
 )
+
+var AccountUpdate = sq.Update("history_accounts")

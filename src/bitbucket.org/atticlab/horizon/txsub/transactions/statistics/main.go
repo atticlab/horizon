@@ -3,6 +3,7 @@ package statistics
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/config"
+	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/redis"
@@ -12,7 +13,7 @@ import (
 
 type ManagerInterface interface {
 	// Gets statistics for account-asset pair, updates it with opAmount and returns stats
-	UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (result map[xdr.AccountType]history.AccountStatistics, err error)
+	UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (result *redis.AccountStatistics, err error)
 
 	// Cancels Op - removes it from processed ops and subtracts from stats
 	CancelOp(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) error
@@ -118,7 +119,7 @@ func (m *Manager) cancelOp(paymentData *PaymentData, direction PaymentDirection,
 
 	// Get stats
 	account := paymentData.GetAccount(direction)
-	accountStats, err := m.getAccountStatistics(account.Accountid, paymentData.Asset.Code, conn)
+	accountStats, err := m.getAccountStatistics(account.Address, paymentData.Asset.Code, conn)
 	if err != nil {
 		m.log.WithError(err).Error("Failed to get account statistics")
 		return false, err
@@ -129,6 +130,10 @@ func (m *Manager) cancelOp(paymentData *PaymentData, direction PaymentDirection,
 		m.log.Debug("Stats are not in redis - no need to cancel operation")
 		err = conn.UnWatch()
 		return false, err
+	}
+
+	if direction.IsIncoming() {
+		accountStats.Balance -= paymentData.Amount
 	}
 
 	counterparty := paymentData.GetCounterparty(direction)
@@ -171,7 +176,7 @@ func (m *Manager) cancelOp(paymentData *PaymentData, direction PaymentDirection,
 
 }
 
-func (m *Manager) UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (result map[xdr.AccountType]history.AccountStatistics, err error) {
+func (m *Manager) UpdateGet(paymentData *PaymentData, paymentDirection PaymentDirection, now time.Time) (result *redis.AccountStatistics, err error) {
 	var accountStats *redis.AccountStatistics
 	for i := 0; i < m.numOfRetires; i++ {
 		m.log.WithField("retry", i).Debug("UpdateGet started new retry")
@@ -186,7 +191,7 @@ func (m *Manager) UpdateGet(paymentData *PaymentData, paymentDirection PaymentDi
 		}
 
 		if !needRetry {
-			return accountStats.AccountsStatistics, nil
+			return accountStats, nil
 		}
 	}
 
@@ -212,10 +217,10 @@ func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection
 			return nil, false, err
 		}
 
-		return m.manageProcessedOp(conn, paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, now)
+		return m.manageProcessedOp(conn, paymentData.GetAccount(direction).Address, paymentData.Asset, paymentData.GetAccountTrustLine(direction), now)
 	}
 
-	accountStats, err := m.getAccountStatistics(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, conn)
+	accountStats, err := m.getAccountStatistics(paymentData.GetAccount(direction).Address, paymentData.Asset.Code, conn)
 	if err != nil {
 		return nil, false, err
 	}
@@ -223,10 +228,15 @@ func (m *Manager) updateGet(paymentData *PaymentData, direction PaymentDirection
 	if accountStats == nil {
 		// try get from db
 		m.log.Debug("Getting stats from histroy")
-		accountStats, err = m.tryGetStatisticsFromHistory(paymentData.GetAccount(direction).Accountid, paymentData.Asset.Code, now)
+		accountStats, err = m.tryGetStatisticsFromDB(paymentData.GetAccount(direction).Address, paymentData.Asset, paymentData.GetAccountTrustLine(direction), now)
 		if err != nil {
 			m.log.WithError(err).Error("Failed to get stats from history")
 			return nil, false, err
+		}
+	} else {
+		trustLine := paymentData.GetAccountTrustLine(direction)
+		if accountStats.Balance == 0 && trustLine != nil {
+			accountStats.Balance = int64(trustLine.Balance)
 		}
 	}
 	m.log.WithField("account_stats", accountStats).Debug("Got account stats")
@@ -309,17 +319,17 @@ func (m *Manager) getAccountStatistics(account, assetCode string, conn redis.Con
 	return accountStats, nil
 }
 
-func (m *Manager) manageProcessedOp(conn redis.ConnectionInterface, account string, assetCode string, now time.Time) (*redis.AccountStatistics, bool, error) {
+func (m *Manager) manageProcessedOp(conn redis.ConnectionInterface, account string, asset history.Asset, trustLine *core.Trustline, now time.Time) (*redis.AccountStatistics, bool, error) {
 	// try get stats from redis
 	accountStatsProvider := m.getAccountStatsProvider(conn)
-	accountStats, err := accountStatsProvider.Get(account, assetCode, m.counterparties)
+	accountStats, err := accountStatsProvider.Get(account, asset.Code, m.counterparties)
 	if err != nil {
 		return nil, false, err
 	}
 
 	if accountStats == nil {
 		// try get stats from history
-		accountStats, err = m.tryGetStatisticsFromHistory(account, assetCode, now)
+		accountStats, err = m.tryGetStatisticsFromDB(account, asset, trustLine, now)
 		if err != nil {
 			return nil, false, err
 		}
@@ -329,11 +339,19 @@ func (m *Manager) manageProcessedOp(conn redis.ConnectionInterface, account stri
 			return nil, false, err
 		}
 		return accountStats, false, err
+	} else {
+		if accountStats.Balance == 0 && trustLine != nil {
+			accountStats.Balance = int64(trustLine.Balance)
+		}
 	}
+
 	return accountStats, false, nil
 }
 
 func (m *Manager) updateStats(accountStats *redis.AccountStatistics, counterparty xdr.AccountType, isIncome bool, opAmount int64, now time.Time) {
+	if isIncome {
+		accountStats.Balance += opAmount
+	}
 	_, ok := accountStats.AccountsStatistics[counterparty]
 	if !ok {
 		accountStats.AccountsStatistics[counterparty] = history.NewAccountStatistics(accountStats.Account, accountStats.AssetCode, counterparty)
@@ -347,9 +365,13 @@ func (m *Manager) updateStats(accountStats *redis.AccountStatistics, counterpart
 	}
 }
 
-func (m *Manager) tryGetStatisticsFromHistory(account, assetCode string, now time.Time) (*redis.AccountStatistics, error) {
-	accountStats := redis.NewAccountStatistics(account, assetCode, make(map[xdr.AccountType]history.AccountStatistics))
-	err := m.historyQ.GetStatisticsByAccountAndAsset(accountStats.AccountsStatistics, account, assetCode, now)
+func (m *Manager) tryGetStatisticsFromDB(account string, asset history.Asset, trustLine *core.Trustline, now time.Time) (*redis.AccountStatistics, error) {
+	balance := int64(0)
+	if trustLine != nil {
+		balance = int64(trustLine.Balance)
+	}
+	accountStats := redis.NewAccountStatistics(account, asset.Code, balance, make(map[xdr.AccountType]history.AccountStatistics))
+	err := m.historyQ.GetStatisticsByAccountAndAsset(accountStats.AccountsStatistics, account, asset.Code, now)
 	if err != nil {
 		return nil, err
 	}

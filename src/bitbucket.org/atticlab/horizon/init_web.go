@@ -3,25 +3,27 @@ package horizon
 import (
 	"database/sql"
 	"net/http"
-	"strings"
 
 	"github.com/rcrowley/go-metrics"
 
+	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
 	"github.com/PuerkitoBio/throttled"
-	"github.com/PuerkitoBio/throttled/store"
+	"github.com/PuerkitoBio/throttled/store/redigostore"
 	"github.com/rs/cors"
 	"github.com/sebest/xff"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
+	"math/rand"
+	"strconv"
 )
 
 // Web contains the http server related fields for horizon: the router,
 // rate limiter, etc.
 type Web struct {
 	router      *web.Mux
-	rateLimiter *throttled.Throttler
+	rateLimiter *throttled.HTTPRateLimiter
 
 	requestTimer metrics.Timer
 	failureMeter metrics.Meter
@@ -64,7 +66,11 @@ func initWebMiddleware(app *App) {
 	})
 	r.Use(c.Handler)
 
-	r.Use(app.web.RateLimitMiddleware)
+	if app.web.rateLimiter != nil {
+		r.Use(app.web.RateLimitMiddleware)
+	} else {
+		log.Warn("No rate limit")
+	}
 }
 
 // initWebActions installs the routing configuration of horizon onto the
@@ -138,25 +144,40 @@ func initWebActions(app *App) {
 }
 
 func initWebRateLimiter(app *App) {
-	rateLimitStore := store.NewMemStore(1000)
-
-	if app.redis != nil {
-		rateLimitStore = store.NewRedisStore(app.redis, "throttle:", 0)
+	if app.config.RateLimit == nil {
+		app.web.rateLimiter = nil
+		return
+	}
+	if app.redis == nil {
+		log.Panic("Rate limiter requires redis")
 	}
 
-	rateLimiter := throttled.RateLimit(
-		app.config.RateLimit,
-		&throttled.VaryBy{Custom: remoteAddrIP},
-		rateLimitStore,
-	)
+	rateLimitStore, err := redigostore.New(app.redis, "throttle:", 0)
+	if err != nil {
+		log.WithField("error", err).Panic("Failed to create redis rate limiter store")
+	}
 
-	rateLimiter.DeniedHandler = &RateLimitExceededAction{App: app, Action: Action{}}
-	app.web.rateLimiter = rateLimiter
+	rateLimiter, err := throttled.NewGCRARateLimiter(rateLimitStore, *app.config.RateLimit)
+	if err != nil {
+		log.WithField("error", err).Panic("Failed to create rate limiter")
+	}
+
+	app.web.rateLimiter = &throttled.HTTPRateLimiter{
+		DeniedHandler: &RateLimitExceededAction{App: app, Action: Action{}},
+		VaryBy:        &throttled.VaryBy{Custom: remoteAddrIP},
+		RateLimiter:   rateLimiter,
+		Error: func(w http.ResponseWriter, r *http.Request, err error) {
+			log.WithField("error", err).Error("Failed to rate limit")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		},
+	}
 }
 
 func remoteAddrIP(r *http.Request) string {
-	ip := strings.SplitN(r.RemoteAddr, ":", 2)[0]
-	return ip
+	// TODO change!!!!!!!!!!!!!
+	return strconv.FormatInt(rand.Int63(), 10)
+	//ip := strings.SplitN(r.RemoteAddr, ":", 2)[0]
+	//return ip
 }
 
 func init() {
