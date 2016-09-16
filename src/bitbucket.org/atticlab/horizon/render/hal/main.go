@@ -23,6 +23,6 @@ func Render(w http.ResponseWriter, data interface{}) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/hal+json; charset=utf-8")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Write(js)
 }

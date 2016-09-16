@@ -15,7 +15,7 @@ func Negotiate(ctx context.Context, r *http.Request) string {
 	accept := r.Header.Get("Accept")
 
 	if accept == "" {
-		return MimeHal
+		return MimeJSON
 	}
 
 	result := goautoneg.Negotiate(r.Header.Get("Accept"), alternatives)
