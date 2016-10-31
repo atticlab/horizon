@@ -4,8 +4,8 @@
 		{
 			"importpath": "bitbucket.org/atticlab/go-smart-base",
 			"repository": "ssh://bitbucket.org/atticlab/go-smart-base",
-			"revision": "5baf6f516b561d38cc7dd47cb2dd8a56587a5d7e",
-			"branch": "feature/administrative_op"
+			"revision": "7a0cfbd14931cc357d1e22e4b5efea82fff56a95",
+			"branch": "nbu"
 		},
 		{
 			"importpath": "github.com/BurntSushi/toml",
@@ -16,7 +16,7 @@
 		{
 			"importpath": "github.com/PuerkitoBio/throttled",
 			"repository": "https://github.com/PuerkitoBio/throttled",
-			"revision": "9de1df62500edbd070ed9e5d4afe0ce1b8612892",
+			"revision": "90bcd1a35aeaa6455ebea1bcb2aedf775fe9c96c",
 			"branch": "master"
 		},
 		{
