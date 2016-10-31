@@ -56,6 +56,7 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType{
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountSettlementAgent,
+		xdr.AccountTypeAccountScratchCard,
 	},
 
 	xdr.AccountTypeAccountSettlementAgent: []xdr.AccountType{
@@ -84,5 +85,10 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType{
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountSettlementAgent,
+	},
+
+	xdr.AccountTypeAccountScratchCard: []xdr.AccountType{
+		xdr.AccountTypeAccountAnonymousUser,
+		xdr.AccountTypeAccountRegisteredUser,
 	},
 }
