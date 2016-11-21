@@ -85,6 +85,14 @@ func String(code interface{}) (string, error) {
 			return OpLowReserve, nil
 		case xdr.CreateAccountResultCodeCreateAccountAlreadyExist:
 			return "op_already_exists", nil
+		case xdr.CreateAccountResultCodeCreateAccountNotAuthorizedType:
+			return "op_not_authorized", nil
+		case xdr.CreateAccountResultCodeCreateAccountWrongType:         
+			return "op_wrong_type", nil
+		case xdr.CreateAccountResultCodeCreateAccountLineFull:          
+			return "op_line_full", nil
+		case xdr.CreateAccountResultCodeCreateAccountNoIssuer:
+			return OpNoIssuer, nil
 		}
 	case xdr.PaymentResultCode:
 		switch code {

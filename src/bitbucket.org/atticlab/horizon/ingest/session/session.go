@@ -165,7 +165,7 @@ func (is *Session) ingestOperation() error {
 	case xdr.OperationTypeCreateAccount:
 		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()
-		account := history.NewAccount(is.Cursor.OperationID(), op.Destination.Address(), xdr.AccountType(op.AccountType))
+		account := history.NewAccount(is.Cursor.OperationID(), op.Destination.Address(), xdr.AccountType(op.Body.AccountType))
 		err = is.Ingestion.Account(account, true, nil, nil)
 		if err != nil {
 			return err
@@ -333,7 +333,7 @@ func (is *Session) operationDetails() map[string]interface{} {
 		op := c.Operation().Body.MustCreateAccountOp()
 		details["funder"] = source.Address()
 		details["account"] = op.Destination.Address()
-		details["account_type"] = uint32(op.AccountType)
+		details["account_type"] = uint32(op.Body.AccountType)
 	case xdr.OperationTypePayment:
 		op := c.Operation().Body.MustPaymentOp()
 		details["from"] = source.Address()
