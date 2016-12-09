@@ -59,6 +59,10 @@ type QInterface interface {
 	UpdateCommission(commission *Commission) (bool, error)
 	// get highest weight commission
 	GetHighestWeightCommission(keys map[string]CommissionKey) (resultingCommissions []Commission, err error)
+
+
+	// Tries to get operation by id. If does not exists returns sql.ErrNoRows
+	OperationByID(dest interface{}, id int64) error
 }
 
 // Q is default implementation of QInterface

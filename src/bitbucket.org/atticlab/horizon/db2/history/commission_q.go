@@ -3,8 +3,8 @@ package history
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/log"
-	"bitbucket.org/atticlab/horizon/resource/base"
 	"encoding/json"
 	sq "github.com/lann/squirrel"
 	"sort"
@@ -41,7 +41,7 @@ func (q *CommissionQ) ForAccountType(accountType int32) *CommissionQ {
 }
 
 // ForAccountType filters the query to only commission for a specific asset
-func (q *CommissionQ) ForAsset(asset base.Asset) *CommissionQ {
+func (q *CommissionQ) ForAsset(asset details.Asset) *CommissionQ {
 
 	if asset.Type == xdr.AssetTypeAssetTypeNative.String() {
 		clause := `(com.key_value->>'asset_type' = ?

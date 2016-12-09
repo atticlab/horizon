@@ -4,9 +4,9 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
-	"bitbucket.org/atticlab/horizon/resource/base"
 	"bitbucket.org/atticlab/horizon/test"
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
@@ -16,7 +16,7 @@ import (
 type RequestBuilder struct {
 	From   string
 	To     string
-	Asset  base.Asset
+	Asset  details.Asset
 	Amount string
 }
 
@@ -38,7 +38,7 @@ func TestActionsCalculateCommission(t *testing.T) {
 			From:   from.Address(),
 			To:     from.Address(),
 			Amount: "101.01",
-			Asset: base.Asset{
+			Asset: details.Asset{
 				Type:   assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
 				Code:   "EUR",
 				Issuer: from.Address(),

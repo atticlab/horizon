@@ -23,7 +23,7 @@ func TestActionsManageAssets(t *testing.T) {
 	Convey("Manage assets", t, func() {
 		account, err := keypair.Random()
 		So(err, ShouldBeNil)
-		asset := base.Asset{
+		asset := details.Asset{
 			Type:   assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
 			Code:   "USD",
 			Issuer: account.Address(),

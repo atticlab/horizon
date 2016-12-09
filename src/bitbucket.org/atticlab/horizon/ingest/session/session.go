@@ -9,10 +9,10 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/admin"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/ingest/participants"
 	"bitbucket.org/atticlab/horizon/ingest/session/helpers"
 	"bitbucket.org/atticlab/horizon/log"
-	"bitbucket.org/atticlab/horizon/resource/operations"
 	"encoding/json"
 	"github.com/spf13/viper"
 )
@@ -171,7 +171,7 @@ func (is *Session) ingestOperation() error {
 			return err
 		}
 	case xdr.OperationTypeAdministrative:
-		log := log.WithFields(log.F{
+		logger := log.WithFields(log.F{
 			"tx_hash":      is.Cursor.Transaction().TransactionHash,
 			"operation_id": is.Cursor.OperationID(),
 		})
@@ -190,13 +190,27 @@ func (is *Session) ingestOperation() error {
 
 		adminAction.Validate()
 		if adminAction.GetError() != nil {
-			log.WithError(adminAction.GetError()).Error("Failed to validate admin action")
+			logger.WithError(adminAction.GetError()).Error("Failed to validate admin action")
 			break
 		}
 		adminAction.Apply()
 		if adminAction.GetError() != nil {
-			log.WithError(adminAction.GetError()).Error("Failed to apply admin action")
+			logger.WithError(adminAction.GetError()).Error("Failed to apply admin action")
 			break
+		}
+	case xdr.OperationTypePaymentReversal:
+		// Update statistics for both accounts
+		op := is.Cursor.Operation().Body.MustPaymentReversalOp()
+		reversalSource := is.Cursor.OperationSourceAccount()
+		paymentSource := op.PaymentSource.Address()
+		assetCode, err := getAssetCode(op.Asset)
+		if err != nil {
+			return err
+		}
+
+		err = is.ingestPaymentReversal(int64(op.PaymentId), reversalSource.Address(), paymentSource, assetCode, op.Amount)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -313,7 +327,7 @@ func getAssetCode(a xdr.Asset) (string, error) {
 }
 
 func (is *Session) feeDetails(xdrFee xdr.OperationFee) map[string]interface{} {
-	fee := operations.Fee{}
+	fee := details.Fee{}
 	fee.Populate(xdrFee)
 	return fee.ToMap()
 }
@@ -321,130 +335,130 @@ func (is *Session) feeDetails(xdrFee xdr.OperationFee) map[string]interface{} {
 // operationDetails returns the details regarding the current operation, suitable
 // for ingestion into a history_operation row
 func (is *Session) operationDetails() map[string]interface{} {
-	details := map[string]interface{}{}
+	opDetails := map[string]interface{}{}
 	c := is.Cursor
 	source := c.OperationSourceAccount()
 
 	fee := c.Transaction().Envelope.OperationFees[c.OperationOrder()-1]
-	details["fee"] = is.feeDetails(fee)
+	opDetails["fee"] = is.feeDetails(fee)
 
 	switch c.OperationType() {
 	case xdr.OperationTypeCreateAccount:
 		op := c.Operation().Body.MustCreateAccountOp()
-		details["funder"] = source.Address()
-		details["account"] = op.Destination.Address()
-		details["account_type"] = uint32(op.Body.AccountType)
+		opDetails["funder"] = source.Address()
+		opDetails["account"] = op.Destination.Address()
+		opDetails["account_type"] = uint32(op.Body.AccountType)
 	case xdr.OperationTypePayment:
 		op := c.Operation().Body.MustPaymentOp()
-		details["from"] = source.Address()
-		details["to"] = op.Destination.Address()
-		details["amount"] = amount.String(op.Amount)
-		helpers.AssetDetails(details, op.Asset, "")
+		opDetails["from"] = source.Address()
+		opDetails["to"] = op.Destination.Address()
+		opDetails["amount"] = amount.String(op.Amount)
+		helpers.AssetDetails(opDetails, op.Asset, "")
 	case xdr.OperationTypePathPayment:
 		op := c.Operation().Body.MustPathPaymentOp()
-		details["from"] = source.Address()
-		details["to"] = op.Destination.Address()
+		opDetails["from"] = source.Address()
+		opDetails["to"] = op.Destination.Address()
 
 		result := c.OperationResult().MustPathPaymentResult()
 
-		details["amount"] = amount.String(op.DestAmount)
-		details["source_amount"] = amount.String(result.SendAmount())
-		details["source_max"] = amount.String(op.SendMax)
-		helpers.AssetDetails(details, op.DestAsset, "")
-		helpers.AssetDetails(details, op.SendAsset, "source_")
+		opDetails["amount"] = amount.String(op.DestAmount)
+		opDetails["source_amount"] = amount.String(result.SendAmount())
+		opDetails["source_max"] = amount.String(op.SendMax)
+		helpers.AssetDetails(opDetails, op.DestAsset, "")
+		helpers.AssetDetails(opDetails, op.SendAsset, "source_")
 
 		var path = make([]map[string]interface{}, len(op.Path))
 		for i := range op.Path {
 			path[i] = make(map[string]interface{})
 			helpers.AssetDetails(path[i], op.Path[i], "")
 		}
-		details["path"] = path
+		opDetails["path"] = path
 	case xdr.OperationTypeManageOffer:
 		op := c.Operation().Body.MustManageOfferOp()
-		details["offer_id"] = op.OfferId
-		details["amount"] = amount.String(op.Amount)
-		details["price"] = op.Price.String()
-		details["price_r"] = map[string]interface{}{
+		opDetails["offer_id"] = op.OfferId
+		opDetails["amount"] = amount.String(op.Amount)
+		opDetails["price"] = op.Price.String()
+		opDetails["price_r"] = map[string]interface{}{
 			"n": op.Price.N,
 			"d": op.Price.D,
 		}
-		helpers.AssetDetails(details, op.Buying, "buying_")
-		helpers.AssetDetails(details, op.Selling, "selling_")
+		helpers.AssetDetails(opDetails, op.Buying, "buying_")
+		helpers.AssetDetails(opDetails, op.Selling, "selling_")
 
 	case xdr.OperationTypeCreatePassiveOffer:
 		op := c.Operation().Body.MustCreatePassiveOfferOp()
-		details["amount"] = amount.String(op.Amount)
-		details["price"] = op.Price.String()
-		details["price_r"] = map[string]interface{}{
+		opDetails["amount"] = amount.String(op.Amount)
+		opDetails["price"] = op.Price.String()
+		opDetails["price_r"] = map[string]interface{}{
 			"n": op.Price.N,
 			"d": op.Price.D,
 		}
-		helpers.AssetDetails(details, op.Buying, "buying_")
-		helpers.AssetDetails(details, op.Selling, "selling_")
+		helpers.AssetDetails(opDetails, op.Buying, "buying_")
+		helpers.AssetDetails(opDetails, op.Selling, "selling_")
 	case xdr.OperationTypeSetOptions:
 		op := c.Operation().Body.MustSetOptionsOp()
 
 		if op.InflationDest != nil {
-			details["inflation_dest"] = op.InflationDest.Address()
+			opDetails["inflation_dest"] = op.InflationDest.Address()
 		}
 
 		if op.SetFlags != nil && *op.SetFlags > 0 {
-			is.operationFlagDetails(details, int32(*op.SetFlags), "set")
+			is.operationFlagDetails(opDetails, int32(*op.SetFlags), "set")
 		}
 
 		if op.ClearFlags != nil && *op.ClearFlags > 0 {
-			is.operationFlagDetails(details, int32(*op.ClearFlags), "clear")
+			is.operationFlagDetails(opDetails, int32(*op.ClearFlags), "clear")
 		}
 
 		if op.MasterWeight != nil {
-			details["master_key_weight"] = *op.MasterWeight
+			opDetails["master_key_weight"] = *op.MasterWeight
 		}
 
 		if op.LowThreshold != nil {
-			details["low_threshold"] = *op.LowThreshold
+			opDetails["low_threshold"] = *op.LowThreshold
 		}
 
 		if op.MedThreshold != nil {
-			details["med_threshold"] = *op.MedThreshold
+			opDetails["med_threshold"] = *op.MedThreshold
 		}
 
 		if op.HighThreshold != nil {
-			details["high_threshold"] = *op.HighThreshold
+			opDetails["high_threshold"] = *op.HighThreshold
 		}
 
 		if op.HomeDomain != nil {
-			details["home_domain"] = *op.HomeDomain
+			opDetails["home_domain"] = *op.HomeDomain
 		}
 
 		if op.Signer != nil {
-			details["signer_key"] = op.Signer.PubKey.Address()
-			details["signer_weight"] = op.Signer.Weight
+			opDetails["signer_key"] = op.Signer.PubKey.Address()
+			opDetails["signer_weight"] = op.Signer.Weight
 		}
 	case xdr.OperationTypeChangeTrust:
 		op := c.Operation().Body.MustChangeTrustOp()
-		helpers.AssetDetails(details, op.Line, "")
-		details["trustor"] = source.Address()
-		details["trustee"] = details["asset_issuer"]
-		details["limit"] = amount.String(op.Limit)
+		helpers.AssetDetails(opDetails, op.Line, "")
+		opDetails["trustor"] = source.Address()
+		opDetails["trustee"] = opDetails["asset_issuer"]
+		opDetails["limit"] = amount.String(op.Limit)
 	case xdr.OperationTypeAllowTrust:
 		op := c.Operation().Body.MustAllowTrustOp()
-		helpers.AssetDetails(details, op.Asset.ToAsset(source), "")
-		details["trustee"] = source.Address()
-		details["trustor"] = op.Trustor.Address()
-		details["authorize"] = op.Authorize
+		helpers.AssetDetails(opDetails, op.Asset.ToAsset(source), "")
+		opDetails["trustee"] = source.Address()
+		opDetails["trustor"] = op.Trustor.Address()
+		opDetails["authorize"] = op.Authorize
 	case xdr.OperationTypeAccountMerge:
 		aid := c.Operation().Body.MustDestination()
-		details["account"] = source.Address()
-		details["into"] = aid.Address()
+		opDetails["account"] = source.Address()
+		opDetails["into"] = aid.Address()
 	case xdr.OperationTypeInflation:
 		// no inflation details, presently
 	case xdr.OperationTypeManageData:
 		op := c.Operation().Body.MustManageDataOp()
-		details["name"] = string(op.DataName)
+		opDetails["name"] = string(op.DataName)
 		if op.DataValue != nil {
-			details["value"] = base64.StdEncoding.EncodeToString(*op.DataValue)
+			opDetails["value"] = base64.StdEncoding.EncodeToString(*op.DataValue)
 		} else {
-			details["value"] = nil
+			opDetails["value"] = nil
 		}
 	case xdr.OperationTypeAdministrative:
 		op := c.Operation().Body.MustAdminOp()
@@ -453,12 +467,20 @@ func (is *Session) operationDetails() map[string]interface{} {
 		if err != nil {
 			log.WithField("tx_hash", c.Transaction().TransactionHash).WithError(err).Error("Failed to unmarshal admin op details")
 		}
-		details["details"] = adminOpDetails
+		opDetails["details"] = adminOpDetails
+	case xdr.OperationTypePaymentReversal:
+		op := c.Operation().Body.MustPaymentReversalOp()
+		opDetails["source_account"] = source.Address()
+		opDetails["payment_source"] = op.PaymentSource.Address()
+		opDetails["amount"] = amount.String(op.Amount)
+		opDetails["commission"] = amount.String(op.CommissionAmount)
+		opDetails["payment_id"] = int64(op.PaymentId)
+		helpers.AssetDetails(opDetails, op.Asset, "")
 	default:
 		panic(fmt.Errorf("Unknown operation type: %s", c.OperationType()))
 	}
 
-	return details
+	return opDetails
 }
 
 // operationFlagDetails sets the account flag details for `f` on `result`.

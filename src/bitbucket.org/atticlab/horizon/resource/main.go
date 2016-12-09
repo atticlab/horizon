@@ -7,6 +7,7 @@ import (
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/resource/base"
 	"bitbucket.org/atticlab/horizon/resource/effects"
@@ -24,7 +25,7 @@ var AccountTypeNames = map[xdr.AccountType]string{
 	xdr.AccountTypeAccountSettlementAgent:   "settlement_agent",
 	xdr.AccountTypeAccountExchangeAgent:     "exchange_agent",
 	xdr.AccountTypeAccountBank:              "bank",
-	xdr.AccountTypeAccountScratchCard:		"scratch_card",
+	xdr.AccountTypeAccountScratchCard:       "scratch_card",
 	xdr.AccountTypeAccountGeneralAgent:      "general_agent",
 }
 
@@ -75,7 +76,7 @@ type AccountBalance struct {
 }
 
 type MultiAccountAssetBalances struct {
-	Asset    base.Asset       `json:"asset"`
+	Asset    details.Asset    `json:"asset"`
 	Balances []AccountBalance `json:"balances"`
 }
 type MultiAssetBalances struct {
@@ -127,7 +128,7 @@ type AccountThresholds struct {
 }
 
 // Asset represents a single asset
-type Asset base.Asset
+type Asset details.Asset
 
 type HistoryAsset struct {
 	Asset
@@ -139,7 +140,7 @@ type HistoryAsset struct {
 type Balance struct {
 	Balance string `json:"balance"`
 	Limit   string `json:"limit,omitempty"`
-	base.Asset
+	details.Asset
 }
 
 // HistoryAccount is a simple resource, used for the account collection actions.
@@ -342,17 +343,17 @@ type AccountLimitsEntry struct {
 }
 
 type Commission struct {
-	Id               int64       `json:"id"`
-	From             *string     `json:"from,omitempty"`
-	To               *string     `json:"to,omitempty"`
-	FromAccountType  *string     `json:"from_account_type,omitempty"`
-	FromAccountTypeI *int32      `json:"from_account_type_i,omitempty"`
-	ToAccountType    *string     `json:"to_account_type,omitempty"`
-	ToAccountTypeI   *int32      `json:"to_account_type_i,omitempty"`
-	Asset            *base.Asset `json:"asset,omitempty"`
-	FlatFee          string      `json:"flat_fee"`
-	PercentFee       string      `json:"percent_fee"`
-	Weight           int         `json:"weight"`
+	Id               int64          `json:"id"`
+	From             *string        `json:"from,omitempty"`
+	To               *string        `json:"to,omitempty"`
+	FromAccountType  *string        `json:"from_account_type,omitempty"`
+	FromAccountTypeI *int32         `json:"from_account_type_i,omitempty"`
+	ToAccountType    *string        `json:"to_account_type,omitempty"`
+	ToAccountTypeI   *int32         `json:"to_account_type_i,omitempty"`
+	Asset            *details.Asset `json:"asset,omitempty"`
+	FlatFee          string         `json:"flat_fee"`
+	PercentFee       string         `json:"percent_fee"`
+	Weight           int            `json:"weight"`
 }
 
 // NewEffect returns a resource of the appropriate sub-type for the provided

@@ -3,8 +3,8 @@
 package codes
 
 import (
-	"github.com/go-errors/errors"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
+	"github.com/go-errors/errors"
 )
 
 // ErrUnknownCode is returned when an unexepcted value is provided to `String`
@@ -87,9 +87,9 @@ func String(code interface{}) (string, error) {
 			return "op_already_exists", nil
 		case xdr.CreateAccountResultCodeCreateAccountNotAuthorizedType:
 			return "op_not_authorized", nil
-		case xdr.CreateAccountResultCodeCreateAccountWrongType:         
+		case xdr.CreateAccountResultCodeCreateAccountWrongType:
 			return "op_wrong_type", nil
-		case xdr.CreateAccountResultCodeCreateAccountLineFull:          
+		case xdr.CreateAccountResultCodeCreateAccountLineFull:
 			return "op_line_full", nil
 		case xdr.CreateAccountResultCodeCreateAccountNoIssuer:
 			return OpNoIssuer, nil
@@ -244,6 +244,49 @@ func String(code interface{}) (string, error) {
 		case xdr.InflationResultCodeInflationNotTime:
 			return "op_not_time", nil
 		}
+	case xdr.PaymentReversalResultCode:
+		switch code {
+		case xdr.PaymentReversalResultCodePaymentReversalSuccess:
+			return OpSuccess, nil
+		case xdr.PaymentReversalResultCodePaymentReversalUnderfunded:
+			return OpUnderfunded, nil
+		case xdr.PaymentReversalResultCodePaymentReversalSrcNoTrust:
+			return "op_no_trust", nil
+		case xdr.PaymentReversalResultCodePaymentReversalSrcNotAuthorized:
+			return "op_src_not_authorized", nil
+		case xdr.PaymentReversalResultCodePaymentReversalNoPaymentSender:
+			return "op_no_payment_sender", nil
+		case xdr.PaymentReversalResultCodePaymentReversalNoPaymentSenderTrust:
+			return "op_no_payment_sender_trust", nil
+		case xdr.PaymentReversalResultCodePaymentReversalPaymentSenderNotAuthorized:
+			return "op_payment_sender_not_authorized", nil
+		case xdr.PaymentReversalResultCodePaymentReversalPaymentSenderLineFull:
+			return "op_payment_sender_line_full", nil
+		case xdr.PaymentReversalResultCodePaymentReversalNoIssuer:
+			return OpNoIssuer, nil
+		case xdr.PaymentReversalResultCodePaymentReversalCommissionUnderfunded:
+			return "op_commission_underfunded", nil
+		case xdr.PaymentReversalResultCodePaymentReversalPaymentExpired:
+			return "op_payment_expired", nil
+		case xdr.PaymentReversalResultCodePaymentReversalPaymentDoesNotExists:
+			return "op_payment_not_exist", nil
+		case xdr.PaymentReversalResultCodePaymentReversalInvalidAmount:
+			return "op_invalid_amount", nil
+		case xdr.PaymentReversalResultCodePaymentReversalInvalidCommission:
+			return "op_invalid_commission", nil
+		case xdr.PaymentReversalResultCodePaymentReversalInvalidPaymentSender:
+			return "op_invalid_payment_sender", nil
+		case xdr.PaymentReversalResultCodePaymentReversalInvalidSource:
+			return "op_invalid_source", nil
+		case xdr.PaymentReversalResultCodePaymentReversalInvalidAsset:
+			return "op_invalid_asset", nil
+		case xdr.PaymentReversalResultCodePaymentReversalMalformed:
+			return OpMalformed, nil
+		case xdr.PaymentReversalResultCodePaymentReversalNotAllowed:
+			return "op_not_allowed", nil
+		case xdr.PaymentReversalResultCodePaymentReversalAlreadyReversed:
+			return "op_already_reversed", nil
+		}
 	}
 
 	return "", errors.New(ErrUnknownCode)
@@ -280,6 +323,8 @@ func ForOperationResult(opr xdr.OperationResult) (string, error) {
 		ic = ir.MustAccountMergeResult().Code
 	case xdr.OperationTypeInflation:
 		ic = ir.MustInflationResult().Code
+	case xdr.OperationTypePaymentReversal:
+		ic = ir.MustPaymentReversalResult().Code
 	}
 
 	return String(ic)

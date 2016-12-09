@@ -73,6 +73,8 @@ func (opFrame *OperationFrame) GetInnerOp() (OperationInterface, error) {
 		innerOp = NewManageDataOpFrame(opFrame)
 	case xdr.OperationTypeAdministrative:
 		innerOp = NewAdministrativeOpFrame(opFrame)
+	case xdr.OperationTypePaymentReversal:
+		innerOp = NewPaymentReversalOpFrame(opFrame)
 	default:
 		return nil, errors.New("unknown operation")
 	}

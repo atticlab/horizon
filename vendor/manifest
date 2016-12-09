@@ -4,8 +4,8 @@
 		{
 			"importpath": "bitbucket.org/atticlab/go-smart-base",
 			"repository": "https://bitbucket.org/atticlab/go-smart-base",
-			"revision": "207877746f96ad74d6efe820eb3215a40e41fb2f",
-			"branch": "nbu"
+			"revision": "7be2ba3f5c1babe91436f13392bafa5fa7d0dc1e",
+			"branch": "feature/payment_reversal"
 		},
 		{
 			"importpath": "github.com/BurntSushi/toml",

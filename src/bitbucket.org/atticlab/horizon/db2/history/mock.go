@@ -136,6 +136,11 @@ func (m *QMock) GetHighestWeightCommission(keys map[string]CommissionKey) (resul
 	return a.Get(0).([]Commission), a.Error(1)
 }
 
+func (m *QMock) OperationByID(dest interface{}, id int64) error {
+	a := m.Called(dest, id)
+	return a.Error(0)
+}
+
 func CreateRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {
 	return CreateRandomAccountStatsWithMinValue(account, counterpartyType, asset, 0)
 }
