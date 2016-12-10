@@ -65,8 +65,13 @@ func (p *PaymentReversalOpFrame) validateAgainstPayment(manager *Manager) (bool,
 		return false, nil
 	}
 
-	if operation.ClosedAt.Add(MAX_REVERSE_TIME).Before(*p.now) {
-		p.getInnerResult().Code = xdr.PaymentReversalResultCodePaymentReversalPaymentExpired
+	isExpirationValid, err := p.checkExpiration(manager, &operation)
+	if err != nil {
+		p.log.WithError(err).Error("Failed to check expiration")
+		return false, err
+	}
+
+	if !isExpirationValid {
 		return false, nil
 	}
 
@@ -83,6 +88,41 @@ func (p *PaymentReversalOpFrame) validateAgainstPayment(manager *Manager) (bool,
 	}
 
 	return p.validateReversalPaymentDetails(&paymentDetails), nil
+}
+
+func (p *PaymentReversalOpFrame) checkExpiration(manager *Manager, operation *history.Operation) (bool, error) {
+	maxReversalDuration, err := p.getMaxReverseTime(manager)
+	if err != nil {
+		p.log.WithError(err).Error("Failed to get max reverse time!")
+		return false, err
+	}
+
+	if operation.ClosedAt.Add(maxReversalDuration).Before(*p.now) {
+		p.getInnerResult().Code = xdr.PaymentReversalResultCodePaymentReversalPaymentExpired
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (p *PaymentReversalOpFrame) getMaxReverseTime(manager *Manager) (time.Duration, error) {
+	maxDurationOption, err := manager.HistoryQ.OptionsByName(history.OPTIONS_MAX_REVERSAL_DURATION)
+	if err != nil {
+		p.log.WithError(err).Error("Failed to get max reversal duration from db")
+		return time.Duration(0), err
+	}
+
+	if maxDurationOption == nil {
+		return MAX_REVERSE_TIME, nil
+	}
+
+	maxDuration, err := maxDurationOption.MaxReversalDuration().GetMaxDuration()
+	if err != nil {
+		p.log.WithError(err).Error("Failed to get max reversal duration from option")
+		return time.Duration(0), err
+	}
+
+	return maxDuration, nil
 }
 
 func (p *PaymentReversalOpFrame) validateReversalPaymentDetails(paymentDetails *details.Payment) bool {

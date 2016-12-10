@@ -69,6 +69,7 @@ DROP TABLE IF EXISTS public.history_accounts;
 DROP TABLE IF EXISTS public.gorp_migrations;
 DROP SEQUENCE IF EXISTS public.commission_id_seq;
 DROP TABLE IF EXISTS public.commission;
+DROP TABLE IF EXISTS public.options CASCADE;
 DROP SEQUENCE IF EXISTS public.asset_id_seq;
 DROP TABLE IF EXISTS public.asset;
 DROP TABLE IF EXISTS public.account_statistics;
@@ -318,6 +319,13 @@ CREATE TABLE history_operations (
     type integer NOT NULL,
     details jsonb,
     source_account character varying(64) DEFAULT ''::character varying NOT NULL
+);
+
+CREATE TABLE options
+(
+  name varchar(32) NOT NULL,
+  data text,
+  PRIMARY KEY(name)
 );
 
 

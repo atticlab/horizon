@@ -5,14 +5,13 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/log"
-	"bitbucket.org/atticlab/horizon/resource/base"
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
-	"bitbucket.org/atticlab/horizon/db2/history/details"
 )
 
 func TestCommissionHash(t *testing.T) {

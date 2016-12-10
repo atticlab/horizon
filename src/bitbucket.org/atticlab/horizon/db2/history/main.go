@@ -63,6 +63,13 @@ type QInterface interface {
 
 	// Tries to get operation by id. If does not exists returns sql.ErrNoRows
 	OperationByID(dest interface{}, id int64) error
+
+	// Options
+	// Tries to select options by name. If not found, returns nil,nil
+	OptionsByName(name string) (*Options, error)
+	OptionsInsert(options *Options) (err error)
+	OptionsUpdate(options *Options) (bool, error)
+	OptionsDelete(name string) (bool, error)
 }
 
 // Q is default implementation of QInterface

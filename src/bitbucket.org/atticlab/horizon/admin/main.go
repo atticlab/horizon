@@ -5,10 +5,11 @@ import "fmt"
 type AdminActionSubject string
 
 const (
-	SubjectCommission    AdminActionSubject = "commission"
-	SubjectTraits        AdminActionSubject = "traits"
-	SubjectAccountLimits AdminActionSubject = "account_limits"
-	SubjectAsset         AdminActionSubject = "asset"
+	SubjectCommission                 AdminActionSubject = "commission"
+	SubjectTraits                     AdminActionSubject = "traits"
+	SubjectAccountLimits              AdminActionSubject = "account_limits"
+	SubjectAsset                      AdminActionSubject = "asset"
+	SubjectMaxPaymentReversalDuration AdminActionSubject = "max_reversal_duration"
 )
 
 type InvalidFieldError struct {
