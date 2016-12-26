@@ -53,6 +53,7 @@ func init() {
 	viper.BindEnv("ingest", "INGEST")
 	viper.BindEnv("network-passphrase", "NETWORK_PASSPHRASE")
 	viper.BindEnv("bank-master-key", "BANK_MASTER_KEY")
+	viper.BindEnv("general-agent-key", "GENERAL_AGENT_KEY")
 	viper.BindEnv("bank-commission-key", "BANK_COMMISSION_KEY")
 
 	viper.BindEnv("restrictions-anonymous-user-max-daily-outcome", "RESTRICTIONS_ANONYMOUS_USER_MAX_DAILY_OUTCOME")
@@ -174,6 +175,12 @@ func init() {
 	)
 
 	rootCmd.Flags().String(
+		"general-agent-key",
+		"",
+		"General agent's master key",
+	)
+
+	rootCmd.Flags().String(
 		"bank-commission-key",
 		"",
 		"Bank's commission key",
@@ -259,6 +266,9 @@ func initConfig() {
 
 	if viper.GetBool("ingest") && viper.GetString("bank-master-key") == "" {
 		log.Fatal("Invalid config: bank-master-key is blank. Please set the BANK_MASTER_KEY environment variable.")
+	}
+	if viper.GetString("general-agent-key") == "" {
+		log.Fatal("Invalid config: general-agent-key is blank. Please set the GENERAL_AGENT_KEY environment variable.")
 	}
 	if viper.GetString("bank-commission-key") == "" {
 		log.Fatal("Invalid config: bank-commission-key is blank. Please set the BANK_COMMISSION_KEY environment variable.")

@@ -88,7 +88,13 @@ func (is *Session) ingestLedger() error {
 			return err
 		}
 
-		commission := history.NewAccount(2, viper.GetString("bank-commission-key"), xdr.AccountTypeAccountBank)
+		general := history.NewAccount(2, viper.GetString("general-agent-key"), xdr.AccountTypeAccountGeneralAgent)
+		err = is.Ingestion.Account(general, false, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		commission := history.NewAccount(3, viper.GetString("bank-commission-key"), xdr.AccountTypeAccountBank)
 		if master.Address != commission.Address {
 			err = is.Ingestion.Account(commission, false, nil, nil)
 			if err != nil {
