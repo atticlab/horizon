@@ -40,6 +40,8 @@ func init() {
 	viper.BindEnv("db-url", "DATABASE_URL")
 	viper.BindEnv("stellar-core-db-url", "STELLAR_CORE_DATABASE_URL")
 	viper.BindEnv("stellar-core-url", "STELLAR_CORE_URL")
+	viper.BindEnv("authorized-horizon-url", "AUTHORIZED-HORIZON-URL")
+	viper.BindEnv("approve-secret", "APPROVE-SECRET")
 	viper.BindEnv("friendbot-secret", "FRIENDBOT_SECRET")
 	viper.BindEnv("per-hour-rate-limit", "PER_HOUR_RATE_LIMIT")
 	viper.BindEnv("redis-url", "REDIS_URL")
@@ -87,6 +89,18 @@ func init() {
 		"stellar-core-url",
 		"",
 		"stellar-core to connect with (for http commands)",
+	)
+
+	rootCmd.Flags().String(
+		"authorized-horizon-url",
+		"",
+		"horizon authorized to sign transactions (for http commands)",
+	)
+
+	rootCmd.Flags().String(
+		"approve-secret",
+		"",
+		"secret to sign transactions upon submitting to the core",
 	)
 
 	rootCmd.Flags().Int(
@@ -240,6 +254,10 @@ func initConfig() {
 		log.Fatal("Invalid config: stellar-core-url is blank.  Please specify --stellar-core-url on the command line or set the STELLAR_CORE_URL environment variable.")
 	}
 
+	if viper.GetString("authorized-horizon-url") == "" && viper.GetString("approve-secret") == "" {
+		log.Fatal("Invalid config: either authorized-horizon-url or approve-secret should not be blank.  Please specify --authorized-horizon-url/--approve-secret on the command line or set the AUTHORIZED-HORIZON-URL/APPROVE-SECRET environment variables.")
+	}
+
 	ll, err := logrus.ParseLevel(viper.GetString("log-level"))
 
 	if err != nil {
@@ -283,6 +301,8 @@ func initConfig() {
 		DatabaseURL:               viper.GetString("db-url"),
 		StellarCoreDatabaseURL:    viper.GetString("stellar-core-db-url"),
 		StellarCoreURL:            viper.GetString("stellar-core-url"),
+		AuthorizedHorizonURL:      viper.GetString("authorized-horizon-url"),
+		ApproveSecret:      	   viper.GetString("approve-secret"),
 		Autopump:                  viper.GetBool("autopump"),
 		Port:                      viper.GetInt("port"),
 		RateLimit:                 getRateLimit(),

@@ -38,8 +38,9 @@ func NewDefaultSubmitter(
 	historyDb *history.Q,
 	config *conf.Config,
 	sharedCache *cache.SharedCache,
-) Submitter {
-	return createSubmitter(h, url, coreDb, historyDb, config, sharedCache)
+	otherHorizonUrl string,
+	) Submitter {
+	return createSubmitter(h, url, coreDb, historyDb, config, sharedCache, otherHorizonUrl)
 }
 
 // coreSubmissionResponse is the json response from stellar-core's tx endpoint
@@ -55,6 +56,7 @@ type coreSubmissionResponse struct {
 type submitter struct {
 	http     *http.Client
 	coreURL  string
+	horizonUrl string
 	coreQ    *core.Q
 	historyQ *history.Q
 	config   *conf.Config
@@ -64,10 +66,11 @@ type submitter struct {
 	commissionManager  *commissions.CommissionsManager
 }
 
-func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config, sharedCache *cache.SharedCache) *submitter {
+func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *history.Q, config *conf.Config, sharedCache *cache.SharedCache, otherHorizonUrl string) *submitter {
 	return &submitter{
 		http:               h,
 		coreURL:            url,
+		horizonUrl:			otherHorizonUrl,
 		coreQ:              coreDb,
 		historyQ:           historyDb,
 		config:             config,
@@ -76,28 +79,39 @@ func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *hist
 		Log:                log.WithField("service", "submitter"),
 	}
 }
-
+ 
 // Submit sends the provided envelope to stellar-core and parses the response into
 // a SubmissionResult
 func (sub *submitter) Submit(ctx context.Context, env *transactions.EnvelopeInfo) (result SubmissionResult) {
 	start := time.Now()
 	defer func() { result.Duration = time.Since(start) }()
 
+	// check constraints for tx
+	sub.Log.Debug("Checking tx")
+	err := sub.defaultTxValidator.CheckTransaction(env)
+	if err != nil {
+		result.Err = err
+		return
+	}
+
+	// now we should decide what to do with the transaction - 
+	// sign it and send to the core, or forward to another core
+
+	if !sub.config.IsSigner(){
+		result = sub.Forward(ctx, env)
+		return
+	}
+	// ok, looks like we have a secret key and are approved to sign
 	sub.Log.Debug("Setting commission")
-	err := sub.commissionManager.SetCommissions(env.Tx)
+	err = sub.commissionManager.SetCommissions(env.Tx)
 	if err != nil {
 		log.WithField("Error", err).Error("Failed to set commissions")
 		result.Err = &problem.ServerError
 		return
 	}
 
-	// check constraints for tx
-	sub.Log.Debug("Checking tx")
-	err = sub.defaultTxValidator.CheckTransaction(env)
-	if err != nil {
-		result.Err = err
-		return
-	}
+	tx1 := env.Tx.Tx.Sign(sub.config.ApproveSecret)
+	// err := SignByHorizon(env.Tx, sub.config.ApproveSecret)
 
 	updatedEnv, err := writeTransaction(env.Tx)
 	if err != nil {
@@ -165,4 +179,14 @@ func writeTransaction(tx *xdr.TransactionEnvelope) (*string, error) {
 		return nil, err
 	}
 	return &res, nil
+}
+
+// Forward sends the provided envelope to another horizon and parses the response into
+// a SubmissionResult
+func (sub *submitter) Forward(ctx context.Context, env *transactions.EnvelopeInfo) (result SubmissionResult) {
+
+}
+
+func SignByHorizon(env *xdr.TransactionEnvelope, sk string) (err error) {
+
 }

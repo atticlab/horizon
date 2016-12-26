@@ -12,6 +12,8 @@ type Config struct {
 	DatabaseURL            string
 	StellarCoreDatabaseURL string
 	StellarCoreURL         string
+	AuthorizedHorizonURL   string
+	ApproveSecret		   string
 	Port                   int
 	Autopump               bool
 	RateLimit              *throttled.RateQuota
@@ -35,4 +37,8 @@ type Config struct {
 	StatisticsTimeout         time.Duration
 	// time flag for processed operation is stored
 	ProcessedOpTimeout        time.Duration
+}
+
+func (c *Config) IsSigner() bool{
+	return c.ApproveSecret != ""
 }
