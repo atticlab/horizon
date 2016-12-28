@@ -24,8 +24,9 @@ var AccountTypeNames = map[xdr.AccountType]string{
 	xdr.AccountTypeAccountSettlementAgent:   "settlement_agent",
 	xdr.AccountTypeAccountExchangeAgent:     "exchange_agent",
 	xdr.AccountTypeAccountBank:              "bank",
-	xdr.AccountTypeAccountScratchCard:		"scratch_card",
+	xdr.AccountTypeAccountScratchCard:		 "scratch_card",
 	xdr.AccountTypeAccountGeneralAgent:      "general_agent",
+	xdr.AccountTypeAccountCommission:      	 "commission",
 }
 
 func PopulateAccountType(accountType xdr.AccountType) (typeI int32, typ string) {
