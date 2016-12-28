@@ -95,16 +95,16 @@ func (p *PathPaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 	}
 
 	// check if destination trust line exists or (dest account does not exist and asset is anonymous)
-	if p.isDestExists {
-		err = manager.CoreQ.TrustlineByAddressAndAsset(&p.destTrustline, p.pathPayment.Destination.Address(), p.destAsset.Code, p.destAsset.Issuer)
-		if err != nil {
-			if err != sql.ErrNoRows {
-				return false, err
-			}
-			p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentNoTrust
-			return false, nil
-		}
-	}
+	// if p.isDestExists {
+		// err = manager.CoreQ.TrustlineByAddressAndAsset(&p.destTrustline, p.pathPayment.Destination.Address(), p.destAsset.Code, p.destAsset.Issuer)
+		// if err != nil {
+		// 	if err != sql.ErrNoRows {
+		// 		return false, err
+		// 	}
+		// 	p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentNoTrust
+		// 	return false, nil
+		// }
+	// }
 
 	isLimitsValid, err := p.checkLimits(manager)
 	if err != nil || !isLimitsValid {
