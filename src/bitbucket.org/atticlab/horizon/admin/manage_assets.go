@@ -23,6 +23,7 @@ func NewManageAssetsAction(adminAction AdminAction) *ManageAssetsAction {
 }
 
 func (action *ManageAssetsAction) Validate() {
+	action.Err = &problem.NotFound
 	action.loadParams()
 	if action.Err != nil {
 		return

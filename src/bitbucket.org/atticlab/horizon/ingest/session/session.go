@@ -101,6 +101,15 @@ func (is *Session) ingestLedger() error {
 				return err
 			}
 		}
+		storedAsset := history.Asset()
+		storedAsset.Type = int(xdr.AssetTypeAssetTypeCreditAlphanum4)
+		storedAsset.Code = "EUAH"
+		storedAsset.Issuer = viper.GetString("bank-master-key")
+		storedAsset.IsAnonymous = true
+		err = history.InsertAsset(&storedAsset)
+		if err != nil {
+			return err
+		}
 	}
 
 	for is.Cursor.NextTx() {
