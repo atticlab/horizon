@@ -101,11 +101,12 @@ func (is *Session) ingestLedger() error {
 				return err
 			}
 		}
-		storedAsset := history.Asset()
-		storedAsset.Type = int(xdr.AssetTypeAssetTypeCreditAlphanum4)
-		storedAsset.Code = "EUAH"
-		storedAsset.Issuer = viper.GetString("bank-master-key")
-		storedAsset.IsAnonymous = true
+		storedAsset := history.Asset{
+			Type: int(xdr.AssetTypeAssetTypeCreditAlphanum4),
+			Code: "EUAH",
+			Issuer: viper.GetString("bank-master-key"),
+			IsAnonymous: true,
+		}
 		err = history.InsertAsset(&storedAsset)
 		if err != nil {
 			return err
@@ -191,7 +192,7 @@ func (is *Session) ingestOperation() error {
 			"operation_id": is.Cursor.OperationID(),
 		})
 		op := is.Cursor.Operation().Body.MustAdminOp()
-		var opData map[string]interface{}
+		var opData  map[string]interface{}
 		err = json.Unmarshal([]byte(op.OpData), &opData)
 		if err != nil {
 			return err
