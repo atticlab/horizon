@@ -107,7 +107,7 @@ func (is *Session) ingestLedger() error {
 			Issuer: viper.GetString("bank-master-key"),
 			IsAnonymous: true,
 		}
-		err = history.InsertAsset(&storedAsset)
+		err = (&history.Q{is.Ingestion.DB}).InsertAsset(&storedAsset)
 		if err != nil {
 			return err
 		}
