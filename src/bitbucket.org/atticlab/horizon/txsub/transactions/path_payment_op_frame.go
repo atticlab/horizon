@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
 	"database/sql"
+	"math"
 )
 
 type PathPaymentOpFrame struct {
@@ -96,13 +97,19 @@ func (p *PathPaymentOpFrame) DoCheckValid(manager *Manager) (bool, error) {
 
 	// check if destination trust line exists or (dest account does not exist and asset is anonymous)
 	if p.isDestExists {
-		err = manager.CoreQ.TrustlineByAddressAndAsset(&p.destTrustline, p.pathPayment.Destination.Address(), p.destAsset.Code, p.destAsset.Issuer)
-		if err != nil {
-			if err != sql.ErrNoRows {
-				return false, err
+		// TODO add unit tests for this block
+		if p.pathPayment.Destination.Address() == p.destAsset.Issuer {
+			p.destTrustline.Balance = xdr.Int64(0)
+			p.destTrustline.Tlimit = xdr.Int64(math.MaxInt64)
+		} else {
+			err = manager.CoreQ.TrustlineByAddressAndAsset(&p.destTrustline, p.pathPayment.Destination.Address(), p.destAsset.Code, p.destAsset.Issuer)
+			if err != nil {
+				if err != sql.ErrNoRows {
+					return false, err
+				}
+				p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentNoTrust
+				return false, nil
 			}
-			p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentNoTrust
-			return false, nil
 		}
 	}
 
