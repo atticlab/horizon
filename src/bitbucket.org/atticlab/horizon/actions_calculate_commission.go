@@ -3,10 +3,10 @@ package horizon
 import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/commissions"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/render/problem"
-	"bitbucket.org/atticlab/horizon/resource/operations"
 	"database/sql"
 )
 
@@ -16,7 +16,7 @@ type CalculateCommissionAction struct {
 	destination xdr.AccountId
 	amount      xdr.Int64
 	asset       xdr.Asset
-	Resource    operations.Fee
+	Resource    details.Fee
 }
 
 // JSON format action handler

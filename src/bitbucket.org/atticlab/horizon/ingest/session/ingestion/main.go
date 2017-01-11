@@ -43,6 +43,12 @@ func New(db *db2.Repo, historyAccountCache *cache.HistoryAccount, currentVersion
 	}
 }
 
+func (ingest *Ingestion) HistoryQ() history.QInterface {
+	return &history.Q{
+		Repo: ingest.DB,
+	}
+}
+
 // Rollback aborts this ingestions transaction
 func (ingest *Ingestion) Rollback() (err error) {
 	// recreates all inserters to release memory

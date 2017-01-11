@@ -5,9 +5,9 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/problem"
-	"bitbucket.org/atticlab/horizon/resource/base"
 	"bitbucket.org/atticlab/horizon/test"
 	"database/sql"
 	. "github.com/smartystreets/goconvey/convey"
@@ -23,7 +23,7 @@ func TestActionsManageAssets(t *testing.T) {
 	Convey("Manage assets", t, func() {
 		account, err := keypair.Random()
 		So(err, ShouldBeNil)
-		asset := base.Asset{
+		asset := details.Asset{
 			Type:   assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
 			Code:   "USD",
 			Issuer: account.Address(),

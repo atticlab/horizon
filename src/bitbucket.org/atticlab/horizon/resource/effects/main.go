@@ -2,8 +2,8 @@ package effects
 
 import (
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/render/hal"
-	"bitbucket.org/atticlab/horizon/resource/base"
 	"golang.org/x/net/context"
 )
 
@@ -129,13 +129,13 @@ type AccountCreated struct {
 
 type AccountCredited struct {
 	Base
-	base.Asset
+	details.Asset
 	Amount string `json:"amount"`
 }
 
 type AccountDebited struct {
 	Base
-	base.Asset
+	details.Asset
 	Amount string `json:"amount"`
 }
 
@@ -177,19 +177,19 @@ type SignerUpdated struct {
 
 type TrustlineCreated struct {
 	Base
-	base.Asset
+	details.Asset
 	Limit string `json:"limit"`
 }
 
 type TrustlineRemoved struct {
 	Base
-	base.Asset
+	details.Asset
 	Limit string `json:"limit"`
 }
 
 type TrustlineUpdated struct {
 	Base
-	base.Asset
+	details.Asset
 	Limit string `json:"limit"`
 }
 

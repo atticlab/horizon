@@ -79,6 +79,7 @@ func initWebActions(app *App) {
 	r := app.web.router
 	r.Get("/", &RootAction{})
 	r.Get("/metrics", &MetricsAction{})
+	r.Get("/options", &OptionsAction{})
 
 	// ledger actions
 	r.Get("/ledgers", &LedgerIndexAction{})

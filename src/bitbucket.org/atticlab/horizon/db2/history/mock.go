@@ -136,6 +136,33 @@ func (m *QMock) GetHighestWeightCommission(keys map[string]CommissionKey) (resul
 	return a.Get(0).([]Commission), a.Error(1)
 }
 
+func (m *QMock) OperationByID(dest interface{}, id int64) error {
+	a := m.Called(dest, id)
+	return a.Error(0)
+}
+
+func (m *QMock) OptionsByName(name string) (*Options, error) {
+	a := m.Called(name)
+	options := a.Get(0)
+	err := a.Error(1)
+	if options == nil {
+		return nil, err
+	}
+	return options.(*Options), err
+}
+func (m *QMock) OptionsInsert(options *Options) (error) {
+	a := m.Called(options)
+	return a.Error(0)
+}
+func (m *QMock) OptionsUpdate(options *Options) (bool, error) {
+	a := m.Called(options)
+	return a.Bool(0), a.Error(1)
+}
+func (m *QMock) OptionsDelete(name string) (bool, error) {
+	a := m.Called(name)
+	return a.Bool(0), a.Error(1)
+}
+
 func CreateRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {
 	return CreateRandomAccountStatsWithMinValue(account, counterpartyType, asset, 0)
 }

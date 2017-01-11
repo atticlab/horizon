@@ -1,9 +1,17 @@
-package operations
+package details
 
 import (
-	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/go-smart-base/amount"
+	"bitbucket.org/atticlab/go-smart-base/xdr"
 )
+
+type Fee struct {
+	Type          string  `json:"type"`
+	TypeI         int32   `json:"type_i"`
+	AmountCharged *string `json:"amount_changed,omitempty"`
+	FlatFee       *string `json:"flat_fee,omitempty"`
+	PercentFee    *string `json:"percent_fee,omitempty"`
+}
 
 var FeeTypeNames = map[xdr.OperationFeeType]string{
 	xdr.OperationFeeTypeOpFeeNone:    "none",

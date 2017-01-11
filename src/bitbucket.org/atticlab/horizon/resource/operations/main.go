@@ -1,12 +1,13 @@
 package operations
 
 import (
-	"time"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/resource/base"
 	"golang.org/x/net/context"
+	"time"
 )
 
 // TypeNames maps from operation type to the string used to represent that type
@@ -24,6 +25,7 @@ var TypeNames = map[xdr.OperationType]string{
 	xdr.OperationTypeInflation:          "inflation",
 	xdr.OperationTypeManageData:         "manage_data",
 	xdr.OperationTypeAdministrative:     "administrative",
+	xdr.OperationTypePaymentReversal: "payment_reversal",
 }
 
 // New creates a new operation resource, finding the appropriate type to use
@@ -48,6 +50,11 @@ func New(
 	case xdr.OperationTypePathPayment:
 		e := PathPayment{}
 		e.Payment.Base = base
+		err = row.UnmarshalDetails(&e)
+		result = e
+	case xdr.OperationTypePaymentReversal:
+		e := PaymentReversal{}
+		e.Base = base
 		err = row.UnmarshalDetails(&e)
 		result = e
 	case xdr.OperationTypeManageOffer:
@@ -103,56 +110,53 @@ type Base struct {
 		Precedes    hal.Link `json:"precedes"`
 	} `json:"_links"`
 
-	ID            string `json:"id"`
-	PT            string `json:"paging_token"`
-	SourceAccount string `json:"source_account"`
-	Type          string `json:"type"`
-	TypeI         int32  `json:"type_i"`
-	ClosedAt      time.Time `json:"closed_at"`	  
-}
-
-type Fee struct {
-	Type          string  `json:"type"`
-	TypeI         int32   `json:"type_i"`
-	AmountCharged *string `json:"amount_changed,omitempty"`
-	FlatFee       *string `json:"flat_fee,omitempty"`
-	PercentFee    *string `json:"percent_fee,omitempty"`
+	ID            string    `json:"id"`
+	PT            string    `json:"paging_token"`
+	SourceAccount string    `json:"source_account"`
+	Type          string    `json:"type"`
+	TypeI         int32     `json:"type_i"`
+	ClosedAt      time.Time `json:"closed_at"`
 }
 
 type CreateAccount struct {
 	Base
-	Fee         Fee    `json:"fee"`
-	AccountType int32  `json:"account_type"`
-	Funder      string `json:"funder"`
-	Account     string `json:"account"`
+	Fee         details.Fee `json:"fee"`
+	AccountType int32       `json:"account_type"`
+	Funder      string      `json:"funder"`
+	Account     string      `json:"account"`
 }
 
 type Payment struct {
 	Base
-	base.Asset
-	Fee    Fee    `json:"fee"`
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Amount string `json:"amount"`
+	details.Payment
 }
 
 type PathPayment struct {
 	Payment
-	Fee               Fee          `json:"fee"`
-	Path              []base.Asset `json:"path"`
-	SourceMax         string       `json:"source_max"`
-	SourceAssetType   string       `json:"source_asset_type"`
-	SourceAssetCode   string       `json:"source_asset_code,omitempty"`
-	SourceAssetIssuer string       `json:"source_asset_issuer,omitempty"`
+	Fee               details.Fee     `json:"fee"`
+	Path              []details.Asset `json:"path"`
+	SourceMax         string          `json:"source_max"`
+	SourceAssetType   string          `json:"source_asset_type"`
+	SourceAssetCode   string          `json:"source_asset_code,omitempty"`
+	SourceAssetIssuer string          `json:"source_asset_issuer,omitempty"`
+}
+
+type PaymentReversal struct {
+	Base
+	PaymentID     int64  `json:"payment_id"`
+	PaymentSource string `json:"payment_source"`
+	Amount        string `json:"amount"`
+	Commission    string `json:"commission"`
+	details.Asset
 }
 
 // ManageData represents a ManageData operation as it is serialized into json
 // for the horizon API.
 type ManageData struct {
 	Base
-	Fee   Fee    `json:"fee"`
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Fee   details.Fee `json:"fee"`
+	Name  string      `json:"name"`
+	Value string      `json:"value"`
 }
 
 type Administrative struct {
@@ -162,17 +166,17 @@ type Administrative struct {
 
 type ManageOffer struct {
 	Base
-	Fee                Fee        `json:"fee"`
-	OfferID            int64      `json:"offer_id"`
-	Amount             string     `json:"amount"`
-	Price              string     `json:"price"`
-	PriceR             base.Price `json:"price"`
-	BuyingAssetType    string     `json:"buying_asset_type"`
-	BuyingAssetCode    string     `json:"buying_asset_code,omitempty"`
-	BuyingAssetIssuer  string     `json:"buying_asset_issuer,omitempty"`
-	SellingAssetType   string     `json:"selling_asset_type"`
-	SellingAssetCode   string     `json:"selling_asset_code,omitempty"`
-	SellingAssetIssuer string     `json:"selling_asset_issuer,omitempty"`
+	Fee                details.Fee `json:"fee"`
+	OfferID            int64       `json:"offer_id"`
+	Amount             string      `json:"amount"`
+	Price              string      `json:"price"`
+	PriceR             base.Price  `json:"price"`
+	BuyingAssetType    string      `json:"buying_asset_type"`
+	BuyingAssetCode    string      `json:"buying_asset_code,omitempty"`
+	BuyingAssetIssuer  string      `json:"buying_asset_issuer,omitempty"`
+	SellingAssetType   string      `json:"selling_asset_type"`
+	SellingAssetCode   string      `json:"selling_asset_code,omitempty"`
+	SellingAssetIssuer string      `json:"selling_asset_issuer,omitempty"`
 }
 
 type CreatePassiveOffer struct {
@@ -181,9 +185,9 @@ type CreatePassiveOffer struct {
 
 type SetOptions struct {
 	Base
-	Fee           Fee    `json:"fee"`
-	HomeDomain    string `json:"home_domain,omitempty"`
-	InflationDest string `json:"inflation_dest,omitempty"`
+	Fee           details.Fee `json:"fee"`
+	HomeDomain    string      `json:"home_domain,omitempty"`
+	InflationDest string      `json:"inflation_dest,omitempty"`
 
 	MasterKeyWeight *int   `json:"master_key_weight,omitempty"`
 	SignerKey       string `json:"signer_key,omitempty"`
@@ -202,30 +206,30 @@ type SetOptions struct {
 
 type ChangeTrust struct {
 	Base
-	base.Asset
-	Fee     Fee    `json:"fee"`
-	Limit   string `json:"limit"`
-	Trustee string `json:"trustee"`
-	Trustor string `json:"trustor"`
+	details.Asset
+	Fee     details.Fee `json:"fee"`
+	Limit   string      `json:"limit"`
+	Trustee string      `json:"trustee"`
+	Trustor string      `json:"trustor"`
 }
 
 type AllowTrust struct {
 	Base
-	base.Asset
-	Fee       Fee    `json:"fee"`
-	Trustee   string `json:"trustee"`
-	Trustor   string `json:"trustor"`
-	Authorize bool   `json:"authorize"`
+	details.Asset
+	Fee       details.Fee `json:"fee"`
+	Trustee   string      `json:"trustee"`
+	Trustor   string      `json:"trustor"`
+	Authorize bool        `json:"authorize"`
 }
 
 type AccountMerge struct {
 	Base
-	Fee     Fee    `json:"fee"`
-	Account string `json:"account"`
-	Into    string `json:"into"`
+	Fee     details.Fee `json:"fee"`
+	Account string      `json:"account"`
+	Into    string      `json:"into"`
 }
 
 type Inflation struct {
 	Base
-	Fee Fee `json:"fee"`
+	Fee details.Fee `json:"fee"`
 }
