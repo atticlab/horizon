@@ -11,5 +11,6 @@ func GetAll() []xdr.AccountType {
 		xdr.AccountTypeAccountSettlementAgent,
 		xdr.AccountTypeAccountExchangeAgent,
 		xdr.AccountTypeAccountBank,
+		xdr.AccountTypeAccountScratchCard,
 	}
 }

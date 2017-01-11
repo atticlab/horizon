@@ -4,10 +4,10 @@ import (
 	"bitbucket.org/atticlab/horizon/assets"
 	"bitbucket.org/atticlab/horizon/db2"
 	"bitbucket.org/atticlab/horizon/db2/history"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
+	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/render/hal"
 	"bitbucket.org/atticlab/horizon/resource"
-	"bitbucket.org/atticlab/horizon/resource/base"
-	"bitbucket.org/atticlab/horizon/log"
 )
 
 // CommissionIndexAction returns a paged slice of commissions based upon the provided
@@ -16,7 +16,7 @@ type CommissionIndexAction struct {
 	Action
 	AccountFilter     string
 	AccountTypeFilter *int32
-	Asset             *base.Asset
+	Asset             *details.Asset
 	PagingParams      db2.PageQuery
 	Records           []history.Commission
 	Page              hal.Page
@@ -36,7 +36,7 @@ func (action *CommissionIndexAction) loadParams() {
 	action.PagingParams = action.GetPageQuery()
 	if action.GetString("asset_type") != "" {
 		xdrAsset := action.GetAsset("")
-		action.Asset = new(base.Asset)
+		action.Asset = new(details.Asset)
 		*action.Asset = assets.ToBaseAsset(xdrAsset)
 	}
 }

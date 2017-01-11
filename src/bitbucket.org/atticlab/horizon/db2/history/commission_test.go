@@ -5,8 +5,8 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/keypair"
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/assets"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/log"
-	"bitbucket.org/atticlab/horizon/resource/base"
 	"bitbucket.org/atticlab/horizon/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ func TestCommissionHash(t *testing.T) {
 	log.DefaultLogger.Entry.Logger.Level = log.DebugLevel
 	issuer, err := keypair.Random()
 	assert.Nil(t, err)
-	EUR := base.Asset{
+	EUR := details.Asset{
 		Type:   assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
 		Code:   "EUR",
 		Issuer: issuer.Address(),
@@ -90,7 +90,7 @@ func TestCommissionStore(t *testing.T) {
 	err := q.DeleteCommissions()
 	assert.Nil(t, err)
 	Convey("not exist", t, func() {
-		keys := CreateCommissionKeys("from", "to", 1, 3, base.Asset{})
+		keys := CreateCommissionKeys("from", "to", 1, 3, details.Asset{})
 		commissions, err := q.CommissionByKey(keys)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(commissions))
@@ -112,7 +112,7 @@ func TestCommissionStore(t *testing.T) {
 		err = q.InsertCommission(commission)
 		assert.Nil(t, err)
 
-		keys := CreateCommissionKeys(key.From, "to", 123, *key.ToType, base.Asset{
+		keys := CreateCommissionKeys(key.From, "to", 123, *key.ToType, details.Asset{
 			Type:   "random_type",
 			Issuer: "random_issuer",
 			Code:   "ASD",
@@ -127,7 +127,7 @@ func TestCommissionStore(t *testing.T) {
 		assert.Nil(t, err)
 	})
 	Convey("create keys", t, func() {
-		keys := CreateCommissionKeys("from", "to", 1, 2, base.Asset{Type: "asset_type", Issuer: "Issuer", Code: "Code"})
+		keys := CreateCommissionKeys("from", "to", 1, 2, details.Asset{Type: "asset_type", Issuer: "Issuer", Code: "Code"})
 		assert.Equal(t, 32, len(keys))
 		for _, value := range keys {
 			log.WithField("value", value).WithField("weight", value.CountWeight()).Info("got key")
@@ -158,7 +158,7 @@ func TestCommissionSelector(t *testing.T) {
 	q := &Q{test.Start(t).HorizonRepo()}
 	accountIdA := getRandomAccountId(t)
 	accountType := int32(4)
-	asset := base.Asset{
+	asset := details.Asset{
 		Issuer: getRandomAccountId(t),
 		Code:   "USD",
 		Type:   "random_type",
@@ -227,7 +227,7 @@ func TestCommissionSelector(t *testing.T) {
 	})
 	Convey("by account and type and asset", t, func() {
 		var comms []Commission
-		err = q.Commissions().ForAccount(accountIdA).ForAccountType(accountType).ForAsset(base.Asset{
+		err = q.Commissions().ForAccount(accountIdA).ForAccountType(accountType).ForAsset(details.Asset{
 			Type: "new_random_type",
 		}).Select(&comms)
 		assert.Nil(t, err)
@@ -240,7 +240,7 @@ func TestCommissionSelector(t *testing.T) {
 	})
 	//err = q.deleteCommissions()
 	assert.Nil(t, err)
-	keys := CreateCommissionKeys(getRandomAccountId(t), getRandomAccountId(t), int32(1), int32(2), base.Asset{
+	keys := CreateCommissionKeys(getRandomAccountId(t), getRandomAccountId(t), int32(1), int32(2), details.Asset{
 		Type:   assets.MustString(xdr.AssetTypeAssetTypeCreditAlphanum4),
 		Code:   "EUR",
 		Issuer: getRandomAccountId(t),

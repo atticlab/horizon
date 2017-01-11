@@ -2,14 +2,14 @@ package history
 
 import (
 	"bitbucket.org/atticlab/go-smart-base/hash"
+	"bitbucket.org/atticlab/horizon/db2/history/details"
 	"bitbucket.org/atticlab/horizon/log"
-	"bitbucket.org/atticlab/horizon/resource/base"
 	"encoding/hex"
 	"encoding/json"
 )
 
 type CommissionKey struct {
-	base.Asset
+	details.Asset
 	From     string `json:"from,omitempty"`
 	To       string `json:"to,omitempty"`
 	FromType *int32 `json:"from_type,omitempty"`
@@ -31,7 +31,7 @@ func equals(l, r *int32) bool {
 	return *l == *r
 }
 
-func CreateCommissionKeys(from, to string, fromType, toType int32, asset base.Asset) map[string]CommissionKey {
+func CreateCommissionKeys(from, to string, fromType, toType int32, asset details.Asset) map[string]CommissionKey {
 	keys := make([]CommissionKey, 1, 32)
 	defaultFee := CommissionKey{}
 	keys[0] = defaultFee
@@ -47,7 +47,7 @@ func CreateCommissionKeys(from, to string, fromType, toType int32, asset base.As
 	return result
 }
 
-func set(keys []CommissionKey, from, to *string, fromType, toType *int32, asset *base.Asset) []CommissionKey {
+func set(keys []CommissionKey, from, to *string, fromType, toType *int32, asset *details.Asset) []CommissionKey {
 	size := len(keys)
 	var value CommissionKey
 	for j := 0; j < size; j++ {

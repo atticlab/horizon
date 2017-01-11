@@ -46,6 +46,8 @@ func ForOperation(
 		// the only direct participant is the source_account
 	case xdr.OperationTypeAdministrative:
 		// the only direct participant is the source_account
+	case xdr.OperationTypePaymentReversal:
+		result = append(result, op.Body.MustPaymentReversalOp().PaymentSource)
 	default:
 		err = fmt.Errorf("Unknown operation type: %s", op.Body.Type)
 	}

@@ -43,14 +43,19 @@ func contains(list []xdr.AccountType, a xdr.AccountType) bool {
 var typeRestrictions = map[xdr.AccountType][]xdr.AccountType{
 
 	xdr.AccountTypeAccountBank: []xdr.AccountType{
-		xdr.AccountTypeAccountSettlementAgent,
 		xdr.AccountTypeAccountDistributionAgent,
 	},
+	xdr.AccountTypeAccountCommission: []xdr.AccountType{
+		xdr.AccountTypeAccountDistributionAgent,
+	},
+
 
 	xdr.AccountTypeAccountDistributionAgent: []xdr.AccountType{
 		xdr.AccountTypeAccountAnonymousUser,
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
+		xdr.AccountTypeAccountSettlementAgent,
+		xdr.AccountTypeAccountScratchCard,
 	},
 
 	xdr.AccountTypeAccountSettlementAgent: []xdr.AccountType{
@@ -78,5 +83,10 @@ var typeRestrictions = map[xdr.AccountType][]xdr.AccountType{
 		xdr.AccountTypeAccountRegisteredUser,
 		xdr.AccountTypeAccountMerchant,
 		xdr.AccountTypeAccountSettlementAgent,
+	},
+
+	xdr.AccountTypeAccountScratchCard: []xdr.AccountType{
+		xdr.AccountTypeAccountAnonymousUser,
+		xdr.AccountTypeAccountRegisteredUser,
 	},
 }
