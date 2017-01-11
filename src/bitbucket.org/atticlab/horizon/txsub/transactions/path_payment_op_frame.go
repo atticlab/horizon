@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
 	"database/sql"
+	"math"
 )
 
 type PathPaymentOpFrame struct {
