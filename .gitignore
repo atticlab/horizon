@@ -18,4 +18,6 @@ docs/public
 
 ### VisualStudioCode ###
 .vscode
-.idea/
+
+#idea
+.idea

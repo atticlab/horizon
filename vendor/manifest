@@ -4,8 +4,8 @@
 		{
 			"importpath": "bitbucket.org/atticlab/go-smart-base",
 			"repository": "https://bitbucket.org/atticlab/go-smart-base",
-			"revision": "8913002709d47c59314db9afa1cf99fe085e4274",
-			"branch": "release/smart-0.1"
+			"revision": "f24d39cfb720f50908e7ebae9284e9be9424c0cb",
+			"branch": "feature/external"
 		},
 		{
 			"importpath": "github.com/BurntSushi/toml",

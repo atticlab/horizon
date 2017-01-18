@@ -161,7 +161,6 @@ func (is *Session) ingestOperation() error {
 		if err != nil {
 			return err
 		}
-
 	case xdr.OperationTypeCreateAccount:
 		// Import the new account if one was created
 		op := is.Cursor.Operation().Body.MustCreateAccountOp()
@@ -209,6 +208,20 @@ func (is *Session) ingestOperation() error {
 		}
 
 		err = is.ingestPaymentReversal(int64(op.PaymentId), reversalSource.Address(), paymentSource, assetCode, op.Amount)
+		if err != nil {
+			return err
+		}
+	case xdr.OperationTypeExternalPayment:
+		// Update statistics for both accounts
+		op := is.Cursor.Operation().Body.ExternalPaymentOp
+		from := is.Cursor.OperationSourceAccount()
+		to := op.ExchangeAgent
+
+		assetCode, err := getAssetCode(op.Asset)
+		if err != nil {
+			return err
+		}
+		err = is.ingestPayment(from.Address(), to.Address(), op.Amount, op.Amount, assetCode, assetCode)
 		if err != nil {
 			return err
 		}
@@ -475,6 +488,14 @@ func (is *Session) operationDetails() map[string]interface{} {
 		opDetails["amount"] = amount.String(op.Amount)
 		opDetails["commission"] = amount.String(op.CommissionAmount)
 		opDetails["payment_id"] = int64(op.PaymentId)
+		helpers.AssetDetails(opDetails, op.Asset, "")
+	case xdr.OperationTypeExternalPayment:
+		op := c.Operation().Body.MustExternalPaymentOp()
+		opDetails["from"] = source.Address()
+		opDetails["exchangeAgent"] = op.ExchangeAgent.Address()
+		opDetails["destinationBank"] = op.DestinationBank.Address()
+		opDetails["destinationAccount"] = op.DestinationAccount.Address()
+		opDetails["amount"] = amount.String(op.Amount)
 		helpers.AssetDetails(opDetails, op.Asset, "")
 	default:
 		panic(fmt.Errorf("Unknown operation type: %s", c.OperationType()))
