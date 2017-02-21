@@ -25,7 +25,8 @@ var TypeNames = map[xdr.OperationType]string{
 	xdr.OperationTypeInflation:          "inflation",
 	xdr.OperationTypeManageData:         "manage_data",
 	xdr.OperationTypeAdministrative:     "administrative",
-	xdr.OperationTypePaymentReversal: "payment_reversal",
+	xdr.OperationTypePaymentReversal:	 "payment_reversal",
+	xdr.OperationTypeRefund:			 "refund",
 }
 
 // New creates a new operation resource, finding the appropriate type to use
@@ -54,6 +55,11 @@ func New(
 		result = e
 	case xdr.OperationTypePaymentReversal:
 		e := PaymentReversal{}
+		e.Base = base
+		err = row.UnmarshalDetails(&e)
+		result = e
+	case xdr.OperationTypeRefund:
+		e := Refund{}
 		e.Base = base
 		err = row.UnmarshalDetails(&e)
 		result = e
@@ -147,6 +153,15 @@ type PaymentReversal struct {
 	PaymentSource string `json:"payment_source"`
 	Amount        string `json:"amount"`
 	Commission    string `json:"commission"`
+	details.Asset
+}
+
+type Refund struct {
+	Base
+	PaymentID     	int64  `json:"payment_id"`
+	PaymentSource 	string `json:"payment_source"`
+	Amount        	string `json:"amount"`
+	OriginalAmount	string `json:"original_amount"`
 	details.Asset
 }
 

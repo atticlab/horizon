@@ -287,6 +287,43 @@ func String(code interface{}) (string, error) {
 		case xdr.PaymentReversalResultCodePaymentReversalAlreadyReversed:
 			return "op_already_reversed", nil
 		}
+	case xdr.RefundResultCode:
+		switch code {
+		case xdr.RefundResultCodeRefundSuccess:
+			return OpSuccess, nil
+		case xdr.RefundResultCodeRefundUnderfunded:
+			return OpUnderfunded, nil
+		case xdr.RefundResultCodeRefundSrcNoTrust:
+			return "op_no_trust", nil
+		case xdr.RefundResultCodeRefundSrcNotAuthorized:
+			return "op_src_not_authorized", nil
+		case xdr.RefundResultCodeRefundNoPaymentSender:
+			return "op_no_payment_sender", nil
+		case xdr.RefundResultCodeRefundNoPaymentSenderTrust:
+			return "op_no_payment_sender_trust", nil
+		case xdr.RefundResultCodeRefundPaymentSenderNotAuthorized:
+			return "op_payment_sender_not_authorized", nil
+		case xdr.RefundResultCodeRefundPaymentSenderLineFull:
+			return "op_payment_sender_line_full", nil
+		case xdr.RefundResultCodeRefundNoIssuer:
+			return OpNoIssuer, nil
+		case xdr.RefundResultCodeRefundPaymentDoesNotExists:
+			return "op_payment_not_exist", nil
+		case xdr.RefundResultCodeRefundInvalidAmount:
+			return "op_invalid_amount", nil
+		case xdr.RefundResultCodeRefundInvalidPaymentSender:
+			return "op_invalid_payment_sender", nil
+		case xdr.RefundResultCodeRefundInvalidSource:
+			return "op_invalid_source", nil
+		case xdr.RefundResultCodeRefundInvalidAsset:
+			return "op_invalid_asset", nil
+		case xdr.RefundResultCodeRefundMalformed:
+			return OpMalformed, nil
+		case xdr.RefundResultCodeRefundNotAllowed:
+			return "op_not_allowed", nil
+		case xdr.RefundResultCodeRefundAlreadyRefunded:
+			return "op_already_refunded", nil
+		}
 	}
 
 	return "", errors.New(ErrUnknownCode)
@@ -325,6 +362,8 @@ func ForOperationResult(opr xdr.OperationResult) (string, error) {
 		ic = ir.MustInflationResult().Code
 	case xdr.OperationTypePaymentReversal:
 		ic = ir.MustPaymentReversalResult().Code
+	case xdr.OperationTypeRefund:
+		ic = ir.MustRefundResult().Code
 	}
 
 	return String(ic)

@@ -228,6 +228,20 @@ func (is *Session) ingestOperation() error {
 		if err != nil {
 			return err
 		}
+	case xdr.OperationTypeRefund:
+		// Update statistics for both accounts
+		op := is.Cursor.Operation().Body.MustRefundOp()
+		refundSource := is.Cursor.OperationSourceAccount()
+		paymentSource := op.PaymentSource.Address()
+		assetCode, err := getAssetCode(op.Asset)
+		if err != nil {
+			return err
+		}
+
+		err = is.ingestRefund(int64(op.PaymentId), refundSource.Address(), paymentSource, assetCode, op.Amount, op.OriginalAmount)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = is.ingestOperationParticipants()
@@ -490,6 +504,14 @@ func (is *Session) operationDetails() map[string]interface{} {
 		opDetails["payment_source"] = op.PaymentSource.Address()
 		opDetails["amount"] = amount.String(op.Amount)
 		opDetails["commission"] = amount.String(op.CommissionAmount)
+		opDetails["payment_id"] = int64(op.PaymentId)
+		helpers.AssetDetails(opDetails, op.Asset, "")
+	case xdr.OperationTypeRefund:
+		op := c.Operation().Body.MustRefundOp()
+		opDetails["source_account"] = source.Address()
+		opDetails["payment_source"] = op.PaymentSource.Address()
+		opDetails["amount"] = amount.String(op.Amount)
+		opDetails["original_amount"] = amount.String(op.OriginalAmount)
 		opDetails["payment_id"] = int64(op.PaymentId)
 		helpers.AssetDetails(opDetails, op.Asset, "")
 	default:
