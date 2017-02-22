@@ -22,6 +22,10 @@ func NewRefundOpFrame(opFrame *OperationFrame) *RefundOpFrame {
 }
 
 func (p *RefundOpFrame) DoCheckValid(manager *Manager) (bool, error) {
+	if p.SourceAccount.AccountType != xdr.AccountTypeAccountMerchant {
+		p.getInnerResult().Code = xdr.RefundResultCodeRefundNotAllowed
+		return false, nil
+	}
 	if !p.isPaymentValid() {
 		p.log.WithField("amount", int64(p.refund.Amount)).WithField("original_amount", int64(p.refund.OriginalAmount)).Debug("Refund amount or Original amount is invalid")
 		p.getInnerResult().Code = xdr.RefundResultCodeRefundMalformed
