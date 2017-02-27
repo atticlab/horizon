@@ -40,8 +40,6 @@ func (p *AdminActionProvider) CreateNewParser(data map[string]interface{}) (Admi
 			return NewSetLimitsAction(adminAction), nil
 		case SubjectTraits:
 			return NewSetTraitsAction(adminAction), nil
-		case SubjectAsset:
-			return NewManageAssetsAction(adminAction), nil
 		case SubjectMaxPaymentReversalDuration:
 			return NewManageMaxReversalDurationAction(adminAction), nil
 		default:

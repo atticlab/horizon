@@ -32,6 +32,9 @@ const (
 	// OpNoIssuer occurs when a operation does not correctly specify an issuing
 	// asset
 	OpNoIssuer = "op_no_issuer"
+
+	// OpAssetNotAllowed occurs when a operation specified asset which is now allowed to use
+	OpAssetNotAllowed = "op_asset_not_allowed"
 )
 
 //String returns the appropriate string representation of the provided result code
@@ -93,6 +96,8 @@ func String(code interface{}) (string, error) {
 			return "op_line_full", nil
 		case xdr.CreateAccountResultCodeCreateAccountNoIssuer:
 			return OpNoIssuer, nil
+		case xdr.CreateAccountResultCodeCreateAccountAssetNotAllowed:
+			return OpAssetNotAllowed, nil
 		}
 	case xdr.PaymentResultCode:
 		switch code {
@@ -116,6 +121,8 @@ func String(code interface{}) (string, error) {
 			return OpLineFull, nil
 		case xdr.PaymentResultCodePaymentNoIssuer:
 			return OpNoIssuer, nil
+		case xdr.PaymentResultCodePaymentAssetNotAllowed:
+			return OpAssetNotAllowed, nil
 		}
 	case xdr.PathPaymentResultCode:
 		switch code {
@@ -145,6 +152,8 @@ func String(code interface{}) (string, error) {
 			return "op_cross_self", nil
 		case xdr.PathPaymentResultCodePathPaymentOverSendmax:
 			return "op_over_source_max", nil
+		case xdr.PathPaymentResultCodePathPaymentAssetNotAllowed:
+			return OpAssetNotAllowed, nil
 		}
 	case xdr.ManageOfferResultCode:
 		switch code {
@@ -210,6 +219,8 @@ func String(code interface{}) (string, error) {
 			return "op_invalid_limit", nil
 		case xdr.ChangeTrustResultCodeChangeTrustLowReserve:
 			return OpLowReserve, nil
+		case xdr.ChangeTrustResultCodeChangeTrustAssetNotAllowed:
+			return OpAssetNotAllowed, nil
 		}
 	case xdr.AllowTrustResultCode:
 		switch code {
@@ -286,6 +297,8 @@ func String(code interface{}) (string, error) {
 			return "op_not_allowed", nil
 		case xdr.PaymentReversalResultCodePaymentReversalAlreadyReversed:
 			return "op_already_reversed", nil
+		case xdr.PaymentReversalResultCodePaymentReversalAssetNotAllowed:
+			return OpAssetNotAllowed, nil
 		}
 	case xdr.RefundResultCode:
 		switch code {
@@ -323,6 +336,21 @@ func String(code interface{}) (string, error) {
 			return "op_not_allowed", nil
 		case xdr.RefundResultCodeRefundAlreadyRefunded:
 			return "op_already_refunded", nil
+		case xdr.RefundResultCodeRefundAssetNotAllowed:
+			return OpAssetNotAllowed, nil
+		}
+	case xdr.ManageAssetResultCode:
+		switch code {
+		case xdr.ManageAssetResultCodeManageAssetSuccess:
+			return OpSuccess, nil
+		case xdr.ManageAssetResultCodeManageAssetNotExist:
+			return "asset_not_exist", nil
+		case xdr.ManageAssetResultCodeManageAssetInvalidIssuer:
+			return "invalid_issuer", nil
+		case xdr.ManageAssetResultCodeManageAssetNotAuthorized:
+			return "not_authorized", nil
+		case xdr.ManageAssetResultCodeManageAssetLowReserve:
+			return "low_reserve", nil
 		}
 	}
 
@@ -364,6 +392,8 @@ func ForOperationResult(opr xdr.OperationResult) (string, error) {
 		ic = ir.MustPaymentReversalResult().Code
 	case xdr.OperationTypeRefund:
 		ic = ir.MustRefundResult().Code
+	case xdr.OperationTypeManageAsset:
+		ic = ir.MustManageAssetResult().Code
 	}
 
 	return String(ic)

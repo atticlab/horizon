@@ -8,7 +8,6 @@ const (
 	SubjectCommission                 AdminActionSubject = "commission"
 	SubjectTraits                     AdminActionSubject = "traits"
 	SubjectAccountLimits              AdminActionSubject = "account_limits"
-	SubjectAsset                      AdminActionSubject = "asset"
 	SubjectMaxPaymentReversalDuration AdminActionSubject = "max_reversal_duration"
 )
 

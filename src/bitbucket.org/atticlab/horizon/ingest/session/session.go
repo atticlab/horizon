@@ -107,7 +107,7 @@ func (is *Session) ingestLedger() error {
 			Issuer: viper.GetString("bank-master-key"),
 			IsAnonymous: true,
 		}
-		err = (&history.Q{is.Ingestion.DB}).InsertAsset(&storedAsset)
+		err = is.Ingestion.HistoryQ().InsertAsset(&storedAsset)
 		if err != nil {
 			return err
 		}
@@ -239,6 +239,12 @@ func (is *Session) ingestOperation() error {
 		}
 
 		err = is.ingestRefund(int64(op.PaymentId), refundSource.Address(), paymentSource, assetCode, op.Amount, op.OriginalAmount)
+		if err != nil {
+			return err
+		}
+	case xdr.OperationTypeManageAsset:
+		op := is.Cursor.Operation().Body.MustManageAssetOp()
+		err = is.ingestManageAsset(op)
 		if err != nil {
 			return err
 		}
@@ -514,6 +520,11 @@ func (is *Session) operationDetails() map[string]interface{} {
 		opDetails["original_amount"] = amount.String(op.OriginalAmount)
 		opDetails["payment_id"] = int64(op.PaymentId)
 		helpers.AssetDetails(opDetails, op.Asset, "")
+	case xdr.OperationTypeManageAsset:
+		op := c.Operation().Body.MustManageAssetOp()
+		helpers.AssetDetails(opDetails, op.Asset, "")
+		opDetails["is_delete"] = op.IsDelete
+		opDetails["is_anonymous"] = op.IsAnonymous
 	default:
 		panic(fmt.Errorf("Unknown operation type: %s", c.OperationType()))
 	}
