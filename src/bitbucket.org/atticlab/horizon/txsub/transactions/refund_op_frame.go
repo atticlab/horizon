@@ -122,7 +122,3 @@ func (p *RefundOpFrame) getInnerResult() *xdr.RefundResult {
 	}
 	return p.Result.Result.Tr.RefundResult
 }
-
-func (p *RefundOpFrame) DoRollbackCachedData(manager *Manager) error {
-	return nil
-}

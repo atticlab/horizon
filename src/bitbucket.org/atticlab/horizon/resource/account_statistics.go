@@ -11,12 +11,14 @@ import (
 	"bitbucket.org/atticlab/horizon/render/hal"
 
 	"golang.org/x/net/context"
+	"bitbucket.org/atticlab/horizon/db2/core"
+	"time"
 )
 
 // Populate fills out the resource's fields
 func (as *AccountStatistics) Populate(
 	ctx context.Context,
-	statistics []history.AccountStatistics,
+	statistics []core.AccountStatistics,
 	ha history.Account,
 ) (err error) {
 	// Populate statistics
@@ -35,27 +37,22 @@ func (as *AccountStatistics) Populate(
 }
 
 // Populate fills out the resource's fields
-func (entry *AccountStatisticsEntry) Populate(stats history.AccountStatistics) {
+func (entry *AccountStatisticsEntry) Populate(stats core.AccountStatistics) {
 	// Set asset
-	entry.AssetCode = stats.AssetCode
-	if len(entry.AssetCode) <= 4 {
-		entry.AssetType, _ = assets.String(xdr.AssetTypeAssetTypeCreditAlphanum4)
-	} else {
-		entry.AssetType, _ = assets.String(xdr.AssetTypeAssetTypeCreditAlphanum12)
-	}
+	entry.Asset.Code = stats.AssetCode
+	entry.Asset.Issuer = stats.AssetIssuer
+	entry.Asset.Type, _ = assets.String(xdr.AssetType(stats.AssetType))
 
 	// Set counterparty type
-	entry.CounterpartyType = stats.CounterpartyType
-	entry.CounterpartyTypeName = xdr.AccountType(stats.CounterpartyType).String()
+	entry.CounterpartyType, entry.CounterpartyTypeName = PopulateAccountType(xdr.AccountType(stats.Counterparty))
 
 	// Populate income
-	entry.Income.Daily = amount.String(xdr.Int64(stats.DailyIncome))
-	entry.Income.Weekly = amount.String(xdr.Int64(stats.WeeklyIncome))
-	entry.Income.Monthly = amount.String(xdr.Int64(stats.MonthlyIncome))
-	entry.Income.Annual = amount.String(xdr.Int64(stats.AnnualIncome))
+	entry.Income.Daily = amount.String(xdr.Int64(stats.DailyIn))
+	entry.Income.Monthly = amount.String(xdr.Int64(stats.MonthlyIn))
+	entry.Income.Annual = amount.String(xdr.Int64(stats.AnnualIn))
 	// Populate outcome
-	entry.Outcome.Daily = amount.String(xdr.Int64(stats.DailyOutcome))
-	entry.Outcome.Weekly = amount.String(xdr.Int64(stats.WeeklyOutcome))
-	entry.Outcome.Monthly = amount.String(xdr.Int64(stats.MonthlyOutcome))
-	entry.Outcome.Annual = amount.String(xdr.Int64(stats.AnnualOutcome))
+	entry.Outcome.Daily = amount.String(xdr.Int64(stats.DailyOut))
+	entry.Outcome.Monthly = amount.String(xdr.Int64(stats.MonthlyOut))
+	entry.Outcome.Annual = amount.String(xdr.Int64(stats.AnnualOut))
+	entry.UpdatedAt = time.Unix(stats.UpdatedAt, 0)
 }

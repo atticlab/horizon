@@ -10,4 +10,4 @@ CREATE TABLE options
 
 -- +migrate Down
 
-DROP TABLE options;
+DROP TABLE options cascade;

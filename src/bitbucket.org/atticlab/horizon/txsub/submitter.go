@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/accounttypes"
 	"bitbucket.org/atticlab/horizon/cache"
 	"bitbucket.org/atticlab/horizon/commissions"
 	conf "bitbucket.org/atticlab/horizon/config"
@@ -17,7 +16,6 @@ import (
 	"bitbucket.org/atticlab/horizon/render/problem"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/transactions"
-	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 )
@@ -72,7 +70,7 @@ func createSubmitter(h *http.Client, url string, coreDb *core.Q, historyDb *hist
 		historyQ:           historyDb,
 		config:             config,
 		commissionManager:  commissions.New(sharedCache, historyDb),
-		defaultTxValidator: NewTransactionValidator(transactions.NewManager(coreDb, historyDb, statistics.NewManager(historyDb, accounttype.GetAll(), config), config, sharedCache)),
+		defaultTxValidator: NewTransactionValidator(transactions.NewManager(coreDb, historyDb, config, sharedCache)),
 		Log:                log.WithField("service", "submitter"),
 	}
 }

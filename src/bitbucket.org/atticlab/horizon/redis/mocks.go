@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/log"
 	"github.com/stretchr/testify/mock"
 	"time"
@@ -81,43 +80,4 @@ func (m *ConnectionMock) Delete(key string) error {
 
 func (m *ConnectionMock) Ping() error {
 	return nil
-}
-
-type ProcessedOpProviderMock struct {
-	mock.Mock
-}
-
-func (p *ProcessedOpProviderMock) Insert(processedOp *ProcessedOp, timeout time.Duration) error {
-	a := p.Called(processedOp, timeout)
-	return a.Error(0)
-}
-func (p *ProcessedOpProviderMock) Get(txHash string, opIndex int, isIncome bool) (*ProcessedOp, error) {
-	a := p.Called(txHash, opIndex, isIncome)
-	rawProcessedOp := a.Get(0)
-	if rawProcessedOp == nil {
-		return nil, a.Error(1)
-	}
-
-	return rawProcessedOp.(*ProcessedOp), a.Error(1)
-}
-
-func (p *ProcessedOpProviderMock) Delete(txHash string, opIndex int, isIncome bool) error {
-	a := p.Called(txHash, opIndex, isIncome)
-	return a.Error(0)
-}
-
-type AccountStatisticsProviderMock struct {
-	mock.Mock
-}
-
-func (p AccountStatisticsProviderMock) Insert(stats *AccountStatistics, timeout time.Duration) error {
-	return p.Called(stats, timeout).Error(0)
-}
-func (p AccountStatisticsProviderMock) Get(accountId, assetCode string, counterparties []xdr.AccountType) (*AccountStatistics, error) {
-	a := p.Called(accountId, assetCode, counterparties)
-	rawAccStats := a.Get(0)
-	if rawAccStats == nil {
-		return nil, a.Error(1)
-	}
-	return rawAccStats.(*AccountStatistics), a.Error(1)
 }

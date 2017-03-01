@@ -22,24 +22,18 @@ type Ingestion struct {
 	operation_participants   *sqx.BatchInsertBuilder
 	effects                  *sqx.BatchInsertBuilder
 	accounts                 *sqx.BatchInsertBuilder
-	statistics               *sqx.BatchUpdateBuilder
 
 	needFlush []sqx.Flushable
 
 	// cache
-	statisticsCache          *cache.AccountStatistics
 	HistoryAccountCache      *cache.HistoryAccount
 }
 
 func New(db *db2.Repo, historyAccountCache *cache.HistoryAccount, currentVersion int) *Ingestion {
-	q := &history.Q{
-		Repo: db,
-	}
 	return &Ingestion{
 		DB:                  db,
 		CurrentVersion:      currentVersion,
 		HistoryAccountCache: historyAccountCache,
-		statisticsCache:     cache.NewAccountStatistics(q),
 	}
 }
 
@@ -144,9 +138,6 @@ func (ingest *Ingestion) flushInserters() error {
 }
 
 func (ingest *Ingestion) createInsertBuilders() {
-	ingest.statistics = sqx.BatchUpdate(sqx.BatchInsertFromInsert(ingest.DB, history.AccountStatisticsInsert),
-		history.AccountStatisticsUpdateParams, history.AccountStatisticsUpdateWhere)
-
 	ingest.ledgers = sqx.BatchInsertFromInsert(ingest.DB, history.LedgerInsert)
 
 	ingest.accounts = sqx.BatchInsertFromInsert(ingest.DB, history.AccountInsert)
@@ -162,7 +153,6 @@ func (ingest *Ingestion) createInsertBuilders() {
 	ingest.effects = sqx.BatchInsertFromInsert(ingest.DB, history.EffectInsert)
 
 	ingest.needFlush = []sqx.Flushable{
-		ingest.statistics,
 		ingest.ledgers,
 		ingest.accounts,
 		ingest.transactions,

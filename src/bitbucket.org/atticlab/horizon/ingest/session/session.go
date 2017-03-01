@@ -215,33 +215,9 @@ func (is *Session) ingestOperation() error {
 			break
 		}
 	case xdr.OperationTypePaymentReversal:
-		// Update statistics for both accounts
-		op := is.Cursor.Operation().Body.MustPaymentReversalOp()
-		reversalSource := is.Cursor.OperationSourceAccount()
-		paymentSource := op.PaymentSource.Address()
-		assetCode, err := getAssetCode(op.Asset)
-		if err != nil {
-			return err
-		}
-
-		err = is.ingestPaymentReversal(int64(op.PaymentId), reversalSource.Address(), paymentSource, assetCode, op.Amount)
-		if err != nil {
-			return err
-		}
+		// nothing to do hear
 	case xdr.OperationTypeRefund:
-		// Update statistics for both accounts
-		op := is.Cursor.Operation().Body.MustRefundOp()
-		refundSource := is.Cursor.OperationSourceAccount()
-		paymentSource := op.PaymentSource.Address()
-		assetCode, err := getAssetCode(op.Asset)
-		if err != nil {
-			return err
-		}
-
-		err = is.ingestRefund(int64(op.PaymentId), refundSource.Address(), paymentSource, assetCode, op.Amount, op.OriginalAmount)
-		if err != nil {
-			return err
-		}
+		// nothing to do hear
 	case xdr.OperationTypeManageAsset:
 		op := is.Cursor.Operation().Body.MustManageAssetOp()
 		err = is.ingestManageAsset(op)

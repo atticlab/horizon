@@ -33,11 +33,6 @@ func (ingest *Ingestion) Account(account *history.Account, skipCheck bool, creat
 
 	ingest.HistoryAccountCache.Add(account.Address, account)
 
-	// if created by data exists add statistics
-	if createdByAsset != nil && createdByCounterparty != nil {
-		ingest.statisticsCache.AddWithParams(account.Address, *createdByAsset, *createdByCounterparty, nil)
-	}
-
 	return nil
 }
 

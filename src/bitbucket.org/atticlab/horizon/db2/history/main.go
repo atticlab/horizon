@@ -21,13 +21,6 @@ type QInterface interface {
 	// Updates account's limits
 	UpdateAccountLimits(limits AccountLimits) error
 
-	// Account statistics
-	// GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
-	// Now is used to clear obsolete stats
-	GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error
-	// Returns account's statistics for assetCode and counterparty type
-	GetAccountStatistics(address string, assetCode string, counterPartyType xdr.AccountType) (AccountStatistics, error)
-
 	// Asset
 	// Returns asset for specified xdr.Asset
 	Asset(dest interface{}, asset xdr.Asset) error

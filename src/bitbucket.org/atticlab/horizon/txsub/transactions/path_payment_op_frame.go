@@ -5,7 +5,6 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/txsub/results"
-	"bitbucket.org/atticlab/horizon/txsub/transactions/statistics"
 	"bitbucket.org/atticlab/horizon/txsub/transactions/validators"
 	"database/sql"
 )
@@ -22,8 +21,6 @@ type PathPaymentOpFrame struct {
 	accountTypeValidator      validators.AccountTypeValidatorInterface
 	assetsValidator           validators.AssetsValidatorInterface
 	traitsValidator           validators.TraitsValidatorInterface
-	defaultOutLimitsValidator validators.OutgoingLimitsValidatorInterface
-	defaultInLimitsValidator  validators.IncomingLimitsValidatorInterface
 }
 
 func NewPathPaymentOpFrame(opFrame *OperationFrame) *PathPaymentOpFrame {
@@ -45,20 +42,6 @@ func (p *PathPaymentOpFrame) GetAccountTypeValidator() validators.AccountTypeVal
 		p.accountTypeValidator = validators.NewAccountTypeValidator()
 	}
 	return p.accountTypeValidator
-}
-
-func (p *PathPaymentOpFrame) GetOutgoingLimitsValidator(paymentData *statistics.PaymentData, manager *Manager) validators.OutgoingLimitsValidatorInterface {
-	if p.defaultOutLimitsValidator != nil {
-		return p.defaultOutLimitsValidator
-	}
-	return validators.NewOutgoingLimitsValidator(paymentData, manager.StatsManager, manager.HistoryQ, manager.Config.AnonymousUserRestrictions, *p.now)
-}
-
-func (p *PathPaymentOpFrame) GetIncomingLimitsValidator(paymentData *statistics.PaymentData, manager *Manager) validators.IncomingLimitsValidatorInterface {
-	if p.defaultInLimitsValidator != nil {
-		return p.defaultInLimitsValidator
-	}
-	return validators.NewIncomingLimitsValidator(paymentData, manager.HistoryQ, manager.StatsManager, manager.Config.AnonymousUserRestrictions, *p.now)
 }
 
 func (p *PathPaymentOpFrame) GetAssetsValidator(historyQ history.QInterface) validators.AssetsValidatorInterface {
@@ -185,53 +168,5 @@ func (p *PathPaymentOpFrame) checkLimits(manager *Manager) (bool, error) {
 		return false, nil
 	}
 
-	// 3. Check restrictions for sender
-	operationData := statistics.NewOperationData(p.SourceAccount, p.Index, p.ParentTxFrame.TxHash)
-	outPaymentData := statistics.NewPaymentData(p.destAccount, &p.destTrustline, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
-	outgoingValidator := p.GetOutgoingLimitsValidator(&outPaymentData, manager)
-	outLimitsResult, err := outgoingValidator.VerifyLimits()
-	if err != nil {
-		return false, err
-	}
-
-	if outLimitsResult != nil {
-		p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentMalformed
-		p.Result.Info = results.AdditionalErrorInfoError(outLimitsResult)
-		return false, nil
-	}
-
-	inPaymentData := statistics.NewPaymentData(p.destAccount, &p.destTrustline, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
-	incomingValidator := p.GetIncomingLimitsValidator(&inPaymentData, manager)
-	inLimitsResult, err := incomingValidator.VerifyLimits()
-	if err != nil {
-		return false, err
-	}
-
-	if inLimitsResult != nil {
-		p.getInnerResult().Code = xdr.PathPaymentResultCodePathPaymentMalformed
-		p.Result.Info = results.AdditionalErrorInfoError(inLimitsResult)
-		return false, nil
-	}
-
 	return true, nil
-}
-
-func (p *PathPaymentOpFrame) DoRollbackCachedData(manager *Manager) error {
-	p.log.Debug("Rollingback path payment")
-	// 3. Check restrictions for sender
-	operationData := statistics.NewOperationData(p.SourceAccount, p.Index, p.ParentTxFrame.TxHash)
-	outPaymentData := statistics.NewPaymentData(p.destAccount, &p.destTrustline, p.sendAsset, int64(p.pathPayment.SendMax), operationData)
-	err := manager.StatsManager.CancelOp(&outPaymentData, statistics.PaymentDirectionOutgoing, *p.now)
-	if err != nil {
-		p.log.WithError(err).Error("Failed to rollback outgoing payment part")
-		return err
-	}
-
-	inPaymentData := statistics.NewPaymentData(p.destAccount, &p.destTrustline, p.destAsset, int64(p.pathPayment.DestAmount), operationData)
-	err = manager.StatsManager.CancelOp(&inPaymentData, statistics.PaymentDirectionIncoming, *p.now)
-	if err != nil {
-		p.log.WithError(err).Error("Failed to rollback incoming payment part")
-		return err
-	}
-	return nil
 }

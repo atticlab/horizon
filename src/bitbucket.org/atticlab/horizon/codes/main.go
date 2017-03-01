@@ -35,6 +35,13 @@ const (
 
 	// OpAssetNotAllowed occurs when a operation specified asset which is now allowed to use
 	OpAssetNotAllowed = "op_asset_not_allowed"
+
+	OpSrcAssetLimitsExceeded  = "src_asset_limits_exceeded"
+	OpDestAssetLimitsExceeded = "dest_asset_limits_exceeded"
+	OpComAssetLimitsExceeded  = "com_asset_limits_exceeded"
+	OpSrcStatsOverflow        = "src_statistics_overflow"
+	OpDestStatsOverflow       = "dest_statistics_overflow"
+	OpComStatsOverflow        = "com_statistics_overflow"
 )
 
 //String returns the appropriate string representation of the provided result code
@@ -98,6 +105,18 @@ func String(code interface{}) (string, error) {
 			return OpNoIssuer, nil
 		case xdr.CreateAccountResultCodeCreateAccountAssetNotAllowed:
 			return OpAssetNotAllowed, nil
+		case xdr.CreateAccountResultCodeCreateAccountSrcAssetLimitsExceeded:
+			return OpSrcAssetLimitsExceeded, nil
+		case xdr.CreateAccountResultCodeCreateAccountDestAssetLimitsExceeded:
+			return OpDestAssetLimitsExceeded, nil
+		case xdr.CreateAccountResultCodeCreateAccountCommissionAssetLimitsExceeded:
+			return OpComAssetLimitsExceeded, nil
+		case xdr.CreateAccountResultCodeCreateAccountSrcStatsOverflow:
+			return OpSrcStatsOverflow, nil
+		case xdr.CreateAccountResultCodeCreateAccountDestStatsOverflow:
+			return OpDestStatsOverflow, nil
+		case xdr.CreateAccountResultCodeCreateAccountComStatsOverflow:
+			return OpComStatsOverflow, nil
 		}
 	case xdr.PaymentResultCode:
 		switch code {
@@ -123,6 +142,18 @@ func String(code interface{}) (string, error) {
 			return OpNoIssuer, nil
 		case xdr.PaymentResultCodePaymentAssetNotAllowed:
 			return OpAssetNotAllowed, nil
+		case xdr.PaymentResultCodePaymentSrcAssetLimitsExceeded:
+			return OpSrcAssetLimitsExceeded, nil
+		case xdr.PaymentResultCodePaymentDestAssetLimitsExceeded:
+			return OpDestAssetLimitsExceeded, nil
+		case xdr.PaymentResultCodePaymentCommissionAssetLimitsExceeded:
+			return OpComAssetLimitsExceeded, nil
+		case xdr.PaymentResultCodePaymentSrcStatsOverflow:
+			return OpSrcStatsOverflow, nil
+		case xdr.PaymentResultCodePaymentDestStatsOverflow:
+			return OpDestStatsOverflow, nil
+		case xdr.PaymentResultCodePaymentComStatsOverflow:
+			return OpComStatsOverflow, nil
 		}
 	case xdr.PathPaymentResultCode:
 		switch code {
@@ -154,6 +185,18 @@ func String(code interface{}) (string, error) {
 			return "op_over_source_max", nil
 		case xdr.PathPaymentResultCodePathPaymentAssetNotAllowed:
 			return OpAssetNotAllowed, nil
+		case xdr.PathPaymentResultCodePathPaymentSrcAssetLimitsExceeded:
+			return OpSrcAssetLimitsExceeded, nil
+		case xdr.PathPaymentResultCodePathPaymentDestAssetLimitsExceeded:
+			return OpDestAssetLimitsExceeded, nil
+		case xdr.PathPaymentResultCodePathPaymentCommissionAssetLimitsExceeded:
+			return OpComAssetLimitsExceeded, nil
+		case xdr.PathPaymentResultCodePathPaymentSrcStatsOverflow:
+			return OpSrcStatsOverflow, nil
+		case xdr.PathPaymentResultCodePathPaymentDestStatsOverflow:
+			return OpDestStatsOverflow, nil
+		case xdr.PathPaymentResultCodePathPaymentComStatsOverflow:
+			return OpComStatsOverflow, nil
 		}
 	case xdr.ManageOfferResultCode:
 		switch code {
@@ -206,6 +249,8 @@ func String(code interface{}) (string, error) {
 			return "op_bad_signer", nil
 		case xdr.SetOptionsResultCodeSetOptionsInvalidHomeDomain:
 			return "op_invalid_home_domain", nil
+		case xdr.SetOptionsResultCodeSetOptionsBadSignerType:
+			return "bad_signer_type", nil
 		}
 	case xdr.ChangeTrustResultCode:
 		switch code {
@@ -221,6 +266,8 @@ func String(code interface{}) (string, error) {
 			return OpLowReserve, nil
 		case xdr.ChangeTrustResultCodeChangeTrustAssetNotAllowed:
 			return OpAssetNotAllowed, nil
+		case xdr.ChangeTrustResultCodeChangeTrustNotAuthorized:
+			return "not_authorized", nil
 		}
 	case xdr.AllowTrustResultCode:
 		switch code {
@@ -299,6 +346,18 @@ func String(code interface{}) (string, error) {
 			return "op_already_reversed", nil
 		case xdr.PaymentReversalResultCodePaymentReversalAssetNotAllowed:
 			return OpAssetNotAllowed, nil
+		case xdr.PaymentReversalResultCodePaymentReversalSrcAssetLimitsExceeded:
+			return OpSrcAssetLimitsExceeded, nil
+		case xdr.PaymentReversalResultCodePaymentReversalDestAssetLimitsExceeded:
+			return OpDestAssetLimitsExceeded, nil
+		case xdr.PaymentReversalResultCodePaymentReversalCommissionAssetLimitsExceeded:
+			return OpComAssetLimitsExceeded, nil
+		case xdr.PaymentReversalResultCodePaymentReversalSrcStatsOverflow:
+			return OpSrcStatsOverflow, nil
+		case xdr.PaymentReversalResultCodePaymentReversalDestStatsOverflow:
+			return OpDestStatsOverflow, nil
+		case xdr.PaymentReversalResultCodePaymentReversalComStatsOverflow:
+			return OpComStatsOverflow, nil
 		}
 	case xdr.RefundResultCode:
 		switch code {
@@ -338,6 +397,18 @@ func String(code interface{}) (string, error) {
 			return "op_already_refunded", nil
 		case xdr.RefundResultCodeRefundAssetNotAllowed:
 			return OpAssetNotAllowed, nil
+		case xdr.RefundResultCodeRefundSrcAssetLimitsExceeded:
+			return OpSrcAssetLimitsExceeded, nil
+		case xdr.RefundResultCodeRefundDestAssetLimitsExceeded:
+			return OpDestAssetLimitsExceeded, nil
+		case xdr.RefundResultCodeRefundCommissionAssetLimitsExceeded:
+			return OpComAssetLimitsExceeded, nil
+		case xdr.RefundResultCodeRefundSrcStatsOverflow:
+			return OpSrcStatsOverflow, nil
+		case xdr.RefundResultCodeRefundDestStatsOverflow:
+			return OpDestStatsOverflow, nil
+		case xdr.RefundResultCodeRefundComStatsOverflow:
+			return OpComStatsOverflow, nil
 		}
 	case xdr.ManageAssetResultCode:
 		switch code {

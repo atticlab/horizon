@@ -13,4 +13,4 @@ CREATE UNIQUE INDEX assets_code_issuer_type ON asset (code, issuer, type);
 
 -- +migrate Down
 
-DROP TABLE asset;
+DROP TABLE asset cascade;

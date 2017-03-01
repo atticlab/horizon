@@ -1,16 +1,10 @@
 package horizon
 
 import (
-	"bitbucket.org/atticlab/go-smart-base/xdr"
-	"bitbucket.org/atticlab/horizon/accounttypes"
+	"bitbucket.org/atticlab/horizon/db2/core"
 	"bitbucket.org/atticlab/horizon/db2/history"
-	"bitbucket.org/atticlab/horizon/redis"
 	"bitbucket.org/atticlab/horizon/render/hal"
-	"bitbucket.org/atticlab/horizon/render/problem"
-	"bitbucket.org/atticlab/horizon/render/sse"
 	"bitbucket.org/atticlab/horizon/resource"
-	"github.com/go-errors/errors"
-	"time"
 )
 
 // AccountStatisticsAction detailed income/outcome statistics for single account
@@ -18,9 +12,9 @@ type AccountStatisticsAction struct {
 	Action
 	Address       string
 	AssetCode     string
-	IsCached      bool
+	AssetIssuer   string
 	HistoryRecord history.Account
-	Statistics    []history.AccountStatistics
+	Statistics    []core.AccountStatistics
 	Resource      resource.AccountStatistics
 }
 
@@ -36,23 +30,10 @@ func (action *AccountStatisticsAction) JSON() {
 	)
 }
 
-// SSE is a method for actions.SSE
-func (action *AccountStatisticsAction) SSE(stream sse.Stream) {
-	// TODO: check
-	action.Do(
-		action.loadParams,
-		action.loadRecord,
-		action.loadResource,
-		func() {
-			stream.Send(sse.Event{Data: action.Resource})
-		},
-	)
-}
-
 func (action *AccountStatisticsAction) loadParams() {
 	action.Address = action.GetString("account_id")
 	action.AssetCode = action.GetString("asset_code")
-	action.IsCached = action.GetBool("cached")
+	action.AssetIssuer = action.GetString("asset_issuer")
 }
 
 func (action *AccountStatisticsAction) loadRecord() {
@@ -61,54 +42,25 @@ func (action *AccountStatisticsAction) loadRecord() {
 		return
 	}
 
-	if action.IsCached {
-		action.loadFromCache()
-		return
-	}
-
 	action.loadFromDB()
 
 }
 
 func (action *AccountStatisticsAction) loadFromDB() {
-	if action.AssetCode == "" {
-		action.Err = action.HistoryQ().GetStatisticsByAccount(&action.Statistics, action.Address)
-		return
+	q := action.CoreQ().Statistics()
+	if action.Address != "" {
+		q = q.ForAccount(action.Address)
 	}
 
-	response := make(map[xdr.AccountType]history.AccountStatistics)
-	action.Err = action.HistoryQ().GetStatisticsByAccountAndAsset(response, action.Address, action.AssetCode, time.Now())
-	if action.Err == nil {
-		action.mapToArray(response)
-	}
-}
-
-func (action *AccountStatisticsAction) mapToArray(response map[xdr.AccountType]history.AccountStatistics) {
-	action.Statistics = make([]history.AccountStatistics, len(response))
-	i := 0
-	for _, value := range response {
-		action.Statistics[i] = value
-		i++
-	}
-}
-
-func (action *AccountStatisticsAction) loadFromCache() {
-	if action.AssetCode == "" {
-		action.SetInvalidField("asset_code", errors.New("Can not be empty"))
-		return
+	if action.AssetIssuer != "" {
+		q = q.ForAssetIssuer(action.AssetIssuer)
 	}
 
-	conn := redis.NewConnectionProvider().GetConnection()
-	defer conn.Close()
-	stats, err := redis.NewAccountStatisticsProvider(conn).Get(action.Address, action.AssetCode, accounttype.GetAll())
-	if err != nil {
-		action.Err = &problem.ServerError
-		return
+	if action.AssetCode != "" {
+		q = q.ForAssetCode(action.AssetCode)
 	}
 
-	if stats != nil {
-		action.mapToArray(stats.AccountsStatistics)
-	}
+	action.Err = q.Select(&action.Statistics)
 }
 
 func (action *AccountStatisticsAction) loadResource() {

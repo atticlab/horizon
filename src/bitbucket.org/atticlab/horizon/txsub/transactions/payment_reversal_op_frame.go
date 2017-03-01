@@ -71,7 +71,8 @@ func (p *PaymentReversalOpFrame) validateAgainstPayment(manager *Manager) (bool,
 		return false, err
 	}
 
-	if !isExpirationValid {
+	if !isExpirationValid || operation.ClosedAt.Unix() != int64(p.paymentReversal.PerformedAt) {
+		p.getInnerResult().Code = xdr.PaymentReversalResultCodePaymentReversalMalformed
 		return false, nil
 	}
 
@@ -178,8 +179,4 @@ func (p *PaymentReversalOpFrame) getInnerResult() *xdr.PaymentReversalResult {
 		p.Result.Result.Tr.PaymentReversalResult = &xdr.PaymentReversalResult{}
 	}
 	return p.Result.Result.Tr.PaymentReversalResult
-}
-
-func (p *PaymentReversalOpFrame) DoRollbackCachedData(manager *Manager) error {
-	return nil
 }

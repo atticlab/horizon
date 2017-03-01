@@ -46,13 +46,11 @@ DROP INDEX IF EXISTS public.by_ledger;
 DROP INDEX IF EXISTS public.by_hash;
 DROP INDEX IF EXISTS public.by_account;
 DROP INDEX IF EXISTS public.assets_code_issuer_type;
-DROP INDEX IF EXISTS public.account_statistics_address_idx;
 ALTER TABLE IF EXISTS ONLY public.history_transaction_participants DROP CONSTRAINT IF EXISTS history_transaction_participants_pkey;
 ALTER TABLE IF EXISTS ONLY public.history_operation_participants DROP CONSTRAINT IF EXISTS history_operation_participants_pkey;
 ALTER TABLE IF EXISTS ONLY public.gorp_migrations DROP CONSTRAINT IF EXISTS gorp_migrations_pkey;
 ALTER TABLE IF EXISTS ONLY public.commission DROP CONSTRAINT IF EXISTS commission_pkey;
 ALTER TABLE IF EXISTS ONLY public.asset DROP CONSTRAINT IF EXISTS asset_pkey;
-ALTER TABLE IF EXISTS ONLY public.account_statistics DROP CONSTRAINT IF EXISTS account_statistics_pkey;
 ALTER TABLE IF EXISTS ONLY public.account_limits DROP CONSTRAINT IF EXISTS account_limits_pkey;
 ALTER TABLE IF EXISTS public.history_transaction_participants ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.history_operation_participants ALTER COLUMN id DROP DEFAULT;
@@ -72,7 +70,6 @@ DROP SEQUENCE IF EXISTS public.commission_id_seq;
 DROP TABLE IF EXISTS public.commission;
 DROP SEQUENCE IF EXISTS public.asset_id_seq;
 DROP TABLE IF EXISTS public.asset;
-DROP TABLE IF EXISTS public.account_statistics;
 DROP TABLE IF EXISTS public.account_limits;
 DROP EXTENSION IF EXISTS hstore;
 DROP EXTENSION IF EXISTS plpgsql;
@@ -131,26 +128,6 @@ CREATE TABLE account_limits (
     max_operation_in bigint DEFAULT '-1'::integer NOT NULL,
     daily_max_in bigint DEFAULT '-1'::integer NOT NULL,
     monthly_max_in bigint DEFAULT '-1'::integer NOT NULL
-);
-
-
---
--- Name: account_statistics; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE account_statistics (
-    address character varying(64) NOT NULL,
-    asset_code character varying(12) NOT NULL,
-    counterparty_type smallint DEFAULT 0 NOT NULL,
-    daily_income bigint DEFAULT 0 NOT NULL,
-    daily_outcome bigint DEFAULT 0 NOT NULL,
-    weekly_income bigint DEFAULT 0 NOT NULL,
-    weekly_outcome bigint DEFAULT 0 NOT NULL,
-    monthly_income bigint DEFAULT 0 NOT NULL,
-    monthly_outcome bigint DEFAULT 0 NOT NULL,
-    annual_income bigint DEFAULT 0 NOT NULL,
-    annual_outcome bigint DEFAULT 0 NOT NULL,
-    updated_at timestamp with time zone NOT NULL
 );
 
 
@@ -520,15 +497,6 @@ SELECT pg_catalog.setval('history_transaction_participants_id_seq', 1, false);
 ALTER TABLE ONLY account_limits
     ADD CONSTRAINT account_limits_pkey PRIMARY KEY (address, asset_code);
 
-
---
--- Name: account_statistics_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY account_statistics
-    ADD CONSTRAINT account_statistics_pkey PRIMARY KEY (address, asset_code, counterparty_type);
-
-
 --
 -- Name: asset_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -567,13 +535,6 @@ ALTER TABLE ONLY history_operation_participants
 
 ALTER TABLE ONLY history_transaction_participants
     ADD CONSTRAINT history_transaction_participants_pkey PRIMARY KEY (id);
-
-
---
--- Name: account_statistics_address_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX account_statistics_address_idx ON account_statistics USING btree (address);
 
 
 --

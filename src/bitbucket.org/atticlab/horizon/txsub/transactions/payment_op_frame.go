@@ -10,15 +10,13 @@ import (
 
 type PaymentOpFrame struct {
 	*OperationFrame
-	payment                   xdr.PaymentOp
+	payment xdr.PaymentOp
 
-	accountTypeValidator      validators.AccountTypeValidatorInterface
-	assetsValidator           validators.AssetsValidatorInterface
-	defaultOutLimitsValidator validators.OutgoingLimitsValidatorInterface
-	defaultInLimitsValidator  validators.IncomingLimitsValidatorInterface
-	traitsValidator           validators.TraitsValidatorInterface
+	accountTypeValidator validators.AccountTypeValidatorInterface
+	assetsValidator      validators.AssetsValidatorInterface
+	traitsValidator      validators.TraitsValidatorInterface
 
-	pathPayment               *PathPaymentOpFrame
+	pathPayment *PathPaymentOpFrame
 }
 
 func (p *PaymentOpFrame) GetAccountTypeValidator() validators.AccountTypeValidatorInterface {
@@ -114,8 +112,6 @@ func (p *PaymentOpFrame) createPathPayment(manager *Manager) *PathPaymentOpFrame
 	ppayment.accountTypeValidator = p.GetAccountTypeValidator()
 	ppayment.assetsValidator = p.GetAssetsValidator(manager.HistoryQ)
 	ppayment.traitsValidator = p.GetTraitsValidator()
-	ppayment.defaultOutLimitsValidator = p.defaultOutLimitsValidator
-	ppayment.defaultInLimitsValidator = p.defaultInLimitsValidator
 	return ppayment
 }
 
@@ -132,8 +128,4 @@ func (p *PaymentOpFrame) GetTraitsValidator() validators.TraitsValidatorInterfac
 		p.traitsValidator = validators.NewTraitsValidator()
 	}
 	return p.traitsValidator
-}
-
-func (p *PaymentOpFrame) DoRollbackCachedData(manager *Manager) error {
-	return p.pathPayment.DoRollbackCachedData(manager)
 }

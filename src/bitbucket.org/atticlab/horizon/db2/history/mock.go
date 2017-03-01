@@ -4,8 +4,6 @@ import (
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 	"bitbucket.org/atticlab/horizon/log"
 	"github.com/stretchr/testify/mock"
-	"math/rand"
-	"time"
 )
 
 type QMock struct {
@@ -32,18 +30,6 @@ func (m *QMock) CreateAccountLimits(limits AccountLimits) error {
 // Updates account's limits
 func (m *QMock) UpdateAccountLimits(limits AccountLimits) error {
 	return m.Called(limits).Error(0)
-}
-
-// GetStatisticsByAccountAndAsset selects rows from `account_statistics` by address and asset code
-func (m *QMock) GetStatisticsByAccountAndAsset(dest map[xdr.AccountType]AccountStatistics, addy string, assetCode string, now time.Time) error {
-	a := m.Called(addy, assetCode, now)
-	rawStats := a.Get(0)
-	if rawStats != nil {
-		for key, value := range rawStats.(map[xdr.AccountType]AccountStatistics) {
-			dest[key] = value
-		}
-	}
-	return a.Error(1)
 }
 
 func (m *QMock) Asset(dest interface{}, asset xdr.Asset) error {
@@ -121,11 +107,6 @@ func (m *QMock) AccountIDByAddress(addy string) (int64, error) {
 	return a.Get(0).(int64), a.Error(1)
 }
 
-func (m *QMock) GetAccountStatistics(address string, assetCode string, counterPartyType xdr.AccountType) (AccountStatistics, error) {
-	a := m.Called(address, assetCode, counterPartyType)
-	return a.Get(0).(AccountStatistics), a.Error(1)
-}
-
 func (m *QMock) AssetByParams(dest interface{}, assetType int, code string, issuer string) error {
 	a := m.Called(dest, assetType, code, issuer)
 	return a.Error(0)
@@ -150,7 +131,7 @@ func (m *QMock) OptionsByName(name string) (*Options, error) {
 	}
 	return options.(*Options), err
 }
-func (m *QMock) OptionsInsert(options *Options) (error) {
+func (m *QMock) OptionsInsert(options *Options) error {
 	a := m.Called(options)
 	return a.Error(0)
 }
@@ -161,27 +142,6 @@ func (m *QMock) OptionsUpdate(options *Options) (bool, error) {
 func (m *QMock) OptionsDelete(name string) (bool, error) {
 	a := m.Called(name)
 	return a.Bool(0), a.Error(1)
-}
-
-func CreateRandomAccountStats(account string, counterpartyType xdr.AccountType, asset string) AccountStatistics {
-	return CreateRandomAccountStatsWithMinValue(account, counterpartyType, asset, 0)
-}
-
-func CreateRandomAccountStatsWithMinValue(account string, counterpartyType xdr.AccountType, asset string, minValue int64) AccountStatistics {
-	return AccountStatistics{
-		Account:          account,
-		AssetCode:        asset,
-		CounterpartyType: int16(counterpartyType),
-		DailyIncome:      Max(rand.Int63(), minValue),
-		DailyOutcome:     Max(rand.Int63(), minValue),
-		WeeklyIncome:     Max(rand.Int63(), minValue),
-		WeeklyOutcome:    Max(rand.Int63(), minValue),
-		MonthlyIncome:    Max(rand.Int63(), minValue),
-		MonthlyOutcome:   Max(rand.Int63(), minValue),
-		AnnualIncome:     Max(rand.Int63(), minValue),
-		AnnualOutcome:    Max(rand.Int63(), minValue),
-		UpdatedAt:        time.Unix(time.Now().Unix(), 0),
-	}
 }
 
 func Max(x int64, y int64) int64 {

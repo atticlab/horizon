@@ -4,7 +4,7 @@
 		{
 			"importpath": "bitbucket.org/atticlab/go-smart-base",
 			"repository": "https://bitbucket.org/atticlab/go-smart-base",
-			"revision": "16fbacbd51302132caea8877f7454085bda861b9",
+			"revision": "6dbab7a5fdad915714084ce26dfd0d22065d2cd5",
 			"branch": "feature/statistics"
 		},
 		{

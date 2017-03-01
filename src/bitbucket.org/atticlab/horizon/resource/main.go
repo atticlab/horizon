@@ -25,9 +25,9 @@ var AccountTypeNames = map[xdr.AccountType]string{
 	xdr.AccountTypeAccountSettlementAgent:   "settlement_agent",
 	xdr.AccountTypeAccountExchangeAgent:     "exchange_agent",
 	xdr.AccountTypeAccountBank:              "bank",
-	xdr.AccountTypeAccountScratchCard:		 "scratch_card",
+	xdr.AccountTypeAccountScratchCard:       "scratch_card",
 	xdr.AccountTypeAccountGeneralAgent:      "general_agent",
-	xdr.AccountTypeAccountCommission:      	 "commission",
+	xdr.AccountTypeAccountCommission:        "commission",
 }
 
 func PopulateAccountType(accountType xdr.AccountType) (typeI int32, typ string) {
@@ -95,23 +95,22 @@ type AccountStatistics struct {
 
 // AccountStatisticsEntry represents account_statistics row
 type AccountStatisticsEntry struct {
-	AssetType            string `json:"asset_type"`
-	AssetCode            string `json:"asset_code"`
-	CounterpartyType     int16  `json:"counterparty_type"`
+	details.Asset
+	CounterpartyType     int32    `json:"counterparty_type"`
 	CounterpartyTypeName string `json:"counterparty_type_name"`
 
 	Income struct {
 		Daily   string `json:"daily"`
-		Weekly  string `json:"weekly"`
 		Monthly string `json:"monthly"`
 		Annual  string `json:"annual"`
 	} `json:"income"`
 	Outcome struct {
 		Daily   string `json:"daily"`
-		Weekly  string `json:"weekly"`
 		Monthly string `json:"monthly"`
 		Annual  string `json:"annual"`
 	} `json:"outcome"`
+
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // AccountFlags represents the state of an account's flags

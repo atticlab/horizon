@@ -5,7 +5,6 @@ import (
 	"bitbucket.org/atticlab/horizon/db2/history"
 	"bitbucket.org/atticlab/horizon/log"
 	"database/sql"
-	"time"
 )
 
 func (is *Session) ingestPayment(sourceAddress, destAddress string, sourceAmount, destAmount xdr.Int64, sourceAsset, destAsset string) error {
@@ -33,12 +32,5 @@ func (is *Session) ingestPayment(sourceAddress, destAddress string, sourceAmount
 		}
 	}
 
-	ledgerCloseTime := time.Unix(is.Cursor.Ledger().CloseTime, 0).Local()
-	now := time.Now()
-	err = is.Ingestion.UpdateStatistics(sourceAddress, sourceAsset, destAccount.AccountType, int64(sourceAmount), ledgerCloseTime, now, false)
-	if err != nil {
-		return err
-	}
-
-	return is.Ingestion.UpdateStatistics(destAddress, destAsset, sourceAccount.AccountType, int64(destAmount), ledgerCloseTime, now, true)
+	return nil
 }

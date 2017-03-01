@@ -16,4 +16,4 @@ CREATE INDEX commission_by_asset ON commission USING btree (((key_value ->>'asse
 
 -- +migrate Down
 
-DROP TABLE commission;
+DROP TABLE commission cascade;

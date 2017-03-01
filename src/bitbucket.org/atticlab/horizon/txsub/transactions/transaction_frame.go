@@ -78,19 +78,9 @@ func (t *TransactionFrame) checkOperations(manager *Manager) (bool, error) {
 			t.log.Error("Failed to makeFailedTxResult")
 			return false, err
 		}
-		t.rollbackCachedData(manager, opFrames)
 		return false, nil
 	}
 	return isValid, nil
-}
-
-func (t *TransactionFrame) rollbackCachedData(manager *Manager, opFrames []OperationFrame) {
-	for i, op := range opFrames {
-		err := op.RollbackCachedData(manager)
-		if err != nil {
-			t.log.WithField("operation_i", i).WithError(err).Error("Failed to rollback cached data")
-		}
-	}
 }
 
 func (t *TransactionFrame) makeFailedTxResult(opFrames []OperationFrame) (*results.RestrictedTransactionError, error) {
