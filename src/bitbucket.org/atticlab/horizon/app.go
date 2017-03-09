@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	//"bitbucket.org/atticlab/go-smart-base/build"
+	"bitbucket.org/atticlab/go-smart-base/build"
 	"bitbucket.org/atticlab/horizon/cache"
 	conf "bitbucket.org/atticlab/horizon/config"
 	"bitbucket.org/atticlab/horizon/db2"
@@ -86,7 +86,7 @@ func NewApp(config conf.Config) (*App, error) {
 
 	result := &App{config: config}
 	result.horizonVersion = version
-	//result.networkPassphrase = build.DefaultNetwork.Passphrase
+	result.networkPassphrase = build.DefaultNetwork.Passphrase
 	result.init()
 	return result, nil
 }

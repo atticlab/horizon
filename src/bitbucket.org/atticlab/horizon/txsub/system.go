@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"bitbucket.org/atticlab/horizon/errors"
 	"bitbucket.org/atticlab/horizon/log"
 	"bitbucket.org/atticlab/horizon/txsub/results"
 	"bitbucket.org/atticlab/horizon/txsub/sequence"
@@ -165,12 +166,12 @@ func (sys *System) submitOnce(ctx context.Context, envInfo *transactions.Envelop
 // Tick triggers the system to update itself with any new data available.
 func (sys *System) Tick(ctx context.Context) {
 
-	//defer func() {
-	//	if rec := recover(); rec != nil {
-	//		err := errors.FromPanic(rec)
-	//		log.WithStack(err).Errorf("tx_sub session panicked: %s", err)
-	//	}
-	//}()
+	defer func() {
+		if rec := recover(); rec != nil {
+			err := errors.FromPanic(rec)
+			log.WithStack(err).Errorf("tx_sub session panicked: %s", err)
+		}
+	}()
 
 	sys.Init()
 	logger := log.Ctx(ctx)
