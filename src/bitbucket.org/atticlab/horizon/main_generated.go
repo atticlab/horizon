@@ -13,6 +13,13 @@ func (action AccountIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *h
 }
 
 // ServeHTTPC is a method for web.Handler
+func (action AccountLimitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
 func (action AccountShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
@@ -21,6 +28,34 @@ func (action AccountShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *ht
 
 // ServeHTTPC is a method for web.Handler
 func (action AccountShowBalancesAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action AccountStatisticsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action AccountTraitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action AccountTraitsIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action AssetIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -41,7 +76,14 @@ func (action CommissionIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action OrderBookShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action DataShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action EffectIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -62,35 +104,14 @@ func (action LedgerShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *htt
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action TradeIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action MetricsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action EffectIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action AccountTraitsIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action AccountTraitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action AssetIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action NotFoundAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -104,21 +125,7 @@ func (action NotImplementedAction) ServeHTTPC(c web.C, w http.ResponseWriter, r 
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action TransactionIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action TransactionShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action TransactionCreateAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action OffersByAccountAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -139,41 +146,6 @@ func (action OperationShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action AccountStatisticsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action RootAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action PaymentsIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action MetricsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action OffersByAccountAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
 func (action OptionsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
@@ -181,14 +153,7 @@ func (action OptionsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.R
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action DataShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
-	ap := &action.Action
-	ap.Prepare(c, w, r)
-	ap.Execute(&action)
-}
-
-// ServeHTTPC is a method for web.Handler
-func (action NotFoundAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action OrderBookShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -202,7 +167,7 @@ func (action PathIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http
 }
 
 // ServeHTTPC is a method for web.Handler
-func (action AccountLimitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+func (action PaymentsIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)
@@ -210,6 +175,41 @@ func (action AccountLimitsAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *
 
 // ServeHTTPC is a method for web.Handler
 func (action RateLimitExceededAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action RootAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action TradeIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action TransactionCreateAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action TransactionIndexAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	ap := &action.Action
+	ap.Prepare(c, w, r)
+	ap.Execute(&action)
+}
+
+// ServeHTTPC is a method for web.Handler
+func (action TransactionShowAction) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	ap := &action.Action
 	ap.Prepare(c, w, r)
 	ap.Execute(&action)

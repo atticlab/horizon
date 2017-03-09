@@ -63,6 +63,8 @@ func String(code interface{}) (string, error) {
 			return "tx_bad_auth_extra", nil
 		case xdr.TransactionResultCodeTxInternalError:
 			return "tx_internal_error", nil
+		case xdr.TransactionResultCodeTxFeeCountMismatch:
+			return "tx_fee_count_mismatch", nil
 		}
 	case xdr.OperationResultCode:
 		switch code {
@@ -116,6 +118,16 @@ func String(code interface{}) (string, error) {
 			return OpLineFull, nil
 		case xdr.PaymentResultCodePaymentNoIssuer:
 			return OpNoIssuer, nil
+		case xdr.PaymentResultCodePaymentFeeAssetMismatch:
+			return "op_fee_asset_mismatch", nil
+		case xdr.PaymentResultCodePaymentNegativeFee:
+			return "op_negative_fee", nil
+		case xdr.PaymentResultCodePaymentNegativeAmount:
+			return "op_negative_amount", nil
+		case xdr.PaymentResultCodePaymentAmountLessThanFee:
+			return "op_amount_less_than_fee", nil
+		case xdr.PaymentResultCodePaymentInvalidAsset:
+			return "op_invalid_asset", nil
 		}
 	case xdr.PathPaymentResultCode:
 		switch code {
