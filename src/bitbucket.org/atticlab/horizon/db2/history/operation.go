@@ -229,6 +229,7 @@ func (q *OperationsQ) OnlyPayments() *OperationsQ {
 		xdr.OperationTypePayment,
 		xdr.OperationTypePathPayment,
 		xdr.OperationTypePaymentReversal,
+		xdr.OperationTypeRefund,
 	}})
 	return q
 }
