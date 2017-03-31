@@ -4,7 +4,6 @@ package participants
 
 import (
 	"fmt"
-
 	"bitbucket.org/atticlab/go-smart-base/xdr"
 )
 
@@ -48,6 +47,8 @@ func ForOperation(
 		// the only direct participant is the source_account
 	case xdr.OperationTypePaymentReversal:
 		result = append(result, op.Body.MustPaymentReversalOp().PaymentSource)
+	case xdr.OperationTypeExternalPayment:
+		result = append(result, op.Body.MustExternalPaymentOp().ExchangeAgent)
 	default:
 		err = fmt.Errorf("Unknown operation type: %s", op.Body.Type)
 	}

@@ -25,7 +25,8 @@ var TypeNames = map[xdr.OperationType]string{
 	xdr.OperationTypeInflation:          "inflation",
 	xdr.OperationTypeManageData:         "manage_data",
 	xdr.OperationTypeAdministrative:     "administrative",
-	xdr.OperationTypePaymentReversal: "payment_reversal",
+	xdr.OperationTypePaymentReversal:    "payment_reversal",
+	xdr.OperationTypeExternalPayment:    "external_payment",
 }
 
 // New creates a new operation resource, finding the appropriate type to use
@@ -92,6 +93,10 @@ func New(
 		result = e
 	case xdr.OperationTypeAdministrative:
 		e := Administrative{Base: base}
+		err = row.UnmarshalDetails(&e)
+		result = e
+	case xdr.OperationTypeExternalPayment:
+		e := ExternalPayment{Base: base}
 		err = row.UnmarshalDetails(&e)
 		result = e
 	default:
@@ -232,4 +237,15 @@ type AccountMerge struct {
 type Inflation struct {
 	Base
 	Fee details.Fee `json:"fee"`
+}
+
+type ExternalPayment struct {
+	Base
+	details.Asset
+	Fee    			details.Fee `json:"fee"`
+	From   			string	`json:"from"`
+	ExchangeAgent		string	`json:"exchangeAgent"`
+	DestinationBank		string	`json:"destinationBank"`
+	DestinationAccount	string	`json:"destinationAccount"`
+	Amount			string	`json:"amount"`
 }
