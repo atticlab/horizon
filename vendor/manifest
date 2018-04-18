@@ -284,9 +284,9 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/lloiser/go-debug",
-			"repository": "https://github.com/lloiser/go-debug",
-			"revision": "74d2f523fc8adf978f584db39d0db240f33fe6e1",
+			"importpath": "github.com/visionmedia/go-debug",
+			"repository": "https://github.com/visionmedia/go-debug",
+			"revision": "bfacf9d8a444b50f5d7ae47727544e775486966f",
 			"branch": "master"
 		},
 		{
