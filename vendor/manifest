@@ -2,9 +2,9 @@
 	"version": 0,
 	"dependencies": [
 		{
-			"importpath": "bitbucket.org/atticlab/go-smart-base",
-			"repository": "https://bitbucket.org/atticlab/go-smart-base",
-			"revision": "aa1317b478bd378548e05fc6c142932530e76e6c",
+			"importpath": "github.com/atticlab/go-smart-base",
+			"repository": "https://github.com/atticlab/go-smart-base",
+			"revision": "2f03c1aa3439c0687500915b0d113bca61d2f186",
 			"branch": "nbu"
 		},
 		{
