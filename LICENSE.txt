@@ -264,7 +264,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ---
 
-Portions of code take from goauteneg (https://bitbucket.org/ww/goautoneg)
+Portions of code take from goauteneg (https://github.com/ww/goautoneg)
 Licensed as
 
 Copyright (c) 2011, Open Knowledge Foundation Ltd.

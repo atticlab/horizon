@@ -2,8 +2,8 @@
 set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PACKAGES=$(find src/bitbucket.org/atticlab/horizon/test/scenarios -iname '*.rb' -not -name '_common_accounts.rb')
-# PACKAGES=$(find src/bitbucket.org/atticlab/horizon/test/scenarios -iname 'kahuna.rb' -not -name '_common_accounts.rb')
+PACKAGES=$(find src/github.com/atticlab/horizon/test/scenarios -iname '*.rb' -not -name '_common_accounts.rb')
+# PACKAGES=$(find src/github.com/atticlab/horizon/test/scenarios -iname 'kahuna.rb' -not -name '_common_accounts.rb')
 
 gb build
 
@@ -35,5 +35,5 @@ done
 
 
 # commit new sql files to bindata
-gb generate bitbucket.org/atticlab/horizon/test/scenarios
-# gb test bitbucket.org/atticlab/horizon/ingest
+gb generate github.com/atticlab/horizon/test/scenarios
+# gb test github.com/atticlab/horizon/ingest
